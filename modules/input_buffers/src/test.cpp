@@ -32,7 +32,6 @@ int main(int argc, char const *argv[])
         ap_uint<Y_SIZE> y = val & 0xF;//0x7F ;
         ap_uint<THETA_SIZE> theta_id = blk_idx ;
         ap_uint<P_SIZE> p_id = blk_idx/2 ;
-        // predict_symbol_t pred_symbol(z,y,theta_id,p_id);
         symb_data = (z,y,theta_id,p_id);
       }
       in_data.write(bits_to_intf(symb_data ,symb_ctrl));
@@ -45,7 +44,6 @@ int main(int argc, char const *argv[])
     // for (int i = BUFFER_SIZE-1; i>=0; --i){
 
     // Verify output
-    
     while(!input_vector.empty()){
       symb_data_t golden_data;
       symb_ctrl_t golden_ctrl;
@@ -53,18 +51,28 @@ int main(int argc, char const *argv[])
       input_vector.pop_back();
 
       symb_data_t symb_data;
-      ap_uint<1> end_of_block;
+      ap_uint<1> last_symbol;
       ap_uint<1> is_first_px;
-      (symb_data,end_of_block,is_first_px) = out_data.read();
+      (symb_data,last_symbol,is_first_px) = out_data.read();
 
-      // intf_to_bits(out_data.read(),symb_data,symb_ctrl);
       
       assert(symb_data == golden_data);
       assert(is_first_px == golden_ctrl);
       if(input_vector.empty()) {
-        assert(end_of_block == 1);
+        if(is_first_px ==1) {
+          assert(last_symbol == 0);
+        }else{
+          assert(last_symbol == 1);
+        }
       }else{
-        assert(end_of_block == 0);
+        symb_data_t aux_data;
+        symb_ctrl_t aux_ctrl;
+        intf_to_bits(input_vector.back(),aux_data,aux_ctrl);
+        if(aux_ctrl ==1) { // next is first
+          assert(last_symbol == 1);
+        }else{
+          assert(last_symbol == 0);
+        }
       }
       
     }

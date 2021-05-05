@@ -15,9 +15,9 @@ int main(int argc, char const *argv[])
 {
   stream<coder_interf_t> in_data;
   
-  std::vector<coder_interf_t> input_vector;
   int num_of_errors = 0;
   for (int blk_idx = 0; blk_idx < NUM_OF_BLCKS; ++blk_idx){
+    std::vector<coder_interf_t> input_vector;
     for (int i = 0; i < BUFFER_SIZE; ++i){
       symb_data_t symb_data;
       symb_ctrl_t symb_ctrl;
@@ -42,84 +42,83 @@ int main(int argc, char const *argv[])
     stream<subsymb_t> out_data;
     coder(in_data,out_data);
     
-    // for (int i = BUFFER_SIZE-1; i>=0; --i){
+    //invert stream as ANS acts as a LIFO
+    stream<subsymb_t> inverted_subsymb;
+    {
+      std::vector<subsymb_t> aux_vector;
+      while(!out_data.empty()) {
+        subsymb_t out_symb = out_data.read();
+        aux_vector.push_back(out_symb);
+      }
+      while (!aux_vector.empty()){
+        subsymb_t out_symb = aux_vector.back();
+        aux_vector.pop_back();
+        inverted_subsymb << out_symb;
+      }
 
-    int i = BUFFER_SIZE-1;
-    // Verify output
-    subsymb_t out_symb;  
-    bool need_to_read = true;
-    while(!input_vector.empty()){
+    }
+
+    int i = 0;
+
+    for (auto elem_it = input_vector.begin(); elem_it != input_vector.end(); ++elem_it){
       symb_data_t golden_data;
       symb_ctrl_t golden_ctrl;
-      intf_to_bits(input_vector.back(),golden_data,golden_ctrl);
-      input_vector.pop_back();
-
-      // intf_to_bits(out_data.read(),symb_data,symb_ctrl);
+      intf_to_bits(*elem_it,golden_data,golden_ctrl);
       
+      subsymb_t out_symb;
       if(golden_ctrl == 1) {// first pixel 
-        out_symb = need_to_read?out_data.read():out_symb;
+        out_symb = inverted_subsymb.read();
         pixel_t golden_px = golden_data;
-        assert(out_symb.subsymb == golden_px);
         assert(out_symb.type == SUBSYMB_BYPASS);
         assert(out_symb.end_of_block == 1);
+        assert(out_symb.subsymb == golden_px);
         assert(out_symb.info == INPUT_BPP);
-        need_to_read = true;
       }else{
         predict_symbol_t pred_golden_symbol(golden_data);
-        // check y
-        out_symb = need_to_read?out_data.read():out_symb;
-        need_to_read = true;
-        assert(out_symb.subsymb == pred_golden_symbol.y);
-        assert(out_symb.info == pred_golden_symbol.p_id);
-        assert(out_symb.type == SUBSYMB_Y);
-        assert(out_symb.end_of_block == 0);
         
         // check z
 
         // read first symbol using 
-        out_symb = out_data.read();
+        out_symb = inverted_subsymb.read();
         assert(out_symb.type == SUBSYMB_Z);
         assert(out_symb.info == pred_golden_symbol.theta_id);
 
         auto ans_symb = out_symb.subsymb;
         const auto encoder_cardinality = tANS_cardinality_table[out_symb.info];
-        int module = 0;
+        int module = ans_symb;
         int it = 1;
 
-
-        subsymb_t new_out_symb=out_symb; 
-        do{
-          out_symb =new_out_symb;
-          ans_symb = out_symb.subsymb;
-          // assert(out_symb.end_of_block == 0);
-          assert(out_symb.info == pred_golden_symbol.theta_id);
-          assert(out_symb.type == SUBSYMB_Z);
-          module += ans_symb;
+        while(ans_symb == encoder_cardinality){
+          assert(out_symb.end_of_block == 0);
+          it++;
           
           /*if(it >= EE_MAX_ITERATIONS) {
             module = retrive_bits(escape_bits);
             break;
           }*/
 
-          new_out_symb = out_data.read();
-          it++;
-        }while(new_out_symb.type == SUBSYMB_Z);
-
-        need_to_read = false;
-        if(module != pred_golden_symbol.z) {
-          cout<<"symbol "<<i<<": | Module: "<<module<<" instead of "<<
-          pred_golden_symbol.z<<endl;
+          out_symb = inverted_subsymb.read();
+          ans_symb = out_symb.subsymb;
+          module += ans_symb;
+          assert(out_symb.info == pred_golden_symbol.theta_id);
+          assert(out_symb.type == SUBSYMB_Z);
         }
+
         assert(module == pred_golden_symbol.z);
-        if(input_vector.empty()) {
+        if(i ==0) {
           assert(out_symb.end_of_block == 1);
         }
 
-        out_symb = new_out_symb;
+        // check y
+        out_symb = inverted_subsymb.read();
+        assert(out_symb.subsymb == pred_golden_symbol.y);
+        assert(out_symb.info == pred_golden_symbol.p_id);
+        assert(out_symb.type == SUBSYMB_Y);
+        assert(out_symb.end_of_block == 0);
 
       }
+      i++;
 
-      i--;
     }
   }
 

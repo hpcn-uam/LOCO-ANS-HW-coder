@@ -1,5 +1,5 @@
 
-#include "input_buffers.h"
+#include "input_buffers.hpp"
 
 coder_interf_t bits_to_intf(symb_data_t symb,symb_ctrl_t ctrl){
   return (ctrl,symb);
@@ -40,15 +40,28 @@ void read_block(
     symb_data_t symb_data = buff[elem_ptr];
     // symb_ctrl = (end of block, is first pixel )
     ap_uint<1> is_first_px; 
-    ap_uint<1> end_of_block; 
-    if(elem_ptr == 0) {
-      is_first_px = is_first_block;
-      end_of_block = 1; 
+    ap_uint<1> last_symbol; 
+    if(is_first_block) {
+      if(elem_ptr == 0) {
+        is_first_px = 1;
+        last_symbol = 0; 
+      }else if(elem_ptr == 1){
+        is_first_px = 0;
+        last_symbol = 1;
+      }else{
+        is_first_px = 0;
+        last_symbol = 0;
+      }
     }else{
-      is_first_px = 0;
-      end_of_block = 0;
+      if(elem_ptr == 0){
+        is_first_px = 0;
+        last_symbol = 1;
+      }else{
+        is_first_px = 0;
+        last_symbol = 0;
+      }
     }
-    out << (symb_data,end_of_block,is_first_px) ;
+    out << (symb_data,last_symbol,is_first_px) ;
   }
 }
 

@@ -1,2 +1,3 @@
 -I./subsym_gen.hpp
+-I~/NVME/Xilinx/Vitis_HLS/2020.2/include/
 -I~/Storage/tools/Vitis_HLS/2020.2/include/

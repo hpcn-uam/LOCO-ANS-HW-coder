@@ -17,7 +17,7 @@ void write_block(
   ){
 #pragma HLS INLINE
   write_block_loop:for (int elem_ptr = 0; elem_ptr < BUFFER_SIZE; ++elem_ptr){
-	#pragma HLS PIPELINE rewind enable_flush
+	#pragma HLS PIPELINE rewind
     symb_data_t symb_data;
     symb_ctrl_t symb_ctrl;
     intf_to_bits(in.read(),symb_data,symb_ctrl);
@@ -36,7 +36,7 @@ void read_block(
   ){
 
   read_block_loop:for (int elem_ptr = BUFFER_SIZE-1; elem_ptr >=0 ; --elem_ptr){
-    #pragma HLS PIPELINE rewind enable_flush
+    #pragma HLS PIPELINE rewind
     coder_interf_t symbol;
     symb_data_t symb_data = buff[elem_ptr];
     // symb_ctrl = (end of block, is first pixel )
@@ -57,7 +57,7 @@ void sub_symbol_gen(
   stream<ap_uint<SYMB_DATA_SIZE+2>  > &in_symb, 
   stream<subsymb_t> &out  
   ){
-  #pragma HLS PIPELINE enable_flush
+//  #pragma HLS PIPELINE
   
   symb_data_t symb_data;
   ap_uint<1> end_of_block;
@@ -87,7 +87,9 @@ void sub_symbol_gen(
     // Escape symbol logic
       // subsymb.info = Z_SIZE; if escape symbol
     // subsymb.type = SUBSYMB_BYPASS;
-    
+    // static const ap_uint<5> tANS_cardinality_table[32] = { 16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16};
+    // #pragma HLS BIND_STORAGE variable=tANS_cardinality_table type=rom_1p impl=lutram
+
     // const auto max_allowed_module = max_module_per_cardinality_table[symbol.theta_id ];
     const auto encoder_cardinality = tANS_cardinality_table[pred_symbol.theta_id ];
     uint module_reminder = pred_symbol.z;
@@ -144,7 +146,11 @@ void coder(stream<coder_interf_t > &in, stream<subsymb_t > &out){
   write_block(in, buffers, is_first_block);
 
   stream<ap_uint<SYMB_DATA_SIZE+2>  > inverted_blk_stream;
+#pragma HLS STREAM variable=inverted_blk_stream depth=5
   read_block(buffers, is_first_block,inverted_blk_stream);
-  sub_symbol_gen(inverted_blk_stream, out);
+  sub_symbol_gen_loop: for(unsigned i = 0; i < BUFFER_SIZE; ++i) {
+    #pragma HLS PIPELINE
+    sub_symbol_gen(inverted_blk_stream, out);
+  }
 
 }

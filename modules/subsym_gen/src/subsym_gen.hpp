@@ -2,23 +2,22 @@
 #ifndef CODER_HPP
 #define CODER_HPP
 
-
-
 #include <hls_stream.h>
 #include <tgmath.h>
-#include "ap_int.h"
-#define AP_INT_MAX_W 16384
-#include "ap_axi_sdata.h"
+#include "../../coder_config.hpp"
+// #include "ap_int.h"
+// #define AP_INT_MAX_W 16384
+// #include "ap_axi_sdata.h"
 
 // #ifdef __SYNTHESIS__
 //   #define NDEBUG
 // #endif
-#define INPUT_BPP (8)
+// #define INPUT_BPP (8)
 
-#define Z_SIZE (INPUT_BPP-1)
-#define Y_SIZE (1)
-#define THETA_SIZE (5) //32 tables
-#define P_SIZE (5) //32 tables
+// #define Z_SIZE (INPUT_BPP-1)
+// #define Y_SIZE (1)
+// #define THETA_SIZE (5) //32 tables
+// #define P_SIZE (5) //32 tables
 #define PRED_SYMB_SIZE (Z_SIZE + Y_SIZE + THETA_SIZE + P_SIZE)
 #define SYMB_DATA_SIZE MAX(INPUT_BPP,PRED_SYMB_SIZE)
 #define SYMB_CTRL_SIZE 1
@@ -73,6 +72,7 @@ struct predict_symbol_t{
 #define SUBSYMB_Y 0
 #define SUBSYMB_Z 1
 #define SUBSYMB_BYPASS 2
+#define SUBSYMB_Z_LAST 3
 
 struct subsymb_t{
     ap_uint<SUBSYMB_SIZE> subsymb;
@@ -84,7 +84,11 @@ struct subsymb_t{
   };
 
 
-void coder(stream<coder_interf_t > &in, stream<subsymb_t > &out);
+void sub_symbol_gen(
+  stream<ap_uint<SYMB_DATA_SIZE+2>> &in,
+  stream<subsymb_t> &symbol_stream,
+  stream<pixel_t > &px_stream
+  );
 
 
 #endif // CODER_HPP
