@@ -17,8 +17,6 @@
 #define SYMB_DATA_SIZE MAX(INPUT_BPP,PRED_SYMB_SIZE)
 #define SYMB_CTRL_SIZE 1
 
-#define IS_COMPRESS_SYMB 0
-#define IS_FIRST_PX 1
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
@@ -35,7 +33,7 @@ void intf_to_bits(coder_interf_t intf, symb_data_t &symb,symb_ctrl_t &ctrl);
 
 
 
-void input_buffers(stream<coder_interf_t > &in, stream<ap_uint<SYMB_DATA_SIZE+2> > &out);
+void input_buffers(stream<coder_interf_t > &in, stream<coder_interf_t > &out);
 
 
 #endif // INPUT_BUFFERS_HPP

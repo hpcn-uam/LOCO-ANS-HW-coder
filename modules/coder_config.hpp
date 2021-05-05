@@ -13,6 +13,7 @@
 #define P_SIZE (5) //32 tables
 
 #define BUFFER_SIZE (2048) //2048
+#define BUFFER_ADDR_SIZE (11) //for 2048
 #define EE_MAX_ITERATIONS (3)
 
 static const uint tANS_cardinality_table[32] = { 16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16};
