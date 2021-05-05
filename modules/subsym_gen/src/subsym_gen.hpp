@@ -5,6 +5,7 @@
 #include <hls_stream.h>
 #include <tgmath.h>
 #include "../../coder_config.hpp"
+#include "../../input_buffers/src/input_buffers.hpp"
 // #include "ap_int.h"
 // #define AP_INT_MAX_W 16384
 // #include "ap_axi_sdata.h"
@@ -18,7 +19,7 @@
 // #define Y_SIZE (1)
 // #define THETA_SIZE (5) //32 tables
 // #define P_SIZE (5) //32 tables
-#define PRED_SYMB_SIZE (Z_SIZE + Y_SIZE + THETA_SIZE + P_SIZE)
+/*#define PRED_SYMB_SIZE (Z_SIZE + Y_SIZE + THETA_SIZE + P_SIZE)
 #define SYMB_DATA_SIZE MAX(INPUT_BPP,PRED_SYMB_SIZE)
 #define SYMB_CTRL_SIZE 1
 
@@ -37,11 +38,11 @@ typedef ap_uint<SYMB_DATA_SIZE+SYMB_CTRL_SIZE> coder_interf_t; //
 
 coder_interf_t bits_to_intf(symb_data_t symb,symb_ctrl_t ctrl);
 void intf_to_bits(coder_interf_t intf, symb_data_t &symb,symb_ctrl_t &ctrl);
-
+*/
 
 // Coder input data types and conversions
-typedef ap_uint<INPUT_BPP> pixel_t;
-struct predict_symbol_t{
+// typedef ap_uint<INPUT_BPP> pixel_t;
+/*struct predict_symbol_t{
     ap_uint<Z_SIZE> z;
     ap_uint<Y_SIZE> y;
     ap_uint<THETA_SIZE> theta_id;
@@ -61,7 +62,7 @@ struct predict_symbol_t{
       (p_id,theta_id,y,z) = bits;
       return bits;
     }
-  };
+  };*/
 
 #define MAX_ANS_SYMB_SIZE 4 // MAX(C) = 8
 #define SUBSYMB_SIZE MAX(MAX_ANS_SYMB_SIZE,INPUT_BPP)
@@ -85,9 +86,8 @@ struct subsymb_t{
 
 
 void sub_symbol_gen(
-  stream<ap_uint<SYMB_DATA_SIZE+2>> &in,
-  stream<subsymb_t> &symbol_stream,
-  stream<pixel_t > &px_stream
+  stream<coder_interf_t> &in,
+  stream<subsymb_t> &symbol_stream
   );
 
 
