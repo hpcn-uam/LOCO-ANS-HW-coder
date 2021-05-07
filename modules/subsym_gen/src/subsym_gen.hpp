@@ -1,6 +1,6 @@
 
-#ifndef CODER_HPP
-#define CODER_HPP
+#ifndef SUBSYMB_GEN_HPP
+#define SUBSYMB_GEN_HPP
 
 #include <hls_stream.h>
 #include <tgmath.h>
@@ -91,4 +91,4 @@ void sub_symbol_gen(
   );
 
 
-#endif // CODER_HPP
+#endif // SUBSYMB_GEN_HPP
