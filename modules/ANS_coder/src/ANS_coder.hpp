@@ -33,9 +33,12 @@ struct tANS_table_t {
   ap_uint<LOG2_ANS_BITS> bits;
 } ;
 
+
 struct bit_blocks {
   ap_uint<BIT_BLOCK_SIZE> data;
   ap_uint<LOG2_BIT_BLOCK_SIZE> bits;
+  ap_uint<1> last_block;
+  block_type;
 } ;
 
 void ANS_coder(

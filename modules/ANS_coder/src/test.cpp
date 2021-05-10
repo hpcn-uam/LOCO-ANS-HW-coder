@@ -25,7 +25,10 @@ unsigned int get_bit( std::list<bit_blocks> &binary_list){
   }
   
   unsigned int bit = block.data & (1 << (block.bits-1));
+  bit = bit != 0? 1 : 0;
   block.bits--;
+  binary_list.pop_front();
+  binary_list.push_front(block);
   return bit;
 }
 
@@ -50,7 +53,7 @@ uint tANS_decoder(tANS_dtable_t ANS_table_entry, uint &ANS_decoder_state,
   std::list<bit_blocks> &binary_list){
 
     assert((ANS_decoder_state >= ANS_I_RANGE_START));
-    uint tANS_table_idx = ANS_decoder_state & tANS_STATE_MASK;
+
     auto symbol = ANS_table_entry.symbol;
     assert((symbol >= 0));
     ANS_decoder_state = ANS_table_entry.prev_state;
@@ -93,10 +96,12 @@ int main(int argc, char const *argv[])
     stream<subsymb_t> symbol_stream;
     stream<bit_blocks> bit_block_stream;
     while (! inverted_data.empty()){
-        sub_symbol_gen(inverted_data,symbol_stream);
-        ANS_coder(symbol_stream,bit_block_stream);
+      sub_symbol_gen(inverted_data,symbol_stream);
     }
 
+    while (! symbol_stream.empty()){
+    	ANS_coder(symbol_stream,bit_block_stream);
+    }
 
 
     //invert stream as ANS acts as a LIFO
@@ -125,12 +130,17 @@ int main(int argc, char const *argv[])
     uint subsymbol;
     tANS_dtable_t dtable_entry;
     std::list<bit_blocks> binary_list;
+
+    while(! inverted_bit_blocks.empty()) {
+      bit_blocks out_bit_block = inverted_bit_blocks.read();
+      binary_list.push_back(out_bit_block);
+    }
     for (auto elem_it = input_vector.begin(); elem_it != input_vector.end(); ++elem_it){
       symb_data_t golden_data;
       symb_ctrl_t golden_ctrl;
       intf_to_bits(*elem_it,golden_data,golden_ctrl);
       
-      bit_blocks out_bit_block;
+      // bit_blocks out_bit_block;
 
       ap_uint<Z_SIZE> golden_z ;
       ap_uint<Y_SIZE> golden_y ;
@@ -143,10 +153,10 @@ int main(int argc, char const *argv[])
 
 
       // read first symbol using 
-      out_bit_block = inverted_bit_blocks.read();
-      binary_list.push_back(out_bit_block);
-
-      dtable_entry = tANS_z_decode_table[golden_theta_id][ANS_state];
+      // out_bit_block = inverted_bit_blocks.read();
+      // binary_list.push_back(out_bit_block);
+      uint tANS_table_idx = ANS_state & tANS_STATE_MASK;
+      dtable_entry = tANS_z_decode_table[golden_theta_id][tANS_table_idx];
       subsymbol = tANS_decoder(dtable_entry, ANS_state,binary_list);
 
       auto ans_symb = subsymbol;
@@ -162,22 +172,29 @@ int main(int argc, char const *argv[])
           break;
         }*/
 
-        out_bit_block = inverted_bit_blocks.read();
-        binary_list.push_back(out_bit_block);
-        dtable_entry = tANS_z_decode_table[golden_theta_id][ANS_state];
+        // out_bit_block = inverted_bit_blocks.read();
+        // binary_list.push_back(out_bit_block);
+        tANS_table_idx = ANS_state & tANS_STATE_MASK;
+        dtable_entry = tANS_z_decode_table[golden_theta_id][tANS_table_idx];
         subsymbol = tANS_decoder(dtable_entry, ANS_state,binary_list);
         assert(subsymbol <= encoder_cardinality);
         ans_symb = subsymbol;
         module += ans_symb;
       }
 
+      if(module != golden_z){
+    	  cout<<"blk: "<<blk_idx<<" | i:"<<i<<" | golden_z: "<<golden_z<<
+    			  " | golden_theta_id: "<<golden_theta_id <<
+				  "| module: "<< module<<endl;
+      }
       assert(module == golden_z);
 
 
       // check y
-      out_bit_block = inverted_bit_blocks.read();
-      binary_list.push_back(out_bit_block);
-      dtable_entry = tANS_y_decode_table[golden_p_id][ANS_state];
+      // out_bit_block = inverted_bit_blocks.read();
+      // binary_list.push_back(out_bit_block);
+      tANS_table_idx = ANS_state & tANS_STATE_MASK;
+      dtable_entry = tANS_y_decode_table[golden_p_id][tANS_table_idx];
       subsymbol = tANS_decoder(dtable_entry, ANS_state,binary_list);
       assert(subsymbol <= 1);
       assert(subsymbol == golden_y);

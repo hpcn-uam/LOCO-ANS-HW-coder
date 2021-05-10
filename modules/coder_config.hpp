@@ -9,10 +9,10 @@
 
 #ifndef __SYNTHESIS__
   #define ASSERT(x) assert(x)
+	#include <iostream>
 #else
   #define ASSERT(x) 
 #endif
-
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
