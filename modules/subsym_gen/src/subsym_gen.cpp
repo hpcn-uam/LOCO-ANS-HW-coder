@@ -235,8 +235,6 @@ void z_decompose_2(
   }while(module_reminder != 0);
 }
 
-#define CARD_BITS 5
-#define ANS_SYMB_BITS 4
 
 void z_decompose_pre(
   stream<ap_uint <Z_SIZE+THETA_SIZE+1> > &z_stream,
@@ -253,8 +251,10 @@ void z_decompose_pre(
 
   (z,theta_id,end_of_block)  = z_stream.read();
 
-  const ap_uint<CARD_BITS> encoder_cardinality = 16;
-  // const auto encoder_cardinality = tANS_cardinality_table[pred_symbol.theta_id ];
+  // const ap_uint<CARD_BITS> encoder_cardinality = 16;
+  // static const ap_uint<CARD_BITS> tANS_cardinality_table[32] = { 1,2,4,8,1,2,4,8,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16};
+  // 
+  const ap_uint<CARD_BITS> encoder_cardinality = tANS_cardinality_table[theta_id ];
   ap_uint<Z_SIZE> module_reminder = z;
   // auto current_ANS_table = tANS_encode_table[symbol.theta_id];
 
@@ -409,7 +409,7 @@ void sub_symbol_gen(
   #pragma HLS DATAFLOW
   
   stream<ap_uint <Y_SIZE+P_SIZE> > y_stream;
-  #pragma HLS STREAM variable=y_stream depth=4
+  #pragma HLS STREAM variable=y_stream depth=8
   stream<ap_uint <Z_SIZE+THETA_SIZE+1> > z_stream;
   #pragma HLS STREAM variable=z_stream depth=2
 
@@ -420,7 +420,7 @@ void sub_symbol_gen(
   z_decompose_pre(z_stream,z_stream_with_meta);
 
   stream<subsymb_t> z_decomposed;
-  #pragma HLS STREAM variable=z_decomposed depth=2
+  #pragma HLS STREAM variable=z_decomposed depth=4
   z_decompose_post(z_stream_with_meta,z_decomposed);
 
   serialize_symbols(y_stream,z_decomposed,symbol_stream);

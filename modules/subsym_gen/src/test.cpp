@@ -12,6 +12,7 @@ using namespace std;
 using namespace hls;
 #define NUM_OF_BLCKS (4)
 
+#define TEST_BUFFER_SIZE 32
 int main(int argc, char const *argv[])
 {
   stream<coder_interf_t> in_data;
@@ -21,15 +22,15 @@ int main(int argc, char const *argv[])
   for (int blk_idx = 0; blk_idx < NUM_OF_BLCKS; ++blk_idx){
 	std::vector<coder_interf_t> input_vector;
     cout<<"Processing block "<<blk_idx;
-    int block_size = BUFFER_SIZE - int(blk_idx/2);
+    int block_size = TEST_BUFFER_SIZE - int(blk_idx/2);
     for (int i = 0; i < block_size; ++i){
       symb_data_t symb_data;
       symb_ctrl_t symb_ctrl = (i == block_size-1)? 1:0 ;
 
-      int val = i+BUFFER_SIZE*blk_idx;
-      ap_uint<Z_SIZE> z = val & 0xF;//0x7F ;
+      int val = i+TEST_BUFFER_SIZE*blk_idx;
+      ap_uint<Z_SIZE> z = blk_idx <= 1? val & 0xF : val & 0x7F ;
       ap_uint<Y_SIZE> y = val & 0x80?1:0 ; 
-      ap_uint<THETA_SIZE> theta_id = blk_idx ;
+      ap_uint<THETA_SIZE> theta_id = i ;
       ap_uint<P_SIZE> p_id = blk_idx/2 ;
       symb_data = (z,y,theta_id,p_id);
       in_data.write(bits_to_intf(symb_data ,symb_ctrl));
@@ -92,8 +93,14 @@ int main(int argc, char const *argv[])
       int module = ans_symb;
       int it = 1;
 
+      if(i ==0) {
+		  assert(out_symb.end_of_block == 1);
+		}else{
+			assert(out_symb.end_of_block == 0);
+		}
+
       while(ans_symb == encoder_cardinality){
-        assert(out_symb.end_of_block == 0);
+
         it++;
         
         /*if(it >= EE_MAX_ITERATIONS) {
@@ -102,16 +109,16 @@ int main(int argc, char const *argv[])
         }*/
 
         out_symb = inverted_subsymb.read();
+
         ans_symb = out_symb.subsymb;
         module += ans_symb;
         assert(out_symb.info == golden_theta_id);
         assert(out_symb.type == SUBSYMB_Z );
+        assert(out_symb.end_of_block == 0);
       }
 
       assert(module == golden_z);
-      if(i ==0) {
-        assert(out_symb.end_of_block == 1);
-      }
+
 
       // check y
       out_symb = inverted_subsymb.read();
