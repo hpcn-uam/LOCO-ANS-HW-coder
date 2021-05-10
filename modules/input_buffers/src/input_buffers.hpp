@@ -17,10 +17,6 @@
 #define SYMB_DATA_SIZE MAX(INPUT_BPP,PRED_SYMB_SIZE)
 #define SYMB_CTRL_SIZE 1
 
-
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
-
 using namespace hls;
 
 // Coder input interface types and conversions
