@@ -38,7 +38,7 @@ struct bit_blocks {
   ap_uint<BIT_BLOCK_SIZE> data;
   ap_uint<LOG2_BIT_BLOCK_SIZE> bits;
   ap_uint<1> last_block;
-  block_type;
+  // block_type;
 } ;
 
 void ANS_coder(
