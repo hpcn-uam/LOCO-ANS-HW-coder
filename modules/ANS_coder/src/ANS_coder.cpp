@@ -24,7 +24,64 @@ void tANS_encode(
   ANS_encoder_state = ANS_table_entry.state;
 }
 
+void code_symbols_loop(
+  stream<subsymb_t> &symbol_stream,
+  stream<bit_blocks> &bit_block_stream){
+  
+  #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
+  #pragma HLS INTERFACE axis register_mode=both register port=bit_block_stream
+  #pragma HLS INTERFACE ap_ctrl_none port=return
 
+
+
+  static const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
+    #include "ANS_tables/tANS_y_encoder_table.dat"
+  }; // [0] number of bits, [1] next state  
+  static const tANS_table_t tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]{
+    #include "ANS_tables/tANS_z_encoder_table.dat"
+  }; 
+
+  ap_uint<NUM_ANS_BITS> ANS_state = 0;
+  subsymb_t symbol;
+  do {
+    #pragma HLS PIPELINE style=flp
+    symbol = symbol_stream.read();
+    bit_blocks out_bits;
+    out_bits.last_block=0;
+
+    #ifndef __SYNTHESIS__
+      #ifdef DEBUG
+        std::cout<<"Debug: code_symbols | In symb type :"<<symbol.type<<
+          " | subsymb: "<<symbol.subsymb<< 
+          "| info: "<< symbol.info<<
+          "| end_of_block: "<< symbol.end_of_block<<
+          std::endl;
+      #endif
+    #endif
+
+    if(symbol.type == SUBSYMB_BYPASS) {
+      out_bits.data = symbol.subsymb;
+      out_bits.bits = symbol.info;
+    }else{
+      tANS_table_t ANS_table_entry;
+      if(symbol.type == SUBSYMB_Y) {
+        ANS_table_entry = tANS_y_encode_table[symbol.info][ANS_state][symbol.subsymb];
+      }else{
+        ANS_table_entry = tANS_z_encode_table[symbol.info][ANS_state][symbol.subsymb];
+      }
+      tANS_encode(ANS_table_entry,ANS_state ,out_bits);
+    }
+
+    bit_block_stream << out_bits;
+
+
+  } while (symbol.end_of_block == 0);
+
+
+  bit_blocks last_state={(ap_uint<1>(1), ANS_state),NUM_ANS_BITS+1};
+  bit_block_stream << last_state;
+  // ANS_state = 0;
+}
 
 /*void code_symbols(
   stream<subsymb_t> &symbol_stream,
@@ -81,9 +138,15 @@ void code_symbols(
   stream<subsymb_t> &symbol_stream,
   stream<bit_blocks> &out_bit_stream,
   stream<bit_blocks> &last_state_stream){
-  // #pragma HLS PIPELINE
+
+  // #if !LOOP_IMPL && SPLITED_FREE_KERNELS
+  // #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
+  // #pragma HLS INTERFACE axis register_mode=both register port=out_bit_stream
+  // #pragma HLS INTERFACE axis register_mode=both register port=last_state_stream
+  // #pragma HLS INTERFACE ap_ctrl_none port=return
+  // #endif
+
   #pragma HLS PIPELINE style=frp
-  // #pragma HLS PIPELINE style=flp
   
   static const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
     #include "ANS_tables/tANS_y_encoder_table.dat"
@@ -135,7 +198,7 @@ void code_symbols(
   
 }
 
- #ifndef __SYNTHESIS__
+#ifndef __SYNTHESIS__
   void ANS_output(
     stream<bit_blocks> &out_bit_stream,
     stream<bit_blocks> &last_state_stream,
@@ -157,17 +220,15 @@ void code_symbols(
     stream<bit_blocks> &out_bit_stream,
     stream<bit_blocks> &last_state_stream,
     stream<bit_blocks> &bit_block_stream){
+
     // #pragma HLS INTERFACE axis register_mode=both register port=out_bit_stream
     // #pragma HLS INTERFACE axis register_mode=both register port=last_state_stream
     // #pragma HLS INTERFACE axis register_mode=both register port=bit_block_stream
-    
     // #pragma HLS INTERFACE ap_ctrl_none port=return
 
-    // #pragma HLS PIPELINE style=flp
-    // #pragma HLS PIPELINE style=frp
-    // #pragma HLS PIPELINE 
+    #pragma HLS PIPELINE style=frp
     // 
-    #pragma HLS LATENCY max=1
+    // #pragma HLS LATENCY max=1
     static ap_uint<1> send_output = 0;
 
     bit_blocks out_block;
@@ -281,7 +342,7 @@ void ANS_coder(
   #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
   #pragma HLS INTERFACE axis register_mode=both register port=bit_block_stream
   
-  #pragma HLS DATAFLOW
+  #pragma HLS DATAFLOW disable_start_propagation
   #pragma HLS INTERFACE ap_ctrl_none port=return
 
   

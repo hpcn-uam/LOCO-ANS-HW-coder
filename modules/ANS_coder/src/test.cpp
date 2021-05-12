@@ -66,6 +66,7 @@ uint tANS_decoder(tANS_dtable_t ANS_table_entry, uint &ANS_decoder_state,
     return symbol;
   }
 
+
 int main(int argc, char const *argv[])
 {
   stream<coder_interf_t> in_data;
@@ -99,10 +100,24 @@ int main(int argc, char const *argv[])
       sub_symbol_gen(inverted_data,symbol_stream);
     }
 
-    while (! symbol_stream.empty()){
-    	ANS_coder(symbol_stream,bit_block_stream);
-    }
+    #if LOOP_IMPL
+      code_symbols_loop(symbol_stream,bit_block_stream);
+    #elif SPLITED_FREE_KERNELS
+      stream<bit_blocks> out_bit_stream;
+      stream<bit_blocks> last_state_stream;
+      while (! symbol_stream.empty()){
+          code_symbols(symbol_stream,out_bit_stream,last_state_stream);
+      }
 
+      while ((! out_bit_stream.empty()) || (! last_state_stream.empty()) ){
+        ANS_output(out_bit_stream,last_state_stream,bit_block_stream);
+      }
+
+    #else
+      while (! symbol_stream.empty()){
+    	 ANS_coder(symbol_stream,bit_block_stream);
+      }
+    #endif
 
     //invert stream as ANS acts as a LIFO
     stream<bit_blocks> inverted_bit_blocks;

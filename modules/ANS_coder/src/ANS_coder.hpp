@@ -27,6 +27,8 @@ struct subsymb_t{
 
   };*/
 
+#define LOOP_IMPL false
+#define SPLITED_FREE_KERNELS false
 
 struct tANS_table_t {
   ap_uint<NUM_ANS_BITS> state;
@@ -44,6 +46,22 @@ struct bit_blocks {
 void ANS_coder(
   stream<subsymb_t> &symbol_stream,
   stream<bit_blocks> &bit_block_stream);
+
+
+void code_symbols_loop(
+  stream<subsymb_t> &symbol_stream,
+  stream<bit_blocks> &bit_block_stream);
+
+
+void code_symbols(
+  stream<subsymb_t> &symbol_stream,
+  stream<bit_blocks> &out_bit_stream,
+  stream<bit_blocks> &last_state_stream);
+
+void ANS_output(
+    stream<bit_blocks> &out_bit_stream,
+    stream<bit_blocks> &last_state_stream,
+    stream<bit_blocks> &bit_block_stream);
 
 
 #endif // ANS_CODER_HPP
