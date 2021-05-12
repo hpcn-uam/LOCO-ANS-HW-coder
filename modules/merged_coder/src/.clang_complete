@@ -1,0 +1,5 @@
+-I./ANS_coder.hpp
+-I../../subsym_gen/src/subsym_gen.hpp
+-I../../coder_config.hpp
+-I~/NVME/Xilinx/Vitis_HLS/2020.2/include/
+-I~/Storage/tools/Vitis_HLS/2020.2/include/
