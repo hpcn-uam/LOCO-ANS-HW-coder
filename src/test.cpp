@@ -3,123 +3,162 @@
 #include <cmath>
 #include <ctime>
 #include <cstring>
-#include "coder.hpp"
-#include "coder_config.hpp"
+#include "TSG_coder.hpp"
+#include "../modules/test/test.hpp"
 #include <vector>
+#include <list>
 
 using namespace std;
 using namespace hls;
 #define NUM_OF_BLCKS (4)
 
+#define TEST_BUFFER_SIZE 32
+
 int main(int argc, char const *argv[])
 {
   stream<coder_interf_t> in_data;
   
+
   int num_of_errors = 0;
   for (int blk_idx = 0; blk_idx < NUM_OF_BLCKS; ++blk_idx){
-    std::vector<coder_interf_t> input_vector;
-    for (int i = 0; i < BUFFER_SIZE; ++i){
+	  std::vector<coder_interf_t> input_vector;
+    cout<<"Processing block "<<blk_idx<<endl;
+
+    // ************
+    // Generate input 
+    // ************
+    int block_size = TEST_BUFFER_SIZE - int(blk_idx/2);
+    for (int i = 0; i < block_size; ++i){
       symb_data_t symb_data;
-      symb_ctrl_t symb_ctrl;
-      if(blk_idx == 0 && i == 0) { // first pixel
-        symb_ctrl = 1;
-        pixel_t px = 0xFF;
-        symb_data = px;
-      }else{
-        symb_ctrl = 0;
-        int val = i+BUFFER_SIZE*blk_idx;
-        int y = val & 0x80?1:0 ;
-        int z = val & 0xF;//0x7F ;
-        int theta = blk_idx ;
-        int p = blk_idx/2 ;
-        predict_symbol_t pred_symbol(z,y,theta,p);
-        symb_data = pred_symbol.to_bits();
-      }
+      symb_ctrl_t symb_ctrl = (i == block_size-1)? 1:0 ;
+
+      int val = i+TEST_BUFFER_SIZE*blk_idx;
+      ap_uint<Z_SIZE> z = blk_idx <= 1? val & 0xF : val & 0x7F ;
+      ap_uint<Y_SIZE> y = val & 0x80?1:0 ; 
+      ap_uint<THETA_SIZE> theta_id = i >= NUM_ANS_THETA_MODES?NUM_ANS_THETA_MODES-1: i ;
+      ap_uint<P_SIZE> p_id = blk_idx/2 ;
+      symb_data = (z,y,theta_id,p_id);
       in_data.write(bits_to_intf(symb_data ,symb_ctrl));
       input_vector.push_back(bits_to_intf(symb_data ,symb_ctrl));
     }
 
-    stream<subsymb_t> out_data;
-    coder(in_data,out_data);
+    stream<coder_interf_t> inverted_data;
+    input_buffers(in_data, inverted_data);
+
+    // ************
+    // Run DUT :
+    // ************
+    stream<bit_blocks> bit_block_stream;
+    while (! inverted_data.empty()){
+      TSG_coder(inverted_data,bit_block_stream);
+    }
+
+
+    // ************
+    // Check output
+    // ************
     
     //invert stream as ANS acts as a LIFO
-    stream<subsymb_t> inverted_subsymb;
+    stream<bit_blocks> inverted_bit_blocks;
     {
-      std::vector<subsymb_t> aux_vector;
-      while(!out_data.empty()) {
-        subsymb_t out_symb = out_data.read();
-        aux_vector.push_back(out_symb);
+      std::vector<bit_blocks> aux_vector;
+      while(!bit_block_stream.empty()) {
+        bit_blocks out_bit_block = bit_block_stream.read();
+        aux_vector.push_back(out_bit_block);
       }
       while (!aux_vector.empty()){
-        subsymb_t out_symb = aux_vector.back();
+        bit_blocks out_bit_block = aux_vector.back();
         aux_vector.pop_back();
-        inverted_subsymb << out_symb;
+        inverted_bit_blocks << out_bit_block;
       }
 
     }
 
     int i = 0;
 
+    // get last ANS state
+    bit_blocks last_ANS_state = inverted_bit_blocks.read();
+
+    uint ANS_state = last_ANS_state.data;
+    assert(last_ANS_state.bits == NUM_ANS_BITS+1);
+    uint subsymbol;
+    tANS_dtable_t dtable_entry;
+    std::list<bit_blocks> binary_list;
+
+    while(! inverted_bit_blocks.empty()) {
+      bit_blocks out_bit_block = inverted_bit_blocks.read();
+      binary_list.push_back(out_bit_block);
+    }
     for (auto elem_it = input_vector.begin(); elem_it != input_vector.end(); ++elem_it){
       symb_data_t golden_data;
       symb_ctrl_t golden_ctrl;
       intf_to_bits(*elem_it,golden_data,golden_ctrl);
       
-      subsymb_t out_symb;
-      if(golden_ctrl == 1) {// first pixel 
-        out_symb = inverted_subsymb.read();
-        pixel_t golden_px = golden_data;
-        assert(out_symb.type == SUBSYMB_BYPASS);
-        assert(out_symb.end_of_block == 1);
-        assert(out_symb.subsymb == golden_px);
-        assert(out_symb.info == INPUT_BPP);
-      }else{
-        predict_symbol_t pred_golden_symbol(golden_data);
+      // bit_blocks out_bit_block;
+
+      ap_uint<Z_SIZE> golden_z ;
+      ap_uint<Y_SIZE> golden_y ;
+      ap_uint<THETA_SIZE> golden_theta_id ;
+      ap_uint<P_SIZE> golden_p_id ;
+      (golden_z,golden_y,golden_theta_id,golden_p_id) = golden_data;
+      
+      // check z
+
+
+
+      // read first symbol using 
+      // out_bit_block = inverted_bit_blocks.read();
+      // binary_list.push_back(out_bit_block);
+      uint tANS_table_idx = ANS_state & tANS_STATE_MASK;
+      dtable_entry = tANS_z_decode_table[golden_theta_id][tANS_table_idx];
+      subsymbol = tANS_decoder(dtable_entry, ANS_state,binary_list);
+
+      auto ans_symb = subsymbol;
+      const auto encoder_cardinality = tANS_cardinality_table[golden_theta_id];
+      int module = ans_symb;
+      int it = 1;
+      while(ans_symb == encoder_cardinality){
+
+        it++;
         
-        // check z
+        /*if(it >= EE_MAX_ITERATIONS) {
+          module = retrive_bits(escape_bits);
+          break;
+        }*/
 
-        // read first symbol using 
-        out_symb = inverted_subsymb.read();
-        assert(out_symb.type == SUBSYMB_Z);
-        assert(out_symb.info == pred_golden_symbol.theta_id);
-
-        auto ans_symb = out_symb.subsymb;
-        const auto encoder_cardinality = tANS_cardinality_table[out_symb.info];
-        int module = ans_symb;
-        int it = 1;
-
-        while(ans_symb == encoder_cardinality){
-          assert(out_symb.end_of_block == 0);
-          it++;
-          
-          /*if(it >= EE_MAX_ITERATIONS) {
-            module = retrive_bits(escape_bits);
-            break;
-          }*/
-
-          out_symb = inverted_subsymb.read();
-          ans_symb = out_symb.subsymb;
-          module += ans_symb;
-          assert(out_symb.info == pred_golden_symbol.theta_id);
-          assert(out_symb.type == SUBSYMB_Z);
-        }
-
-        assert(module == pred_golden_symbol.z);
-        if(i ==0) {
-          assert(out_symb.end_of_block == 1);
-        }
-
-        // check y
-        out_symb = inverted_subsymb.read();
-        assert(out_symb.subsymb == pred_golden_symbol.y);
-        assert(out_symb.info == pred_golden_symbol.p_id);
-        assert(out_symb.type == SUBSYMB_Y);
-        assert(out_symb.end_of_block == 0);
-
+        // out_bit_block = inverted_bit_blocks.read();
+        // binary_list.push_back(out_bit_block);
+        tANS_table_idx = ANS_state & tANS_STATE_MASK;
+        dtable_entry = tANS_z_decode_table[golden_theta_id][tANS_table_idx];
+        subsymbol = tANS_decoder(dtable_entry, ANS_state,binary_list);
+        assert(subsymbol <= encoder_cardinality);
+        ans_symb = subsymbol;
+        module += ans_symb;
       }
+
+      if(module != golden_z){
+    	  cout<<"blk: "<<blk_idx<<" | i:"<<i<<" | golden_z: "<<golden_z<<
+    			  " | golden_theta_id: "<<golden_theta_id <<
+				  "| module: "<< module<<endl;
+      }
+      assert(module == golden_z);
+
+
+      // check y
+      // out_bit_block = inverted_bit_blocks.read();
+      // binary_list.push_back(out_bit_block);
+      tANS_table_idx = ANS_state & tANS_STATE_MASK;
+      dtable_entry = tANS_y_decode_table[golden_p_id][tANS_table_idx];
+      subsymbol = tANS_decoder(dtable_entry, ANS_state,binary_list);
+      assert(subsymbol <= 1);
+      assert(subsymbol == golden_y);
+
       i++;
 
     }
+
+    assert(ANS_state == (1<<NUM_ANS_BITS));
+    cout<<"  | SUCCESS"<<endl;
   }
 
   return num_of_errors;
