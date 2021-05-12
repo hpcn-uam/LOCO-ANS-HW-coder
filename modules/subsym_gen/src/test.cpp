@@ -30,7 +30,7 @@ int main(int argc, char const *argv[])
       int val = i+TEST_BUFFER_SIZE*blk_idx;
       ap_uint<Z_SIZE> z = blk_idx <= 1? val & 0xF : val & 0x7F ;
       ap_uint<Y_SIZE> y = val & 0x80?1:0 ; 
-      ap_uint<THETA_SIZE> theta_id = i ;
+      ap_uint<THETA_SIZE> theta_id = i >= NUM_ANS_THETA_MODES?NUM_ANS_THETA_MODES-1: i ;
       ap_uint<P_SIZE> p_id = blk_idx/2 ;
       symb_data = (z,y,theta_id,p_id);
       in_data.write(bits_to_intf(symb_data ,symb_ctrl));

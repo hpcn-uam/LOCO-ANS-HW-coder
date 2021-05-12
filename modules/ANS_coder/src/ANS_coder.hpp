@@ -27,8 +27,7 @@ struct subsymb_t{
 
   };*/
 
-#define LOOP_IMPL false
-#define SPLITED_FREE_KERNELS false
+
 
 struct tANS_table_t {
   ap_uint<NUM_ANS_BITS> state;

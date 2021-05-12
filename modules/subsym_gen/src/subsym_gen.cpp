@@ -402,11 +402,13 @@ void sub_symbol_gen(
   stream<coder_interf_t> &in,
   stream<subsymb_t> &symbol_stream
   ){
-  #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
-  // #pragma HLS INTERFACE axis register_mode=both register depth=4 port=px_stream
+  #if SUB_SYMBOL_GEN_TOP
   #pragma HLS INTERFACE axis register_mode=both register port=in
-  #pragma HLS INTERFACE ap_ctrl_none port=return
+  #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
+  #endif
+
   #pragma HLS DATAFLOW
+  #pragma HLS INTERFACE ap_ctrl_none port=return
   
   stream<ap_uint <Y_SIZE+P_SIZE> > y_stream;
   #pragma HLS STREAM variable=y_stream depth=8

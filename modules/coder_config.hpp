@@ -1,8 +1,6 @@
 #ifndef CODER_CONFIG_HPP
 #define CODER_CONFIG_HPP
 
-// #include "coder.hpp"
-// #define DEBUG_TYPES
 #include <cstdint>
 #include <assert.h>
 #include "ap_int.h"
@@ -16,8 +14,6 @@
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
-
-#define AP_INT_MAX_W 16384
 
 #define INPUT_BPP (8)
 

@@ -56,9 +56,14 @@ void input_buffers(
   stream<coder_interf_t > &in, 
   stream<coder_interf_t > &out
   ){
+  #if INPUT_BUFFERS_TOP
   #pragma HLS INTERFACE axis register_mode=both register port=out
   #pragma HLS INTERFACE axis register_mode=both register port=in
+  #endif
+
+  #pragma HLS DATAFLOW
   #pragma HLS INTERFACE ap_ctrl_none port=return
+
   symb_data_t buffers[BUFFER_SIZE];
   #pragma HLS STREAM variable=buffers depth=2 off
   ap_uint<BUFFER_ADDR_SIZE> last_element;
