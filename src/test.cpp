@@ -42,17 +42,11 @@ int main(int argc, char const *argv[])
       input_vector.push_back(bits_to_intf(symb_data ,symb_ctrl));
     }
 
-    stream<coder_interf_t> inverted_data;
-    input_buffers(in_data, inverted_data);
-
     // ************
     // Run DUT :
     // ************
     stream<bit_blocks> bit_block_stream;
-    while (! inverted_data.empty()){
-      TSG_coder(inverted_data,bit_block_stream);
-    }
-
+    TSG_coder(in_data,bit_block_stream);
 
     // ************
     // Check output
