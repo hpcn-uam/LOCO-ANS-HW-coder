@@ -2,10 +2,11 @@
 #include "ANS_coder.hpp"
 #include "../../coder_config.hpp"
 
+template<size_t M>
 void tANS_encode(
   tANS_table_t ANS_table_entry,
   ap_uint<NUM_ANS_BITS> &ANS_encoder_state , 
-  bit_blocks &out_bits){
+  bit_blocks_with_meta<M> &out_bits){
   #pragma HLS INLINE
 
   out_bits.bits = ANS_table_entry.bits;
@@ -24,7 +25,7 @@ void tANS_encode(
   ANS_encoder_state = ANS_table_entry.state;
 }
 
-void code_symbols_loop(
+/*void code_symbols_loop(
   stream<subsymb_t> &symbol_stream,
   stream<bit_blocks> &bit_block_stream){
   
@@ -82,6 +83,7 @@ void code_symbols_loop(
   bit_block_stream << last_state;
   // ANS_state = 0;
 }
+*/
 
 /*void code_symbols(
   stream<subsymb_t> &symbol_stream,
@@ -136,16 +138,15 @@ void code_symbols_loop(
 
 void code_symbols(
   stream<subsymb_t> &symbol_stream,
-  stream<bit_blocks> &out_bit_stream,
-  stream<bit_blocks> &last_state_stream){
+  stream<bit_blocks_with_meta<NUM_ANS_BITS>> &out_bit_stream){
 
   #if CODE_SYMBOLS_TOP
   #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
   #pragma HLS INTERFACE axis register_mode=both register port=out_bit_stream
-  #pragma HLS INTERFACE axis register_mode=both register port=last_state_stream
   #pragma HLS INTERFACE ap_ctrl_none port=return
   #endif
 
+  // #pragma HLS PIPELINE style=flp
   #pragma HLS PIPELINE style=frp
   
   static const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
@@ -158,9 +159,11 @@ void code_symbols(
 
   static ap_uint<NUM_ANS_BITS> ANS_state = 0;
 
-  bit_blocks out_bits;
+  bit_blocks_with_meta<NUM_ANS_BITS> out_bits;
+
   subsymb_t symbol = symbol_stream.read();
 
+  
   out_bits.last_block = symbol.end_of_block;
   #ifndef __SYNTHESIS__
     #ifdef DEBUG
@@ -185,67 +188,83 @@ void code_symbols(
     tANS_encode(ANS_table_entry,ANS_state ,out_bits);
   }
 
-
+  out_bits.metadata = ANS_state;
   out_bit_stream << out_bits;
+
+  
   if(symbol.end_of_block == 1) {
-    bit_blocks last_state_block;
+    /*bit_blocks last_state_block;
     last_state_block.data = (ap_uint<1>(1), ANS_state);
     last_state_block.bits = NUM_ANS_BITS+1;
     last_state_block.last_block =1;
-    last_state_stream <<last_state_block;
+    last_state_stream <<last_state_block;*/
     ANS_state = 0;
   }
   
 }
 
 
-/*void ANS_output(
-  stream<bit_blocks> &out_bit_stream,
-  stream<bit_blocks> &last_state_stream,
-  stream<bit_blocks> &bit_block_stream){
+#ifdef __SYNTHESIS__
+  void ANS_output(
+    stream<bit_blocks_with_meta<NUM_ANS_BITS>> &in_bit_blocks,
+    stream<bit_blocks> &out_bit_blocks){
 
-  bit_blocks out_block;
-  out_block = out_bit_stream.read();
-  ap_uint<1> send_output = out_block.last_block;
-  out_block.last_block =0 ;
-  bit_block_stream << out_block;
+    #if ANS_OUTPUT_TOP
+    #pragma HLS INTERFACE axis register_mode=both register port=in_bit_blocks
+    #pragma HLS INTERFACE axis register_mode=both register port=out_bit_blocks
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+    #endif
 
-  if(send_output == 1) {
-    out_block = last_state_stream.read();
-    bit_block_stream << out_block;
+    #pragma HLS PIPELINE style=frp
+    // 
+    // #pragma HLS LATENCY max=1
+    static ap_uint<1> send_output = 0;
+    static ap_uint<NUM_ANS_BITS> ANS_state = 0;
+
+    bit_blocks_with_meta<NUM_ANS_BITS> in_block;
+    bit_blocks out_block;
+    if(send_output == 1) {
+      send_output = 0;
+      out_block.data = (ap_uint<1>(1), ANS_state);
+      out_block.bits = NUM_ANS_BITS+1;
+      out_block.last_block = 1;
+    }else{
+      in_block = in_bit_blocks.read();
+      send_output = in_block.last_block;
+      ANS_state = in_block.metadata; // save just in case I need it in next cycle
+      in_block.last_block =0 ;
+      out_block = in_block;
+    }
+
+    out_bit_blocks << out_block;
+
   }
-}*/
+#else
+  void ANS_output(
+    stream<bit_blocks_with_meta<NUM_ANS_BITS>> &in_bit_blocks,
+    stream<bit_blocks> &out_bit_blocks){
 
-void ANS_output(
-  stream<bit_blocks> &out_bit_stream,
-  stream<bit_blocks> &last_state_stream,
-  stream<bit_blocks> &bit_block_stream){
+    bit_blocks_with_meta<NUM_ANS_BITS> in_block;
+    bit_blocks out_block;
 
-  #if ANS_OUTPUT_TOP
-  #pragma HLS INTERFACE axis register_mode=both register port=out_bit_stream
-  #pragma HLS INTERFACE axis register_mode=both register port=last_state_stream
-  #pragma HLS INTERFACE axis register_mode=both register port=bit_block_stream
-  #pragma HLS INTERFACE ap_ctrl_none port=return
-  #endif
+    in_block = in_bit_blocks.read();
+     ap_uint<1> send_output = in_block.last_block;
+    ap_uint<NUM_ANS_BITS> ANS_state = in_block.metadata; // save just in case I need it in next cycle
+    in_block.last_block =0 ;
+    out_block = in_block;
 
-  #pragma HLS PIPELINE style=frp
-  // 
-  // #pragma HLS LATENCY max=1
-  static ap_uint<1> send_output = 0;
+    out_bit_blocks <<out_block;
 
-  bit_blocks out_block;
-  if(send_output == 1) {
-    send_output = 0;
-    out_block = last_state_stream.read();
-  }else{
-    out_block = out_bit_stream.read();
-    send_output = out_block.last_block;
-    out_block.last_block =0 ;
+    if(send_output == 1) {
+      out_block.data = (ap_uint<1>(1), ANS_state);
+      out_block.bits = NUM_ANS_BITS+1;
+      out_block.last_block = 1;
+      out_bit_blocks << out_block;
+    }
   }
+#endif
 
-  bit_block_stream << out_block;
 
-}
 
 
 
@@ -350,21 +369,14 @@ void ANS_coder(
   #pragma HLS INTERFACE ap_ctrl_none port=return
 
   
-  stream<bit_blocks> out_bit_stream;
+  stream<bit_blocks_with_meta<NUM_ANS_BITS>> out_bit_stream;
   #pragma HLS STREAM variable=out_bit_stream depth=8
   stream<bit_blocks> last_state_stream;
   #pragma HLS STREAM variable=last_state_stream depth=8
   // code_symbols(symbol,bit_block_stream);
-  code_symbols(symbol_stream,out_bit_stream,last_state_stream);
+  code_symbols(symbol_stream,out_bit_stream);
 
-  #ifdef __SYNTHESIS__
-    ANS_output(out_bit_stream,last_state_stream,bit_block_stream);
-  #else
-    while ((! out_bit_stream.empty()) || (! last_state_stream.empty()) ){
-      ANS_output(out_bit_stream,last_state_stream,bit_block_stream);
-    }
-  #endif
-
+  ANS_output(out_bit_stream,bit_block_stream);
 
 }
 
