@@ -89,8 +89,8 @@ void split_stream(
   stream<ap_uint <Y_SIZE+P_SIZE> > &y_stream,
   stream<ap_uint <Z_SIZE+THETA_SIZE+1> > &z_stream){
   // #pragma HLS INTERFACE ap_ctrl_none port=return
-  #pragma HLS PIPELINE
-  // #pragma HLS PIPELINE style=frp
+  // #pragma HLS PIPELINE
+  #pragma HLS PIPELINE style=frp
   symb_data_t symb_data;
   symb_ctrl_t symb_ctrl;
   ap_uint<Z_SIZE> z;
@@ -241,8 +241,8 @@ void z_decompose_pre(
   stream<ap_uint <CARD_BITS+ANS_SYMB_BITS+ 2*Z_SIZE+THETA_SIZE+1> > &z_stream_with_meta
   ){
   // #pragma HLS INTERFACE ap_ctrl_none port=return
-  #pragma HLS PIPELINE 
-  // #pragma HLS PIPELINE style=frp
+  // #pragma HLS PIPELINE 
+  #pragma HLS PIPELINE style=frp
   subsymb_t z_subsymb;
 
   ap_uint<Z_SIZE> z;
@@ -286,6 +286,42 @@ void z_decompose_post(
   stream<ap_uint <CARD_BITS+ANS_SYMB_BITS+ 2*Z_SIZE+THETA_SIZE+1> > &z_stream_with_meta,
   stream<subsymb_t> &z_decomposed
   ){
+  #pragma HLS PIPELINE style=frp
+  static ap_uint<Z_SIZE> module_reminder = 0;
+  static ap_uint<ANS_SYMB_BITS> ans_symb = 0;
+  static ap_uint<CARD_BITS> encoder_cardinality;
+  static ap_uint<THETA_SIZE> theta_id;
+  static ap_uint<1> end_of_block;
+  static ap_uint<Z_SIZE> z;
+
+
+
+  if(module_reminder == 0) {
+    (encoder_cardinality,ans_symb,module_reminder,z,theta_id,end_of_block) = z_stream_with_meta.read();
+  }
+
+  // Geometric coder 
+  ASSERT(module_reminder < (module_reminder-ans_symb )); // check no underflow
+  module_reminder -= ans_symb;
+  
+  subsymb_t z_subsymb;
+  z_subsymb.subsymb = ans_symb; 
+  z_subsymb.info = theta_id; 
+  z_subsymb.type = module_reminder==0 ?SUBSYMB_Z_LAST:SUBSYMB_Z;
+  z_subsymb.end_of_block = (module_reminder==0 && end_of_block == 1)? 1:0;
+  z_decomposed << z_subsymb;
+
+  ans_symb = encoder_cardinality;
+}
+
+
+// WITH  #pragma HLS PIPELINE rewind: achieves II=1, but can stall
+// with  #pragma HLS PIPELINE style=flp :the loop achieves II=1, but the function 
+//     requires 2 extra cycles, I can afford just 1 extra cycle
+void z_decompose_post_loop(
+  stream<ap_uint <CARD_BITS+ANS_SYMB_BITS+ 2*Z_SIZE+THETA_SIZE+1> > &z_stream_with_meta,
+  stream<subsymb_t> &z_decomposed
+  ){
   // #pragma HLS INTERFACE ap_ctrl_none port=return
 
   subsymb_t z_subsymb;
@@ -314,10 +350,10 @@ void z_decompose_post(
 
   // Geometric coder 
   z_decompose_loop: do {
-    #pragma HLS PIPELINE rewind
+    #pragma HLS PIPELINE rewind 
     // tANS_encode(current_ANS_table, ans_symb);
     #ifndef __SYNTHESIS__
-      assert(module_reminder>=0);
+      ASSERT(module_reminder>=0);
     #endif
 
     module_reminder -= ans_symb;
@@ -333,7 +369,48 @@ void z_decompose_post(
   }while(module_reminder != 0);
 }
 
+
 void serialize_symbols(
+  stream<ap_uint <Y_SIZE+P_SIZE> > &y_stream,
+  stream<subsymb_t > &z_decomposed,
+  stream<subsymb_t> &symbol_stream){
+  // #pragma HLS INTERFACE ap_ctrl_none port=return
+  
+  #pragma HLS PIPELINE style=frp
+
+  static ap_uint<1> input_select = 0; // 0 -> y | 1 -> z
+  subsymb_t subsymb;
+
+ if(input_select == 0) {
+    input_select =1;
+    ap_uint<Y_SIZE> y;
+    ap_uint<P_SIZE> p_id;
+
+    (y,p_id) = y_stream.read();
+    
+    subsymb.end_of_block = 0;
+    subsymb.subsymb = y; //implicit assign of lower bits
+    subsymb.info = p_id; 
+    subsymb.type = SUBSYMB_Y;
+  }else{
+    subsymb = z_decomposed.read();
+    input_select = subsymb.type == SUBSYMB_Z_LAST? 0:1;
+    // if(subsymb.type == SUBSYMB_Z_LAST) {
+    //   input_select =0;
+    // }
+  }
+
+  symbol_stream << subsymb;
+
+}
+
+// Next function achieves II=1
+// problem: need #pragma HLS PIPELINE rewind , which is not
+// compatible with enable_flush/style=flp
+// This makes it stall
+// Fix: #pragma HLS PIPELINE style=flp, but that doesn't 
+// allow for II=1
+void serialize_symbols_loop_rewind(
   stream<ap_uint <Y_SIZE+P_SIZE> > &y_stream,
   stream<subsymb_t > &z_decomposed,
   stream<subsymb_t> &symbol_stream){
@@ -344,7 +421,7 @@ void serialize_symbols(
 
   serialize_loop: do{
     #pragma HLS PIPELINE rewind 
-    // #pragma HLS PIPELINEstyle=flp
+    // #pragma HLS PIPELINE style=flp
 
     if(input_select == 0) {
       input_select =1;
@@ -407,7 +484,7 @@ void sub_symbol_gen(
   #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
   #endif
 
-  #pragma HLS DATAFLOW
+  #pragma HLS DATAFLOW disable_start_propagation
   #pragma HLS INTERFACE ap_ctrl_none port=return
   
   stream<ap_uint <Y_SIZE+P_SIZE> > y_stream;
@@ -423,10 +500,20 @@ void sub_symbol_gen(
 
   stream<subsymb_t> z_decomposed;
   #pragma HLS STREAM variable=z_decomposed depth=4
-  z_decompose_post(z_stream_with_meta,z_decomposed);
 
-  serialize_symbols(y_stream,z_decomposed,symbol_stream);
+  #ifdef __SYNTHESIS__
+    z_decompose_post(z_stream_with_meta,z_decomposed);
+  #else
+    z_decompose_post_loop(z_stream_with_meta,z_decomposed);
+  #endif
 
+  #ifdef __SYNTHESIS__
+    serialize_symbols(y_stream,z_decomposed,symbol_stream);
+  #else
+    while((!y_stream.empty()) || ((!z_decomposed.empty()))) {
+      serialize_symbols(y_stream,z_decomposed,symbol_stream);
+    }
+  #endif
   
 
 
