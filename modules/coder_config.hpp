@@ -6,16 +6,28 @@
 #include "ap_int.h"
 
 #ifndef __SYNTHESIS__
-  #define GET_ASSERT_MACRO(_1,_2,_3,NAME,...) NAME
-  #define ASSERT(...)  GET_ASSERT_MACRO(__VA_ARGS__,ASSERT3,ASSERT2,ASSERT1)(__VA_ARGS__)
+  #define GET_ASSERT_MACRO(_1,_2,_3,_4,NAME,...) NAME
+  #define ASSERT(...)  GET_ASSERT_MACRO(__VA_ARGS__,ASSERT4,ASSERT3,ASSERT2,ASSERT1)(__VA_ARGS__)
   #define ASSERT1(x) assert(x)
   // #define ASSERT2(x) assert(x) undefined
-  #define ASSERT3(v1,comp,v2) assert(v1 comp v2)
+  #define ASSERT3(v1,comp,v2) \
+	if(!(v1 comp v2)){ \
+	std::cout<<"Test (" #v1 " " #comp " " #v2 ") Failed | " #v1 " = " <<v1 << " | " \
+	<< #v2 " = "<<v2 <<std::endl; \
+	assert(v1 comp v2); \
+	}
+
+  #define ASSERT4(v1,comp,v2,text) \
+	if(!(v1 comp v2)){ \
+	std::cout<<text<< "| Test (" #v1 " " #comp " " #v2 ") Failed | " #v1 " = " <<v1 << " | " \
+	<< #v2 " = "<<v2 <<std::endl; \
+	assert(v1 comp v2); \
+	}
   
 	#include <iostream>
   using namespace std;
 #else
-  #define ASSERT(x) 
+  #define ASSERT(...) 
 #endif
 
 #define MIN(a,b) (((a)<(b))?(a):(b))

@@ -8,6 +8,7 @@
 #include "../../subsym_gen/src/subsym_gen.hpp"
 #include "../../input_buffers/src/input_buffers.hpp"
 
+// #define DEBUG
 
 struct tANS_table_t {
   ap_uint<NUM_ANS_BITS> state;
@@ -38,7 +39,7 @@ void code_symbols(
   stream<subsymb_t> &symbol_stream,
   stream<bit_blocks_with_meta<NUM_ANS_BITS>> &out_bit_stream);
 
-void ANS_output(
+void serialize_last_state(
     stream<bit_blocks_with_meta<NUM_ANS_BITS>> &in_bit_blocks,
     stream<bit_blocks> &out_bit_blocks);
 

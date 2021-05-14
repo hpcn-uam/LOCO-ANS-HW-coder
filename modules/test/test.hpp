@@ -28,11 +28,13 @@ unsigned int get_bit( std::list<bit_blocks> &binary_list){
 
 auto get_escape_symbol( std::list<bit_blocks> &binary_list){
   auto block = binary_list.front();
-
+  
   while(block.bits == 0) {
     binary_list.pop_front();
     block = binary_list.front();
   }
+  binary_list.pop_front();
+  
 
   return block;
 }

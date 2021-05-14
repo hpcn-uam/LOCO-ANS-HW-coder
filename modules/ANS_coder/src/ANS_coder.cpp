@@ -151,7 +151,7 @@ void code_symbols(
   
   static const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
     #include "../../ANS_tables/tANS_y_encoder_table.dat"
-  }; // [0] number of bits, [1] next state  
+  }; 
 
   static const tANS_table_t tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]{
     #include "../../ANS_tables/tANS_z_encoder_table.dat"
@@ -193,36 +193,36 @@ void code_symbols(
 
   
   if(symbol.end_of_block == 1) {
-    /*bit_blocks last_state_block;
-    last_state_block.data = (ap_uint<1>(1), ANS_state);
-    last_state_block.bits = NUM_ANS_BITS+1;
-    last_state_block.last_block =1;
-    last_state_stream <<last_state_block;*/
     ANS_state = 0;
   }
   
 }
 
 
-#ifdef __SYNTHESIS__
-  void ANS_output(
-    stream<bit_blocks_with_meta<NUM_ANS_BITS>> &in_bit_blocks,
-    stream<bit_blocks> &out_bit_blocks){
+void serialize_last_state(
+  stream<bit_blocks_with_meta<NUM_ANS_BITS>> &in_bit_blocks,
+  stream<bit_blocks> &out_bit_blocks){
 
-    #if ANS_OUTPUT_TOP
-    #pragma HLS INTERFACE axis register_mode=both register port=in_bit_blocks
-    #pragma HLS INTERFACE axis register_mode=both register port=out_bit_blocks
-    #pragma HLS INTERFACE ap_ctrl_none port=return
-    #endif
+  #if ANS_OUTPUT_TOP
+  #pragma HLS INTERFACE axis register_mode=both register port=in_bit_blocks
+  #pragma HLS INTERFACE axis register_mode=both register port=out_bit_blocks
+  #pragma HLS INTERFACE ap_ctrl_none port=return
+  #endif
 
-    #pragma HLS PIPELINE style=frp
-    // 
-    // #pragma HLS LATENCY max=1
-    static ap_uint<1> send_output = 0;
-    static ap_uint<NUM_ANS_BITS> ANS_state = 0;
+  #pragma HLS PIPELINE style=frp
+  // 
+  // #pragma HLS LATENCY max=1
+  static ap_uint<1> send_output = 0;
+  static ap_uint<NUM_ANS_BITS> ANS_state = 0;
 
-    bit_blocks_with_meta<NUM_ANS_BITS> in_block;
-    bit_blocks out_block;
+  bit_blocks_with_meta<NUM_ANS_BITS> in_block;
+  bit_blocks out_block;
+
+  // START OF SW ONLY LOOP. Not needed in HW as it's a free running pipeline
+  #ifndef __SYNTHESIS__
+  do{
+  #endif
+
     if(send_output == 1) {
       send_output = 0;
       out_block.data = (ap_uint<1>(1), ANS_state);
@@ -238,38 +238,43 @@ void code_symbols(
 
     out_bit_blocks << out_block;
 
+  // END OF SW ONLY LOOP
+  #ifndef __SYNTHESIS__
+  }while(send_output == 1) ;
+  #endif
+}
+
+
+/*void serialize_last_state(
+  stream<bit_blocks_with_meta<NUM_ANS_BITS>> &in_bit_blocks,
+  stream<bit_blocks> &out_bit_blocks){
+
+  bit_blocks_with_meta<NUM_ANS_BITS> in_block;
+  bit_blocks out_block;
+
+  in_block = in_bit_blocks.read();
+   ap_uint<1> send_output = in_block.last_block;
+  ap_uint<NUM_ANS_BITS> ANS_state = in_block.metadata; // save just in case I need it in next cycle
+  in_block.last_block =0 ;
+  out_block = in_block;
+
+  out_bit_blocks <<out_block;
+
+  if(send_output == 1) {
+    out_block.data = (ap_uint<1>(1), ANS_state);
+    out_block.bits = NUM_ANS_BITS+1;
+    out_block.last_block = 1;
+    out_bit_blocks << out_block;
   }
-#else
-  void ANS_output(
-    stream<bit_blocks_with_meta<NUM_ANS_BITS>> &in_bit_blocks,
-    stream<bit_blocks> &out_bit_blocks){
-
-    bit_blocks_with_meta<NUM_ANS_BITS> in_block;
-    bit_blocks out_block;
-
-    in_block = in_bit_blocks.read();
-     ap_uint<1> send_output = in_block.last_block;
-    ap_uint<NUM_ANS_BITS> ANS_state = in_block.metadata; // save just in case I need it in next cycle
-    in_block.last_block =0 ;
-    out_block = in_block;
-
-    out_bit_blocks <<out_block;
-
-    if(send_output == 1) {
-      out_block.data = (ap_uint<1>(1), ANS_state);
-      out_block.bits = NUM_ANS_BITS+1;
-      out_block.last_block = 1;
-      out_bit_blocks << out_block;
-    }
-  }
-#endif
+}*/
 
 
 
 
 
 
-/*void ANS_output(
+
+/*void serialize_last_state(
   stream<bit_blocks> &out_bit_stream,
   stream<bit_blocks> &last_state_stream,
   stream<bit_blocks> &bit_block_stream){
@@ -301,7 +306,7 @@ void code_symbols(
   // code_symbols(symbol,bit_block_stream);
   bit_blocks out_bits;
   code_symbols(ANS_state,symbol,out_bits);
-  ANS_output(ANS_state,out_bits,symbol,bit_block_stream);
+  serialize_last_state(ANS_state,out_bits,symbol,bit_block_stream);
 
 }*/
 
@@ -376,7 +381,7 @@ void ANS_coder(
   // code_symbols(symbol,bit_block_stream);
   code_symbols(symbol_stream,out_bit_stream);
 
-  ANS_output(out_bit_stream,bit_block_stream);
+  serialize_last_state(out_bit_stream,bit_block_stream);
 
 }
 

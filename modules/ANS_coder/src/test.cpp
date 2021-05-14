@@ -54,14 +54,13 @@ int main(int argc, char const *argv[])
     }
 
     #if SPLITED_FREE_KERNELS
-      stream<bit_blocks> out_bit_stream;
-      stream<bit_blocks> last_state_stream;
+      stream<bit_blocks_with_meta> out_bit_stream;
       while (! symbol_stream.empty()){
-          code_symbols(symbol_stream,out_bit_stream,last_state_stream);
+          code_symbols(symbol_stream,out_bit_stream);
       }
 
-      while ((! out_bit_stream.empty()) || (! last_state_stream.empty()) ){
-        ANS_output(out_bit_stream,last_state_stream,bit_block_stream);
+      while ( ! out_bit_stream.empty() ){
+        serialize_last_state(out_bit_stream,bit_block_stream);
       }
 
     #else
@@ -92,7 +91,7 @@ int main(int argc, char const *argv[])
     bit_blocks last_ANS_state = inverted_bit_blocks.read();
 
     uint ANS_state = last_ANS_state.data;
-    assert(last_ANS_state.bits == NUM_ANS_BITS+1);
+    ASSERT(last_ANS_state.bits, ==, NUM_ANS_BITS+1);
     uint subsymbol;
     tANS_dtable_t dtable_entry;
     std::list<bit_blocks> binary_list;
@@ -134,8 +133,8 @@ int main(int argc, char const *argv[])
           const int remainder_bits = EE_REMAINDER_SIZE - 0;
 
           auto block = get_escape_symbol( binary_list);
-          assert(block.bits == remainder_bits);
-          assert(block.last_block == 0);
+          ASSERT(block.bits, == ,remainder_bits);
+          ASSERT(block.last_block, ==, 0);
 
           module = block.data;
           break;
@@ -146,20 +145,14 @@ int main(int argc, char const *argv[])
         tANS_table_idx = ANS_state & tANS_STATE_MASK;
         dtable_entry = tANS_z_decode_table[golden_theta_id][tANS_table_idx];
         subsymbol = tANS_decoder(dtable_entry, ANS_state,binary_list);
-        assert(subsymbol <= encoder_cardinality);
+        ASSERT(subsymbol, <= ,encoder_cardinality);
         ans_symb = subsymbol;
         module += ans_symb;
         
         it++;
       }
 
-      if(module != golden_z){
-    	  cout<<"blk: "<<blk_idx<<" | i:"<<i<<" | golden_z: "<<golden_z<<
-    			  " | golden_theta_id: "<<golden_theta_id <<
-				  "| module: "<< module<<endl;
-      }
-      assert(module == golden_z);
-
+      ASSERT(module,== ,golden_z,"Blk: "<<blk_idx<<" | i:"<<i);
 
       // check y
       // out_bit_block = inverted_bit_blocks.read();
@@ -167,14 +160,14 @@ int main(int argc, char const *argv[])
       tANS_table_idx = ANS_state & tANS_STATE_MASK;
       dtable_entry = tANS_y_decode_table[golden_p_id][tANS_table_idx];
       subsymbol = tANS_decoder(dtable_entry, ANS_state,binary_list);
-      assert(subsymbol <= 1);
-      assert(subsymbol == golden_y);
+      ASSERT(subsymbol, <=, 1);
+      ASSERT(subsymbol, ==, golden_y);
 
       i++;
 
     }
 
-    assert(ANS_state == (1<<NUM_ANS_BITS));
+    ASSERT(ANS_state, == ,(1<<NUM_ANS_BITS));
     cout<<"  | SUCCESS"<<endl;
   }
 
