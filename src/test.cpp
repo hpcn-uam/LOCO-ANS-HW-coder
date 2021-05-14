@@ -74,7 +74,7 @@ int main(int argc, char const *argv[])
     bit_blocks last_ANS_state = inverted_bit_blocks.read();
 
     uint ANS_state = last_ANS_state.data;
-    assert(last_ANS_state.bits == NUM_ANS_BITS+1);
+    ASSERT(last_ANS_state.bits, ==, NUM_ANS_BITS+1);
     uint subsymbol;
     tANS_dtable_t dtable_entry;
     std::list<bit_blocks> binary_list;
@@ -83,10 +83,12 @@ int main(int argc, char const *argv[])
       bit_blocks out_bit_block = inverted_bit_blocks.read();
       binary_list.push_back(out_bit_block);
     }
-    for (auto elem_it = input_vector.begin(); elem_it != input_vector.end(); ++elem_it){
+
+    for (auto elem_it : input_vector){
+    // for (auto elem_it = input_vector.begin(); elem_it != input_vector.end(); ++elem_it){
       symb_data_t golden_data;
       symb_ctrl_t golden_ctrl;
-      intf_to_bits(*elem_it,golden_data,golden_ctrl);
+      intf_to_bits(elem_it,golden_data,golden_ctrl);
       
       // bit_blocks out_bit_block;
 
@@ -97,8 +99,6 @@ int main(int argc, char const *argv[])
       (golden_z,golden_y,golden_theta_id,golden_p_id) = golden_data;
       
       // check z
-
-
 
       // read first symbol using 
       // out_bit_block = inverted_bit_blocks.read();
@@ -111,32 +111,31 @@ int main(int argc, char const *argv[])
       const auto encoder_cardinality = tANS_cardinality_table[golden_theta_id];
       int module = ans_symb;
       int it = 1;
-      while(ans_symb == encoder_cardinality){
+      while(ans_symb == encoder_cardinality){        
+        if(it >= EE_MAX_ITERATIONS) {
+          const int remainder_bits = EE_REMAINDER_SIZE - 0;
 
-        it++;
-        
-        /*if(it >= EE_MAX_ITERATIONS) {
-          module = retrive_bits(escape_bits);
+          auto block = get_escape_symbol( binary_list);
+          ASSERT(block.bits, == ,remainder_bits);
+          ASSERT(block.last_block, ==, 0);
+
+          module = block.data;
           break;
-        }*/
+        }
 
         // out_bit_block = inverted_bit_blocks.read();
         // binary_list.push_back(out_bit_block);
         tANS_table_idx = ANS_state & tANS_STATE_MASK;
         dtable_entry = tANS_z_decode_table[golden_theta_id][tANS_table_idx];
         subsymbol = tANS_decoder(dtable_entry, ANS_state,binary_list);
-        assert(subsymbol <= encoder_cardinality);
+        ASSERT(subsymbol, <= ,encoder_cardinality);
         ans_symb = subsymbol;
         module += ans_symb;
+        
+        it++;
       }
 
-      if(module != golden_z){
-    	  cout<<"blk: "<<blk_idx<<" | i:"<<i<<" | golden_z: "<<golden_z<<
-    			  " | golden_theta_id: "<<golden_theta_id <<
-				  "| module: "<< module<<endl;
-      }
-      assert(module == golden_z);
-
+      ASSERT(module,== ,golden_z,"Blk: "<<blk_idx<<" | i:"<<i);
 
       // check y
       // out_bit_block = inverted_bit_blocks.read();
@@ -144,14 +143,14 @@ int main(int argc, char const *argv[])
       tANS_table_idx = ANS_state & tANS_STATE_MASK;
       dtable_entry = tANS_y_decode_table[golden_p_id][tANS_table_idx];
       subsymbol = tANS_decoder(dtable_entry, ANS_state,binary_list);
-      assert(subsymbol <= 1);
-      assert(subsymbol == golden_y);
+      ASSERT(subsymbol, <=, 1);
+      ASSERT(subsymbol, ==, golden_y);
 
       i++;
 
     }
 
-    assert(ANS_state == (1<<NUM_ANS_BITS));
+    ASSERT(ANS_state, == ,(1<<NUM_ANS_BITS));
     cout<<"  | SUCCESS"<<endl;
   }
 
