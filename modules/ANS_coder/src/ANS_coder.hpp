@@ -22,14 +22,14 @@ struct bit_blocks {
   ap_uint<LOG2_BIT_BLOCK_SIZE> bits;
   // ap_uint<_LOG2_BIT_BLOCK_SIZE> bits;
   ap_uint<1> last_block;
-
 } ;
 
 template <size_t WMeta>
 struct bit_blocks_with_meta : public bit_blocks{
   ap_uint<WMeta> metadata;
-
 } ;
+
+typedef ap_uint<OUTPUT_SIZE> out_word_t;
 
 void ANS_coder(
   stream<subsymb_t> &symbol_stream,

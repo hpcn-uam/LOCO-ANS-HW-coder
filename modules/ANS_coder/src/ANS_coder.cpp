@@ -269,11 +269,6 @@ void serialize_last_state(
 }*/
 
 
-
-
-
-
-
 /*void serialize_last_state(
   stream<bit_blocks> &out_bit_stream,
   stream<bit_blocks> &last_state_stream,
@@ -361,6 +356,63 @@ void serialize_last_state(
   // }
 }*/
 
+void push_bits_to_binary_stack( uint32_t symbol ,uint num_of_bits ){
+
+  bit_buffer |= symbol << bit_ptr;
+  bit_ptr += num_of_bits;
+
+  assert(bit_ptr<=sizeof(bit_buffer)*8);
+
+  while (bit_ptr >= BIT_BUFFER_SIZE){
+    encoded_bit_stack[stack_ptr] =  binary_stack_t(bit_buffer);
+    bit_ptr -= BIT_BUFFER_SIZE;
+    bit_buffer >>=BIT_BUFFER_SIZE;
+    stack_ptr-=sizeof(binary_stack_t);
+
+    if(stack_ptr < 0) {
+      std::cerr<<DBG_INFO<<"ERROR: Stack overflow. MAX_SUPPORTED_BPP ("<<MAX_SUPPORTED_BPP<<
+            ") it's not enough. Can't fix this, quiting"<<std::endl;
+      throw 1;
+    }
+  }
+
+} 
+
+void pack_out_bits(
+  stream<bit_blocks> &bit_block_stream,
+  stream<out_word_t> &out_bitstream){
+
+  static ap_uint<LOG2_OUTPUT_SIZE+1> bit_ptr=0;
+  ASSERT(OUTPUT_SIZE,>=,BIT_BLOCK_SIZE ); // previous ptr width declaration assumes this
+
+  static ap_uint<OUTPUT_SIZE+BIT_BLOCK_SIZE> bit_buffer=0;
+
+  bit_blocks in_block << bit_block_stream;
+
+  bit_buffer |= symbol << bit_ptr;
+
+  ASSERT(bit_ptr,>,bit_ptr+num_of_bits); // check no overflow
+  bit_ptr += num_of_bits;
+
+  ASSERT(bit_ptr,<,bit_buffer::width);
+
+
+  if(bit_ptr >= OUTPUT_SIZE) {
+    encoded_bit_stack[stack_ptr] =  binary_stack_t(bit_buffer);
+    bit_ptr -= OUTPUT_SIZE;
+    bit_buffer >>=OUTPUT_SIZE;
+    stack_ptr-=sizeof(binary_stack_t);
+
+    if(stack_ptr < 0) {
+      std::cerr<<DBG_INFO<<"ERROR: Stack overflow. MAX_SUPPORTED_BPP ("<<MAX_SUPPORTED_BPP<<
+            ") it's not enough. Can't fix this, quiting"<<std::endl;
+      throw 1;
+    }
+  }
+
+
+}
+
 void ANS_coder(
   stream<subsymb_t> &symbol_stream,
   stream<bit_blocks> &bit_block_stream){
@@ -372,7 +424,6 @@ void ANS_coder(
   
   #pragma HLS DATAFLOW disable_start_propagation
   #pragma HLS INTERFACE ap_ctrl_none port=return
-
   
   stream<bit_blocks_with_meta<NUM_ANS_BITS>> out_bit_stream;
   #pragma HLS STREAM variable=out_bit_stream depth=8
@@ -385,43 +436,3 @@ void ANS_coder(
 
 }
 
-
-/*void ANS_coder(
-  stream<coder_interf_t> &in,
-  stream<bit_blocks> &bit_block_stream){
-  #pragma HLS INTERFACE axis register_mode=both register port=bit_block_stream
-  #pragma HLS INTERFACE axis register_mode=both register port=in
-  #pragma HLS INTERFACE ap_ctrl_none port=return
-
-  #pragma HLS DATAFLOW
-  
-  stream<ap_uint <Y_SIZE+P_SIZE> > y_stream;
-  #pragma HLS STREAM variable=y_stream depth=8
-  stream<ap_uint <Z_SIZE+THETA_SIZE+1> > z_stream;
-  #pragma HLS STREAM variable=z_stream depth=2
-
-  split_stream(in,y_stream,z_stream);
-
-  stream<ap_uint <CARD_BITS+ANS_SYMB_BITS+ 2*Z_SIZE+THETA_SIZE+1> > z_stream_with_meta;
-  #pragma HLS STREAM variable=z_stream_with_meta depth=2
-  get_z_metadata(z_stream,z_stream_with_meta);
-
-  stream<subsymb_t> z_decomposed;
-  #pragma HLS STREAM variable=z_decomposed depth=4
-  z_decompose_post(z_stream_with_meta,z_decomposed);
-
-
-  stream<subsymb_t> symbol_stream;
-  #pragma HLS STREAM variable=symbol_stream depth=2
-  serialize_symbols(y_stream,z_decomposed,symbol_stream);
-
-  
-  code_symbols(symbol_stream,bit_block_stream);
-
-  // main_loop:for(unsigned i = 0; i < BUFFER_SIZE; ++i) {
-    
-
-    
-  // }
-
-}*/
