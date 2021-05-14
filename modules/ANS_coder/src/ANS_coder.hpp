@@ -14,22 +14,14 @@ struct tANS_table_t {
   ap_uint<LOG2_ANS_BITS> bits;
 } ;
 
-
-
 struct bit_blocks {
-  // static constexpr size_t _LOG2_BIT_BLOCK_SIZE = size_t(ceil(log2(BIT_BLOCK_SIZE))); gcc allows this
+  // gcc allows the following commented declaration, VITIS HLS doesn't 
+  // static constexpr size_t _LOG2_BIT_BLOCK_SIZE = size_t(ceil(log2(BIT_BLOCK_SIZE)));
   ap_uint<BIT_BLOCK_SIZE> data;
   ap_uint<LOG2_BIT_BLOCK_SIZE> bits;
   // ap_uint<_LOG2_BIT_BLOCK_SIZE> bits;
   ap_uint<1> last_block;
 
-  /*  template<size_t WMeta>
-  inline bit_blocks& operator=(const bit_blocks_with_meta<WMeta> &in){
-    data = in.data;
-    bits = in.bits;
-    last_block = in.last_block;
-    return *this;
-  }*/
 } ;
 
 template <size_t WMeta>
@@ -41,12 +33,6 @@ struct bit_blocks_with_meta : public bit_blocks{
 void ANS_coder(
   stream<subsymb_t> &symbol_stream,
   stream<bit_blocks> &bit_block_stream);
-
-
-/*void code_symbols_loop(
-  stream<subsymb_t> &symbol_stream,
-  stream<bit_blocks> &bit_block_stream);
-*/
 
 void code_symbols(
   stream<subsymb_t> &symbol_stream,

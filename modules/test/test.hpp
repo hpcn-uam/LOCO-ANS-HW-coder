@@ -26,6 +26,17 @@ unsigned int get_bit( std::list<bit_blocks> &binary_list){
   return bit;
 }
 
+auto get_escape_symbol( std::list<bit_blocks> &binary_list){
+  auto block = binary_list.front();
+
+  while(block.bits == 0) {
+    binary_list.pop_front();
+    block = binary_list.front();
+  }
+
+  return block;
+}
+
 struct tANS_dtable_t {
   uint symbol;
   uint prev_state;

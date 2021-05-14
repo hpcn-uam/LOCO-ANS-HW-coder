@@ -1,4 +1,5 @@
 -I./ANS_coder.hpp
+-std=c++14
 -I../../subsym_gen/src/subsym_gen.hpp
 -I../../coder_config.hpp
 -I~/NVME/Xilinx/Vitis_HLS/2020.2/include/

@@ -17,7 +17,6 @@ using namespace hls;
 
 #define TEST_BUFFER_SIZE 32
 
-#define LOOP_IMPL 0
 #define SPLITED_FREE_KERNELS 0
   
 
@@ -54,9 +53,7 @@ int main(int argc, char const *argv[])
       sub_symbol_gen(inverted_data,symbol_stream);
     }
 
-    #if LOOP_IMPL
-      code_symbols_loop(symbol_stream,bit_block_stream);
-    #elif SPLITED_FREE_KERNELS
+    #if SPLITED_FREE_KERNELS
       stream<bit_blocks> out_bit_stream;
       stream<bit_blocks> last_state_stream;
       while (! symbol_stream.empty()){
@@ -104,10 +101,12 @@ int main(int argc, char const *argv[])
       bit_blocks out_bit_block = inverted_bit_blocks.read();
       binary_list.push_back(out_bit_block);
     }
-    for (auto elem_it = input_vector.begin(); elem_it != input_vector.end(); ++elem_it){
+
+    for (auto elem_it : input_vector){
+    // for (auto elem_it = input_vector.begin(); elem_it != input_vector.end(); ++elem_it){
       symb_data_t golden_data;
       symb_ctrl_t golden_ctrl;
-      intf_to_bits(*elem_it,golden_data,golden_ctrl);
+      intf_to_bits(elem_it,golden_data,golden_ctrl);
       
       // bit_blocks out_bit_block;
 
@@ -118,8 +117,6 @@ int main(int argc, char const *argv[])
       (golden_z,golden_y,golden_theta_id,golden_p_id) = golden_data;
       
       // check z
-
-
 
       // read first symbol using 
       // out_bit_block = inverted_bit_blocks.read();
@@ -132,14 +129,17 @@ int main(int argc, char const *argv[])
       const auto encoder_cardinality = tANS_cardinality_table[golden_theta_id];
       int module = ans_symb;
       int it = 1;
-      while(ans_symb == encoder_cardinality){
+      while(ans_symb == encoder_cardinality){        
+        if(it >= EE_MAX_ITERATIONS) {
+          const int remainder_bits = EE_REMAINDER_SIZE - 0;
 
-        it++;
-        
-        /*if(it >= EE_MAX_ITERATIONS) {
-          module = retrive_bits(escape_bits);
+          auto block = get_escape_symbol( binary_list);
+          assert(block.bits == remainder_bits);
+          assert(block.last_block == 0);
+
+          module = block.data;
           break;
-        }*/
+        }
 
         // out_bit_block = inverted_bit_blocks.read();
         // binary_list.push_back(out_bit_block);
@@ -149,6 +149,8 @@ int main(int argc, char const *argv[])
         assert(subsymbol <= encoder_cardinality);
         ans_symb = subsymbol;
         module += ans_symb;
+        
+        it++;
       }
 
       if(module != golden_z){
