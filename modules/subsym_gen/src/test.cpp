@@ -85,6 +85,7 @@ int main(int argc, char const *argv[])
       // read first symbol using 
       out_symb = inverted_subsymb.read();
 
+
       assert(out_symb.type ==SUBSYMB_Z_LAST);
       assert(out_symb.info == golden_theta_id);
 
@@ -94,27 +95,31 @@ int main(int argc, char const *argv[])
       int it = 1;
 
       if(i ==0) {
-		  assert(out_symb.end_of_block == 1);
-		}else{
-			assert(out_symb.end_of_block == 0);
-		}
+		    assert(out_symb.end_of_block == 1);
+  		}else{
+  			assert(out_symb.end_of_block == 0);
+  		}
 
       while(ans_symb == encoder_cardinality){
-
-        it++;
-        
-        /*if(it >= EE_MAX_ITERATIONS) {
-          module = retrive_bits(escape_bits);
-          break;
-        }*/
-
         out_symb = inverted_subsymb.read();
+
+        if(it >= EE_MAX_ITERATIONS) {
+          const int remainder_bits = EE_REMAINDER_SIZE - 0;
+          assert(out_symb.type == SUBSYMB_BYPASS);
+          assert(out_symb.info == remainder_bits);
+          assert(out_symb.end_of_block == 0);
+          module = out_symb.subsymb;
+          break;
+        }
+
 
         ans_symb = out_symb.subsymb;
         module += ans_symb;
         assert(out_symb.info == golden_theta_id);
         assert(out_symb.type == SUBSYMB_Z );
         assert(out_symb.end_of_block == 0);
+        
+        it++;
       }
 
       assert(module == golden_z);

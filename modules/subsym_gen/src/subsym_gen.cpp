@@ -108,7 +108,7 @@ void split_stream(
   y_stream << (y,p_id); // possibly a non-blocking write
   }
 
-void serialize_symbols_with_z_decompose(
+/*void serialize_symbols_with_z_decompose(
   stream<ap_uint <Y_SIZE+P_SIZE> > &y_stream,
   stream<ap_uint <Z_SIZE+THETA_SIZE+1> > &z_stream,
   stream<subsymb_t> &symbol_stream){
@@ -177,9 +177,9 @@ void serialize_symbols_with_z_decompose(
   // z_subsymb.type = SUBSYMB_Z;
   // symbol_stream << z_subsymb;
 
-}
+}*/
 
-void z_decompose_2(
+/*void z_decompose_2(
   stream<ap_uint <Z_SIZE+THETA_SIZE+1> > &z_stream,
   stream<subsymb_t> &z_decomposed
   ){
@@ -233,120 +233,131 @@ void z_decompose_2(
 
     ans_symb = encoder_cardinality;
   }while(module_reminder != 0);
-}
+}*/
 
 
+#define Z_META_STREAM_SIZE (CARD_BITS+ANS_SYMB_BITS+ 1+ 2*Z_SIZE+THETA_SIZE+1)
 void z_decompose_pre(
   stream<ap_uint <Z_SIZE+THETA_SIZE+1> > &z_stream,
-  stream<ap_uint <CARD_BITS+ANS_SYMB_BITS+ 2*Z_SIZE+THETA_SIZE+1> > &z_stream_with_meta
+  stream<ap_uint <Z_META_STREAM_SIZE> > &z_stream_with_meta
   ){
-  // #pragma HLS INTERFACE ap_ctrl_none port=return
-  // #pragma HLS PIPELINE 
+
   #pragma HLS PIPELINE style=frp
-  subsymb_t z_subsymb;
 
   ap_uint<Z_SIZE> z;
   ap_uint<THETA_SIZE> theta_id;
   ap_uint<1> end_of_block;
-
   (z,theta_id,end_of_block)  = z_stream.read();
 
-  // const ap_uint<CARD_BITS> encoder_cardinality = 16;
-  // static const ap_uint<CARD_BITS> tANS_cardinality_table[32] = { 1,2,4,8,1,2,4,8,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16};
-  // 
   const ap_uint<CARD_BITS> encoder_cardinality = tANS_cardinality_table[theta_id ];
-  ap_uint<Z_SIZE> module_reminder = z;
-  // auto current_ANS_table = tANS_encode_table[symbol.theta_id];
-
-  #ifndef __SYNTHESIS__
-    assert(encoder_cardinality>0);
-  #endif
-
-  //TODO: OPT Z_SIZE is much bigger than actual size
-  ap_uint<ANS_SYMB_BITS> ans_symb = module_reminder & (encoder_cardinality-1); 
-  // // int ans_symb = module_reminder % encoder_cardinality;
-  // //iteration limitation
-  // if (unlikely(symbol.z >= max_allowed_module)){ 
-  //   // exceeds max iterations
-  //   uint enc_bits = EE_REMAINDER_SIZE - symbol.remainder_reduct_bits;
-  //   push_bits_to_binary_stack( symbol.z ,enc_bits);
+  ASSERT(encoder_cardinality>0);
+  const ap_uint<Z_SIZE> max_allowed_module = max_module_per_cardinality_table[theta_id ];
+  ASSERT(EE_MAX_ITERATIONS*int(encoder_cardinality) == max_allowed_module); // check no max mod overflow
   
-  //   //use geometric_coder to code escape symbol
-  //   module_reminder = max_allowed_module; 
-  //   ans_symb = encoder_cardinality;
-  // }
-  // 
-  
-  // module_reminder -= ans_symb;
+  bool send_escape_symbol = z >= max_allowed_module;
+  ap_uint<ANS_SYMB_BITS> ans_symb = send_escape_symbol ? encoder_cardinality :
+                                  ap_uint<ANS_SYMB_BITS>(z & (encoder_cardinality-1)); // compute modulo op
+  ap_uint<Z_SIZE> module_reminder = send_escape_symbol ? max_allowed_module: z;
+  ap_uint<1> escape_symbol_flag = send_escape_symbol ? 1: 0 ;
 
-  z_stream_with_meta << (encoder_cardinality,ans_symb,module_reminder,z,theta_id,end_of_block);
+  z_stream_with_meta << (encoder_cardinality,ans_symb,module_reminder,
+                            escape_symbol_flag,z,theta_id,end_of_block);
 }
 
 void z_decompose_post(
-  stream<ap_uint <CARD_BITS+ANS_SYMB_BITS+ 2*Z_SIZE+THETA_SIZE+1> > &z_stream_with_meta,
+  stream<ap_uint <Z_META_STREAM_SIZE> > &z_stream_with_meta,
   stream<subsymb_t> &z_decomposed
   ){
+
   #pragma HLS PIPELINE style=frp
+  
+  const ap_uint<LOG2_BIT_BLOCK_SIZE> remainder_bits = EE_REMAINDER_SIZE - 0; //symbol.remainder_reduct_bits;
+  
   static ap_uint<Z_SIZE> module_reminder = 0;
   static ap_uint<ANS_SYMB_BITS> ans_symb = 0;
   static ap_uint<CARD_BITS> encoder_cardinality;
   static ap_uint<THETA_SIZE> theta_id;
   static ap_uint<1> end_of_block;
-  static ap_uint<Z_SIZE> z;
+  static ap_uint<1> escape_symbol_flag;
+  ap_uint<Z_SIZE> z = 0;
+
+  subsymb_t out_subsymb;
 
 
-
-  if(module_reminder == 0) {
-    (encoder_cardinality,ans_symb,module_reminder,z,theta_id,end_of_block) = z_stream_with_meta.read();
+  if(module_reminder == 0) { // if module_reminder == 0 then prev. symbol is done
+    (encoder_cardinality,ans_symb,module_reminder,
+      escape_symbol_flag,z,theta_id,end_of_block) = z_stream_with_meta.read();
   }
 
-  // Geometric coder 
-  ASSERT(module_reminder < (module_reminder-ans_symb )); // check no underflow
-  module_reminder -= ans_symb;
-  
-  subsymb_t z_subsymb;
-  z_subsymb.subsymb = ans_symb; 
-  z_subsymb.info = theta_id; 
-  z_subsymb.type = module_reminder==0 ?SUBSYMB_Z_LAST:SUBSYMB_Z;
-  z_subsymb.end_of_block = (module_reminder==0 && end_of_block == 1)? 1:0;
-  z_decomposed << z_subsymb;
+  // START OF SW ONLY LOOP. Not needed in HW as it's a free running pipeline
+  #ifndef __SYNTHESIS__
+  do{
+  #endif
 
-  ans_symb = encoder_cardinality;
+    if(escape_symbol_flag == 1) { // send escape symbol
+      escape_symbol_flag =0; //Need to send just one of these
+
+      //create out escape subsymbol
+      out_subsymb.subsymb = z; 
+      out_subsymb.info = remainder_bits; 
+      out_subsymb.type = SUBSYMB_BYPASS;
+      out_subsymb.end_of_block = 0; // never the last one
+    }else{
+      // Geometric coder 
+      ASSERT(module_reminder >= (module_reminder-ans_symb ) ); // check no underflow
+      module_reminder -= ans_symb; // update module_reminder given that ans_symb is sent
+      
+      //create out subsymbol
+      out_subsymb.subsymb = ans_symb; 
+      out_subsymb.info = theta_id; 
+      out_subsymb.type = module_reminder==0 ?SUBSYMB_Z_LAST:SUBSYMB_Z;
+      out_subsymb.end_of_block = (module_reminder==0 && end_of_block == 1)? 1:0;
+
+      ans_symb = encoder_cardinality;
+    }
+    
+    z_decomposed << out_subsymb;
+
+  // END OF SW ONLY LOOP
+  #ifndef __SYNTHESIS__
+  }while(out_subsymb.type != SUBSYMB_Z_LAST ) ;
+  #endif
 }
 
 
 // WITH  #pragma HLS PIPELINE rewind: achieves II=1, but can stall
 // with  #pragma HLS PIPELINE style=flp :the loop achieves II=1, but the function 
 //     requires 2 extra cycles, I can afford just 1 extra cycle
-void z_decompose_post_loop(
-  stream<ap_uint <CARD_BITS+ANS_SYMB_BITS+ 2*Z_SIZE+THETA_SIZE+1> > &z_stream_with_meta,
+/*void z_decompose_post_loop(
+  stream<ap_uint <Z_META_STREAM_SIZE> > &z_stream_with_meta,
   stream<subsymb_t> &z_decomposed
   ){
   // #pragma HLS INTERFACE ap_ctrl_none port=return
 
   subsymb_t z_subsymb;
 
+  const ap_uint<LOG2_BIT_BLOCK_SIZE> remainder_bits = EE_REMAINDER_SIZE - 0; //symbol.remainder_reduct_bits;
   ap_uint<Z_SIZE> z;
   ap_uint<THETA_SIZE> theta_id;
   ap_uint<1> end_of_block;
   const ap_uint<CARD_BITS> encoder_cardinality;
   ap_uint<ANS_SYMB_BITS> ans_symb;
   ap_uint<Z_SIZE> module_reminder;
-  (encoder_cardinality,ans_symb,module_reminder,z,theta_id,end_of_block) = z_stream_with_meta.read();
+  ap_uint<1> escape_symbol_flag;
+  (encoder_cardinality,ans_symb,module_reminder,
+      escape_symbol_flag,z,theta_id,end_of_block) = z_stream_with_meta.read();
 
 
   //TODO: OPT Z_SIZE is much bigger than actual size
   // // int ans_symb = module_reminder % encoder_cardinality;
   // //iteration limitation
-  // if (unlikely(symbol.z >= max_allowed_module)){ 
-  //   // exceeds max iterations
-  //   uint enc_bits = EE_REMAINDER_SIZE - symbol.remainder_reduct_bits;
-  //   push_bits_to_binary_stack( symbol.z ,enc_bits);
-  
-  //   //use geometric_coder to code escape symbol
-  //   module_reminder = max_allowed_module; 
-  //   ans_symb = encoder_cardinality;
-  // }
+  if (escape_symbol_flag == 1) { // send escape symbol
+    z_subsymb.subsymb = z; 
+    z_subsymb.info = remainder_bits; 
+    z_subsymb.type = SUBSYMB_BYPASS;
+    z_subsymb.end_of_block = 0;
+    z_decomposed << z_subsymb;
+  }
 
   // Geometric coder 
   z_decompose_loop: do {
@@ -367,7 +378,7 @@ void z_decompose_post_loop(
     // module_reminder -= encoder_cardinality;
     // module_reminder -= ans_symb;
   }while(module_reminder != 0);
-}
+}*/
 
 
 void serialize_symbols(
@@ -381,26 +392,36 @@ void serialize_symbols(
   static ap_uint<1> input_select = 0; // 0 -> y | 1 -> z
   subsymb_t subsymb;
 
- if(input_select == 0) {
-    input_select =1;
-    ap_uint<Y_SIZE> y;
-    ap_uint<P_SIZE> p_id;
+  // START OF SW ONLY LOOP. Not needed in HW as it's a free running pipeline
+  #ifndef __SYNTHESIS__
+    while((!y_stream.empty()) || ((!z_decomposed.empty()))) {
+  #endif
 
-    (y,p_id) = y_stream.read();
-    
-    subsymb.end_of_block = 0;
-    subsymb.subsymb = y; //implicit assign of lower bits
-    subsymb.info = p_id; 
-    subsymb.type = SUBSYMB_Y;
-  }else{
-    subsymb = z_decomposed.read();
-    input_select = subsymb.type == SUBSYMB_Z_LAST? 0:1;
-    // if(subsymb.type == SUBSYMB_Z_LAST) {
-    //   input_select =0;
-    // }
-  }
+   if(input_select == 0) {
+      input_select =1;
+      ap_uint<Y_SIZE> y;
+      ap_uint<P_SIZE> p_id;
 
-  symbol_stream << subsymb;
+      (y,p_id) = y_stream.read();
+      
+      subsymb.end_of_block = 0;
+      subsymb.subsymb = y; //implicit assign of lower bits
+      subsymb.info = p_id; 
+      subsymb.type = SUBSYMB_Y;
+    }else{
+      subsymb = z_decomposed.read();
+      input_select = subsymb.type == SUBSYMB_Z_LAST? 0:1;
+      // if(subsymb.type == SUBSYMB_Z_LAST) {
+      //   input_select =0;
+      // }
+    }
+
+    symbol_stream << subsymb;
+
+  // END OF SW ONLY LOOP
+  #ifndef __SYNTHESIS__
+    }
+  #endif
 
 }
 
@@ -410,7 +431,7 @@ void serialize_symbols(
 // This makes it stall
 // Fix: #pragma HLS PIPELINE style=flp, but that doesn't 
 // allow for II=1
-void serialize_symbols_loop_rewind(
+/*void serialize_symbols_loop_rewind(
   stream<ap_uint <Y_SIZE+P_SIZE> > &y_stream,
   stream<subsymb_t > &z_decomposed,
   stream<subsymb_t> &symbol_stream){
@@ -445,9 +466,9 @@ void serialize_symbols_loop_rewind(
   }while(subsymb.type != SUBSYMB_Z_LAST);
 
 
-}
+}*/
 
-void serialize_symbols_1(
+/*void serialize_symbols_1(
   stream<ap_uint <Y_SIZE+P_SIZE> > &y_stream,
   stream<subsymb_t > &z_decomposed,
   stream<subsymb_t> &symbol_stream){
@@ -473,15 +494,15 @@ void serialize_symbols_1(
     symbol_stream << z_subsymb;
   }while(z_subsymb.type != SUBSYMB_Z_LAST);
 
-}
+}*/
 
 void sub_symbol_gen(
   stream<coder_interf_t> &in,
   stream<subsymb_t> &symbol_stream
   ){
   #if SUB_SYMBOL_GEN_TOP
-  #pragma HLS INTERFACE axis register_mode=both register port=in
-  #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
+    #pragma HLS INTERFACE axis register_mode=both register port=in
+    #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
   #endif
 
   #pragma HLS DATAFLOW disable_start_propagation
@@ -491,36 +512,16 @@ void sub_symbol_gen(
   #pragma HLS STREAM variable=y_stream depth=8
   stream<ap_uint <Z_SIZE+THETA_SIZE+1> > z_stream;
   #pragma HLS STREAM variable=z_stream depth=2
-
   split_stream(in,y_stream,z_stream);
 
-  stream<ap_uint <CARD_BITS+ANS_SYMB_BITS+ 2*Z_SIZE+THETA_SIZE+1> > z_stream_with_meta;
+  stream<ap_uint <Z_META_STREAM_SIZE> > z_stream_with_meta;
   #pragma HLS STREAM variable=z_stream_with_meta depth=2
   z_decompose_pre(z_stream,z_stream_with_meta);
 
   stream<subsymb_t> z_decomposed;
   #pragma HLS STREAM variable=z_decomposed depth=4
+  z_decompose_post(z_stream_with_meta,z_decomposed);
 
-  #ifdef __SYNTHESIS__
-    z_decompose_post(z_stream_with_meta,z_decomposed);
-  #else
-    z_decompose_post_loop(z_stream_with_meta,z_decomposed);
-  #endif
-
-  #ifdef __SYNTHESIS__
-    serialize_symbols(y_stream,z_decomposed,symbol_stream);
-  #else
-    while((!y_stream.empty()) || ((!z_decomposed.empty()))) {
-      serialize_symbols(y_stream,z_decomposed,symbol_stream);
-    }
-  #endif
-  
-
-
-  // main_loop:for(unsigned i = 0; i < BUFFER_SIZE; ++i) {
-    
-
-    
-  // }
+  serialize_symbols(y_stream,z_decomposed,symbol_stream);
 
 }
