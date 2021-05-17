@@ -11,5 +11,5 @@
 
 void TSG_coder(
   stream<coder_interf_t> &in,
-  stream<bit_blocks> &bit_block_stream);
+  stream<byte_block> &byte_block_stream);
 #endif // TSG_CODER_HPP
