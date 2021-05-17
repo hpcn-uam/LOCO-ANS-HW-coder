@@ -473,10 +473,6 @@ void pack_out_bits(
 
         //Next line: equivalent to: bit_buffer >>=OUTPUT_SIZE;
         bit_buffer = bit_buffer(decltype(bit_buffer)::width-1,OUTPUT_SIZE); 
-
-        /*to bit stack logic
-        ASSERT(stack_ptr,>=,0,"ERROR: Stack overflow. MAX_SUPPORTED_BPP ("<<
-          MAX_SUPPORTED_BPP<<") it's not enough." );*/
       }
 
       // send_remaining_data = bit_ptr != 0 ?in_block.last_block : ap_uint<1> (0); 

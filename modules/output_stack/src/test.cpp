@@ -11,17 +11,21 @@ using namespace std;
 using namespace hls;
 #define NUM_OF_BLCKS (8)
 
-#define DEBUG 1
+// #define DEBUG 1
 
 void output_stack_sw(
   stream<byte_block > &in, 
   stream<byte_block > &out){
   std::vector<byte_block> aux_vector;
-  byte_block out_byte_block;
+  byte_block in_byte_block;
+  bool first_read = true;
   do{
-    out_byte_block = in.read();
+    in_byte_block = in.read();
+    auto out_byte_block = in_byte_block;
+    out_byte_block.last_block = first_read? 1:0;
     aux_vector.push_back(out_byte_block);
-  }while(out_byte_block.last_block == 0);
+    first_read = false;
+  }while(in_byte_block.last_block == 0);
 
   while (!aux_vector.empty()){
     byte_block out_byte_block = aux_vector.back();
@@ -37,7 +41,7 @@ int main(int argc, char const *argv[])
   for (int blk_idx = 0; blk_idx < NUM_OF_BLCKS; ++blk_idx){
     stream<byte_block> in_hw_data,in_sw_data;
     cout<<"Processing block "<<blk_idx;
-    int block_size = BUFFER_SIZE - int(blk_idx/2);
+    int block_size = OUTPUT_STACK_SIZE - int(blk_idx/2);
     
     //generate data
     for (int i = 0; i < block_size; ++i){
@@ -50,7 +54,10 @@ int main(int argc, char const *argv[])
     }
 
     stream<byte_block> out_hw_data,out_sw_data;
-    output_stack(in_hw_data,out_hw_data);
+    ap_uint<1> stack_overflow;
+    output_stack(in_hw_data,out_hw_data,stack_overflow);
+    ap_uint<1> golden_stack_overflow = block_size> OUTPUT_STACK_SIZE? 1:0;
+    ASSERT(stack_overflow, == , golden_stack_overflow,"Blk "<<blk_idx);
     output_stack_sw(in_sw_data,out_sw_data);
     
     ASSERT(out_hw_data.size(),==,out_sw_data.size(),"Blk "<<blk_idx);

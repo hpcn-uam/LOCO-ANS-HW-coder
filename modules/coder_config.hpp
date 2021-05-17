@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <assert.h>
 #include "ap_int.h"
+#include <cmath>
 
 #ifndef __SYNTHESIS__
   #define GET_ASSERT_MACRO(_1,_2,_3,_4,NAME,...) NAME
@@ -11,27 +12,38 @@
   #define ASSERT1(x) assert(x)
   // #define ASSERT2(x) assert(x) undefined
   #define ASSERT3(v1,comp,v2) \
-	if(!(v1 comp v2)){ \
-	std::cout<<"Test (" #v1 " " #comp " " #v2 ") Failed | " #v1 " = " <<v1 << " | " \
-	<< #v2 " = "<<v2 <<std::endl; \
-	assert(v1 comp v2); \
-	}
+  if(!(v1 comp v2)){ \
+  std::cout<<"Test (" #v1 " " #comp " " #v2 ") Failed | " #v1 " = " <<v1 << " | " \
+  << #v2 " = "<<v2 <<std::endl; \
+  assert(v1 comp v2); \
+  }
 
   #define ASSERT4(v1,comp,v2,text) \
-	if(!(v1 comp v2)){ \
-	std::cout<<text<< "| Test (" #v1 " " #comp " " #v2 ") Failed | " #v1 " = " <<v1 << " | " \
-	<< #v2 " = "<<v2 <<std::endl; \
-	assert(v1 comp v2); \
-	}
+  if(!(v1 comp v2)){ \
+  std::cout<<text<< "| Test (" #v1 " " #comp " " #v2 ") Failed | " #v1 " = " <<v1 << " | " \
+  << #v2 " = "<<v2 <<std::endl; \
+  assert(v1 comp v2); \
+  }
   
-	#include <iostream>
+  #include <iostream>
   using namespace std;
 #else
   #define ASSERT(...) 
 #endif
 
+#define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)]))
+
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
+
+constexpr int floorlog2(int x){
+  return  x == 0 ? -1 : x == 1 ? 0 : 1+floorlog2(x >> 1);
+}
+ 
+constexpr int ceillog2(int x){
+  return x == 0 ? -1 :x == 1 ? 0 : floorlog2(x - 1) + 1;
+}
+
 
 #define INPUT_BPP (8)
 
@@ -41,7 +53,8 @@
 #define THETA_SIZE (5) //32 tables
 #define P_SIZE (5) //32 tables
 
-#define BUFFER_ADDR_SIZE (11) //for 2048
+#define BUFFER_SIZE (2048)
+constexpr unsigned BUFFER_ADDR_SIZE =  ceillog2(BUFFER_SIZE); 
 #define CARD_BITS 5
 #define ANS_SYMB_BITS CARD_BITS
 
@@ -60,7 +73,6 @@
 #define EE_REMAINDER_SIZE Z_SIZE
 #define ANS_MAX_SRC_CARDINALITY (9)
 #define EE_MAX_ITERATIONS (7)
-#define BUFFER_SIZE (2048)
 
 #define NUM_ANS_THETA_MODES (15)//16 // supported theta_modes
 #define NUM_ANS_P_MODES (32) //16 //32 // supported theta_modes
@@ -81,5 +93,19 @@ static const ap_uint<Z_SIZE> max_module_per_cardinality_table[16] = { 1*EE_MAX_I
 #define OUT_WORD_BYTES (1<<LOG2_OUT_WORD_BYTES)
 #define LOG2_OUTPUT_SIZE (LOG2_OUT_WORD_BYTES+3)
 #define OUTPUT_SIZE (8*OUT_WORD_BYTES)
+#define MAX_SUPPORTED_BPP 16
+
+// force OUTPUT_STACK_SIZE has to be 2^int
+// TWhy to do this:
+// * BRAMS are going to have 2^int addresses anyway. BRAM avialavility determines 
+//     how big we can set OUTPUT_STACK_SIZE
+constexpr int  OUTPUT_STACK_SIZE =
+    (1<< ceillog2(BUFFER_SIZE* int(MAX_SUPPORTED_BPP/8)) ); 
+
+constexpr int OUTPUT_STACK_ADDRESS_SIZE = ceillog2(OUTPUT_STACK_SIZE);
+
+// constexpr int OUTPUT_STACK_ADDRESS_SIZE = int(log2(OUTPUT_STACK_SIZE));
+// #define OUTPUT_STACK_ADDRESS_SIZE int(log2(OUTPUT_STACK_SIZE))
+
 
 #endif // CODER_CONFIG_HPP
