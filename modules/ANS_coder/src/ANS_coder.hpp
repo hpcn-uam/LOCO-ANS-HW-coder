@@ -29,11 +29,18 @@ struct bit_blocks_with_meta : public bit_blocks{
   ap_uint<WMeta> metadata;
 } ;
 
+
 typedef ap_uint<OUTPUT_SIZE> out_word_t;
+struct byte_block {
+  out_word_t data;
+  ap_uint<LOG2_OUT_WORD_BYTES+1> bytes;
+  ap_uint<1> last_block;
+} ;
+
 
 void ANS_coder(
   stream<subsymb_t> &symbol_stream,
-  stream<bit_blocks> &bit_block_stream);
+  stream<byte_block> &byte_block_stream);
 
 void code_symbols(
   stream<subsymb_t> &symbol_stream,

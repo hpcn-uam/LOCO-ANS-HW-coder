@@ -53,7 +53,9 @@
 #define CTX_NT_CENTERED_QUANT (true)
 #define CTX_NT_PRECISION (6) // number of fractional bits
 #define HALF_Y_CODER (false) 
-
+#define CTX_NT_HALF_IDX (1<<(CTX_NT_PRECISION-1))
+#define CTX_NT_QUANT_BINS (1<<(CTX_NT_PRECISION))
+  
 // ANS coder 
 #define EE_REMAINDER_SIZE Z_SIZE
 #define ANS_MAX_SRC_CARDINALITY (9)
@@ -75,7 +77,9 @@ static const ap_uint<Z_SIZE> max_module_per_cardinality_table[16] = { 1*EE_MAX_I
 
 
 //output interface
-#define OUTPUT_SIZE 32
-#define LOG2_OUTPUT_SIZE 5
+#define LOG2_OUT_WORD_BYTES (2) // 4 bytes ->32 bits 
+#define OUT_WORD_BYTES (1<<LOG2_OUT_WORD_BYTES)
+#define LOG2_OUTPUT_SIZE (LOG2_OUT_WORD_BYTES+3)
+#define OUTPUT_SIZE (8*OUT_WORD_BYTES)
 
 #endif // CODER_CONFIG_HPP

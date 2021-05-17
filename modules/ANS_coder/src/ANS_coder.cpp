@@ -149,11 +149,13 @@ void code_symbols(
   // #pragma HLS PIPELINE style=flp
   #pragma HLS PIPELINE style=frp
   
-  static const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
+  static const tANS_table_t 
+    tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
     #include "../../ANS_tables/tANS_y_encoder_table.dat"
   }; 
 
-  static const tANS_table_t tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]{
+  static const tANS_table_t 
+    tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]{
     #include "../../ANS_tables/tANS_z_encoder_table.dat"
   }; 
 
@@ -356,66 +358,156 @@ void serialize_last_state(
   // }
 }*/
 
-void push_bits_to_binary_stack( uint32_t symbol ,uint num_of_bits ){
 
-  bit_buffer |= symbol << bit_ptr;
-  bit_ptr += num_of_bits;
-
-  assert(bit_ptr<=sizeof(bit_buffer)*8);
-
-  while (bit_ptr >= BIT_BUFFER_SIZE){
-    encoded_bit_stack[stack_ptr] =  binary_stack_t(bit_buffer);
-    bit_ptr -= BIT_BUFFER_SIZE;
-    bit_buffer >>=BIT_BUFFER_SIZE;
-    stack_ptr-=sizeof(binary_stack_t);
-
-    if(stack_ptr < 0) {
-      std::cerr<<DBG_INFO<<"ERROR: Stack overflow. MAX_SUPPORTED_BPP ("<<MAX_SUPPORTED_BPP<<
-            ") it's not enough. Can't fix this, quiting"<<std::endl;
-      throw 1;
-    }
-  }
-
-} 
-
-void pack_out_bits(
+// This function was used to verify the testbench of pack_out_bits 
+// It's not optimized for performance in SW or HW, but to be simple.
+void pack_out_bits_sw(
   stream<bit_blocks> &bit_block_stream,
-  stream<out_word_t> &out_bitstream){
+  stream<byte_block> &out_bitstream){
 
+  //state variables
+  // static uint bit_ptr=0;
   static ap_uint<LOG2_OUTPUT_SIZE+1> bit_ptr=0;
   ASSERT(OUTPUT_SIZE,>=,BIT_BLOCK_SIZE ); // previous ptr width declaration assumes this
-
+  // static long long unsigned bit_buffer=0;
   static ap_uint<OUTPUT_SIZE+BIT_BLOCK_SIZE> bit_buffer=0;
 
-  bit_blocks in_block << bit_block_stream;
 
-  bit_buffer |= symbol << bit_ptr;
+  while(!bit_block_stream.empty()) {
+    bit_blocks in_block;
+    bit_block_stream >> in_block;
 
-  ASSERT(bit_ptr,>,bit_ptr+num_of_bits); // check no overflow
-  bit_ptr += num_of_bits;
+    in_block.data &= decltype(in_block.data)((1<<in_block.bits)-1); // ensure upper bits are zero
+    // in_block.data(in_block.data.length()-1,in_block.bits) = 0; // ensure upper bits are zero
 
-  ASSERT(bit_ptr,<,bit_buffer::width);
+    bit_buffer |= ap_uint<OUTPUT_SIZE+BIT_BLOCK_SIZE>(in_block.data) << bit_ptr; 
 
+    ASSERT(bit_ptr,<=,bit_ptr+in_block.bits.to_int()); // check no overflow
+    bit_ptr += in_block.bits;
+    ASSERT(bit_ptr,<,OUTPUT_SIZE+BIT_BLOCK_SIZE);
 
-  if(bit_ptr >= OUTPUT_SIZE) {
-    encoded_bit_stack[stack_ptr] =  binary_stack_t(bit_buffer);
-    bit_ptr -= OUTPUT_SIZE;
-    bit_buffer >>=OUTPUT_SIZE;
-    stack_ptr-=sizeof(binary_stack_t);
+    byte_block out_byte_block;
+    if(bit_ptr >= OUTPUT_SIZE) {
+      out_byte_block.data = out_word_t(bit_buffer);// select lower bits
+      out_byte_block.bytes = OUT_WORD_BYTES;
+      out_byte_block.last_block = bit_ptr == OUTPUT_SIZE? in_block.last_block : ap_uint<1> (0);
 
-    if(stack_ptr < 0) {
-      std::cerr<<DBG_INFO<<"ERROR: Stack overflow. MAX_SUPPORTED_BPP ("<<MAX_SUPPORTED_BPP<<
-            ") it's not enough. Can't fix this, quiting"<<std::endl;
-      throw 1;
+      out_bitstream << out_byte_block; 
+      bit_ptr -= OUTPUT_SIZE; // OPT: OUTPUT_SIZE is a power of 2, then I can just truncate
+      bit_buffer >>=OUTPUT_SIZE;
+    }
+
+    ASSERT(bit_ptr,<,OUTPUT_SIZE ); 
+    if(in_block.last_block == 1 && bit_ptr >0){ // send the data in the bit_buffer
+      byte_block out_byte_block;
+      out_byte_block.data = out_word_t(bit_buffer);// select lower bits
+      uint aux_ptr = bit_ptr+7;
+      out_byte_block.bytes =(aux_ptr>>3);
+      out_byte_block.last_block = 1;
+      out_bitstream << out_byte_block; 
+
+      // reset
+      bit_ptr = 0;
+      bit_buffer=0;
     }
   }
-
 
 }
 
+void pack_out_bits(
+  stream<bit_blocks> &bit_block_stream,
+  stream<byte_block> &out_bitstream){
+
+  #pragma HLS PIPELINE style=frp
+  //state variables
+  static ap_uint<1> send_remaining_data = 0; // if 1, send the data in the bit_buffer
+  static ap_uint<LOG2_OUTPUT_SIZE+1> bit_ptr=0;
+  ASSERT(OUTPUT_SIZE,>=,BIT_BLOCK_SIZE ); // previous ptr width declaration assumes this
+  static ap_uint<OUTPUT_SIZE+BIT_BLOCK_SIZE> bit_buffer=0;
+
+  // START OF SW ONLY LOOP. Not needed in HW as it's a free running pipeline
+  #ifndef __SYNTHESIS__
+  while(!bit_block_stream.empty() || send_remaining_data == 1) {
+  #endif
+    if(send_remaining_data == 0){
+      bit_blocks in_block;
+      bit_block_stream >> in_block;
+
+      decltype(bit_ptr) resulting_bit_ptr = bit_ptr+in_block.bits;
+      ASSERT(bit_ptr,<=,resulting_bit_ptr); // check no overflow
+      ASSERT(resulting_bit_ptr,<,decltype(bit_buffer)::width);
+
+      // next conditional is equivalent to: 
+      //          resulting_bit_ptr != OUTPUT_SIZE || resulting_bit_ptr != 0 ?
+      // Which is equivalent to: 
+      //          bit_ptr>0?, after the if(bit_ptr >= OUTPUT_SIZE) {} block
+      send_remaining_data = resulting_bit_ptr(LOG2_OUTPUT_SIZE-1,0) != 0 ? 
+                                              in_block.last_block : ap_uint<1> (0);
+
+      #if 1 // Using mask results in a simpler and faster HW, the logic to conditionally 
+            // assign values to the bit buffer (code after #else) is expensive
+      // in_block.data(in_block.data.length()-1,in_block.bits) = 0; // ensure upper bits are zero
+      in_block.data &= decltype(in_block.data)((1<<in_block.bits)-1); // ensure upper bits are zero
+
+      //Next line: only lower LOG2_OUTPUT_SIZE bits of bit_ptr are selected as  
+      // bit_ptr shouldn't be >= OUTPUT_SIZE. This optimizes the resulting HW
+      bit_buffer |= decltype(bit_buffer)(in_block.data) << bit_ptr(LOG2_OUTPUT_SIZE-1,0); 
+      #else
+      if(in_block.bits != 0) {
+        // bit_ptr shouldn't be >= OUTPUT_SIZE. This optimizes the HW
+        bit_buffer(bit_ptr(LOG2_OUTPUT_SIZE-1,0) + in_block.bits -1 ,bit_ptr(LOG2_OUTPUT_SIZE-1,0)) 
+                  = in_block.data; 
+      }
+      #endif
+
+      bit_ptr = resulting_bit_ptr;
+
+      if(bit_ptr >= OUTPUT_SIZE) {
+        byte_block out_byte_block;
+        out_byte_block.data = out_word_t(bit_buffer);// select lower bits
+        out_byte_block.bytes = OUT_WORD_BYTES;
+        out_byte_block.last_block = bit_ptr == OUTPUT_SIZE? in_block.last_block : ap_uint<1>(0);
+
+        out_bitstream << out_byte_block; 
+        bit_ptr -= OUTPUT_SIZE; // OPT: OUTPUT_SIZE is a power of 2, then I can just truncate
+
+        //Next line: equivalent to: bit_buffer >>=OUTPUT_SIZE;
+        bit_buffer = bit_buffer(decltype(bit_buffer)::width-1,OUTPUT_SIZE); 
+
+        /*to bit stack logic
+        ASSERT(stack_ptr,>=,0,"ERROR: Stack overflow. MAX_SUPPORTED_BPP ("<<
+          MAX_SUPPORTED_BPP<<") it's not enough." );*/
+      }
+
+      // send_remaining_data = bit_ptr != 0 ?in_block.last_block : ap_uint<1> (0); 
+
+
+    }else{ // send the data in the bit_buffer
+      ASSERT(bit_ptr,<,OUTPUT_SIZE ); 
+      byte_block out_byte_block;
+      out_byte_block.data = out_word_t(bit_buffer);// select lower bits
+      ap_uint<LOG2_OUTPUT_SIZE+1> aux_ptr = bit_ptr+7;
+      out_byte_block.bytes = aux_ptr(LOG2_OUT_WORD_BYTES+3,3);
+      out_byte_block.last_block = 1;
+      out_bitstream << out_byte_block; 
+
+      // reset
+      send_remaining_data = 0; 
+      bit_ptr = 0;
+      bit_buffer=0;
+    }
+
+  // END OF SW ONLY LOOP. 
+  #ifndef __SYNTHESIS__
+  }
+  #endif
+
+}
+
+
 void ANS_coder(
   stream<subsymb_t> &symbol_stream,
-  stream<bit_blocks> &bit_block_stream){
+  stream<byte_block> &byte_block_stream){
 
   #ifdef ANS_CODER_TOP
     #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
@@ -426,13 +518,13 @@ void ANS_coder(
   #pragma HLS INTERFACE ap_ctrl_none port=return
   
   stream<bit_blocks_with_meta<NUM_ANS_BITS>> out_bit_stream;
-  #pragma HLS STREAM variable=out_bit_stream depth=8
-  stream<bit_blocks> last_state_stream;
-  #pragma HLS STREAM variable=last_state_stream depth=8
-  // code_symbols(symbol,bit_block_stream);
+  #pragma HLS STREAM variable=out_bit_stream depth=2
   code_symbols(symbol_stream,out_bit_stream);
 
+  stream<bit_blocks> bit_block_stream;
+  #pragma HLS STREAM variable=bit_block_stream depth=2
   serialize_last_state(out_bit_stream,bit_block_stream);
 
+  pack_out_bits(bit_block_stream,byte_block_stream);
 }
 
