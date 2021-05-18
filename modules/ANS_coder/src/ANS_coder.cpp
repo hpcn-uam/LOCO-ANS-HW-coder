@@ -384,7 +384,7 @@ void pack_out_bits_sw(
 
     ASSERT(bit_ptr,<=,bit_ptr+in_block.bits.to_int()); // check no overflow
     bit_ptr += in_block.bits;
-    ASSERT(bit_ptr,<,OUTPUT_SIZE+BIT_BLOCK_SIZE);
+    ASSERT(bit_ptr,<=,OUTPUT_SIZE+BIT_BLOCK_SIZE);
 
     byte_block out_byte_block;
     if(bit_ptr >= OUTPUT_SIZE) {
