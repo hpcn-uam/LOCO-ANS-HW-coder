@@ -47,11 +47,15 @@ void TSG_coder(
     }
   #endif
 
+  stream<byte_block> coded_byte_stream;
   #ifdef __SYNTHESIS__
-    ANS_coder(symbol_stream,byte_block_stream);
+    ANS_coder(symbol_stream,coded_byte_stream);
   #else
     while (!symbol_stream.empty()){
-      ANS_coder(symbol_stream,byte_block_stream);
+      ANS_coder(symbol_stream,coded_byte_stream);
     } 
   #endif
+
+  ap_uint<1> stack_overflow;// TODO: set it as an output interrupt
+  output_stack(coded_byte_stream,byte_block_stream,stack_overflow);
 }
