@@ -12,12 +12,10 @@ void intf_to_bits(coder_interf_t intf, symb_data_t &symb,symb_ctrl_t &ctrl){
 void write_block(
   stream<coder_interf_t> &in, 
   symb_data_t buff[BUFFER_SIZE],
-  ap_uint<BUFFER_ADDR_SIZE> &last_element
-  ){
-  // #pragma HLS INLINE
+  ap_uint<BUFFER_ADDR_SIZE> &last_element){
 
   write_block_loop:for (int elem_ptr = 0; elem_ptr < BUFFER_SIZE ; ++elem_ptr){
-  // #pragma HLS PIPELINE rewind 
+  #pragma HLS LOOP_TRIPCOUNT max=BUFFER_SIZE
   #pragma HLS PIPELINE 
     symb_data_t symb_data;
     symb_ctrl_t last_symbol;
@@ -37,12 +35,10 @@ void write_block(
 void read_block(
   const symb_data_t buff[BUFFER_SIZE],
   ap_uint<BUFFER_ADDR_SIZE> last_element, 
-  stream<coder_interf_t> &out  
-  ){
+  stream<coder_interf_t> &out ){
 
   read_block_loop:for (int elem_ptr = last_element; elem_ptr >=0 ; --elem_ptr){
-    #pragma HLS LOOP_TRIPCOUNT max=2048
-    // #pragma HLS PIPELINE rewind 
+    #pragma HLS LOOP_TRIPCOUNT max=BUFFER_SIZE
     #pragma HLS PIPELINE 
     coder_interf_t symbol;
     symb_data_t symb_data = buff[elem_ptr];
@@ -54,8 +50,7 @@ void read_block(
 
 void input_buffers(
   stream<coder_interf_t > &in, 
-  stream<coder_interf_t > &out
-  ){
+  stream<coder_interf_t > &out){
   #if INPUT_BUFFERS_TOP
   #pragma HLS INTERFACE axis register_mode=both register port=out
   #pragma HLS INTERFACE axis register_mode=both register port=in

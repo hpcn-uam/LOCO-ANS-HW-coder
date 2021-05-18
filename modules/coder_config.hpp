@@ -53,8 +53,8 @@ constexpr int ceillog2(int x){
 #define THETA_SIZE (5) //32 tables
 #define P_SIZE (5) //32 tables
 
-#define BUFFER_SIZE (2048)
-constexpr unsigned BUFFER_ADDR_SIZE =  ceillog2(BUFFER_SIZE); 
+constexpr int  BUFFER_SIZE = 2048;
+constexpr int BUFFER_ADDR_SIZE =  ceillog2(BUFFER_SIZE); 
 #define CARD_BITS 5
 #define ANS_SYMB_BITS CARD_BITS
 
@@ -100,7 +100,7 @@ static const ap_uint<Z_SIZE> max_module_per_cardinality_table[16] = { 1*EE_MAX_I
 // * BRAMS are going to have 2^int addresses anyway. BRAM avialavility determines 
 //     how big we can set OUTPUT_STACK_SIZE
 constexpr int  OUTPUT_STACK_SIZE =
-    (1<< ceillog2(BUFFER_SIZE* int(MAX_SUPPORTED_BPP/8)) ); 
+    (1<< ceillog2(int(BUFFER_SIZE*MAX_SUPPORTED_BPP/OUTPUT_SIZE)) ); 
 
 constexpr int OUTPUT_STACK_ADDRESS_SIZE = ceillog2(OUTPUT_STACK_SIZE);
 
