@@ -414,6 +414,19 @@ void pack_out_bits_sw(
 
 }
 
+
+// This function packs bits into words of the size determined by the configuration
+// file.
+// Assumtions: 
+//   * It assumes that the last bit_block is not empty (.bits == 0)
+//     If the last bit_block is empty it fails to finish the stream with a 
+//     last terminator. 
+//     This function was designed to be used after serialize_last_state which
+//     never sends the last bit_block with .bits ==0.
+//     If this functionality is needed, add a function before pack_out_bits
+//     that removes the trailing empty bit_blocks and sets the last terminator
+//     in the last non empty bit_block
+//     
 void pack_out_bits(
   stream<bit_blocks> &bit_block_stream,
   stream<byte_block> &out_bitstream){
