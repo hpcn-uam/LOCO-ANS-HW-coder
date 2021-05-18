@@ -5,14 +5,14 @@
 #include <cstring>
 #include "./pack_out_bytes.hpp"
 #include "../../coder_config.hpp"
-#include <vector>
+#include <list>
 
 using namespace std;
 using namespace hls;
 #define NUM_OF_BLCKS (8)
 
 
-void pack_out_bytes_sw(
+void pack_out_bytes_hw_simplified(
   stream<byte_block> &in_bytes,
   stream<byte_block> &out_bitstream){
 
@@ -24,8 +24,7 @@ void pack_out_bytes_sw(
     byte_block in_block;
     in_bytes >> in_block;
 
-    in_block.data &= decltype(in_block.data)((8<<in_block.bytes)-1); // ensure upper bits are zero
-
+    in_block.data &= decltype(in_block.data)((1<<(in_block.bytes*8))-1); //TODO:  BUGGY// ensure upper bits are zero
     byte_buffer |= decltype(byte_buffer)(in_block.data) << (byte_ptr*8); 
 
     byte_ptr += in_block.bytes;
@@ -38,8 +37,8 @@ void pack_out_bytes_sw(
       out_byte_block.last_block = byte_ptr == OUT_WORD_BYTES? in_block.last_block : ap_uint<1> (0);
 
       out_bitstream << out_byte_block; 
-      byte_ptr -= OUT_WORD_BYTES; // OPT: OUT_WORD_BYTES is a power of 2, then I can just truncate
-      byte_buffer >>=OUT_WORD_BYTES;
+      byte_ptr -= OUT_WORD_BYTES;
+      byte_buffer >>=OUT_WORD_BYTES*8;
     }
 
     ASSERT(byte_ptr,<,OUT_WORD_BYTES ); 
@@ -63,6 +62,48 @@ void pack_out_bytes_sw(
 
 }
 
+void pack_out_bytes_sw(
+  stream<byte_block> &in_bytes,
+  stream<byte_block> &out_bitstream){
+
+  //state variables
+  static list<ap_uint<8>> byte_buffer;
+  while(!in_bytes.empty()) {
+    byte_block in_block;
+    in_bytes >> in_block;
+    ASSERT(in_block.bytes,<=,OUT_WORD_BYTES)
+    for(unsigned i = in_block.bytes; i >0 ; --i) {
+      byte_buffer.push_back(in_block.data(i*8-1,(i-1)*8) );
+    }
+
+    if(in_block.last_block == 1) {
+      int byte_ptr = 0;
+      byte_block out_block;
+      out_block.data = 0 ;
+      out_block.bytes = 0;
+      out_block.last_block = 0;
+      while(!byte_buffer.empty()) {
+        auto new_byte =  byte_buffer.front();
+        byte_buffer.pop_front();
+        out_block.bytes++;
+        // out_block.data <<=8;
+        // out_block.data |= decltype(out_block.data)(new_byte);
+        out_block.data = (out_block.data(23,0),new_byte );
+        out_block.last_block = byte_buffer.empty()?1:0;
+        if(out_block.bytes==OUT_WORD_BYTES || out_block.last_block == 1) {
+          out_bitstream << out_block; 
+          //reset block
+          out_block.data = 0 ;
+          out_block.bytes = 0;
+          out_block.last_block = 0;
+        }
+
+      }
+    }
+  }
+
+}
+
 
 int main(int argc, char const *argv[])
 {
@@ -75,8 +116,9 @@ int main(int argc, char const *argv[])
     //generate data
     for (int i = 0; i < block_size; ++i){
       byte_block in_elem;
-      in_elem.data = i;
-      in_elem.bytes = (i%(OUT_WORD_BYTES+1)) ;
+      in_elem.data = i ;//| (i<<16);
+      in_elem.bytes = OUT_WORD_BYTES ;
+      // in_elem.bytes = (i%(OUT_WORD_BYTES))+1 ;
       in_elem.last_block = (i == block_size-1)?1:0 ;
       in_hw_data << in_elem;
       in_sw_data << in_elem;
