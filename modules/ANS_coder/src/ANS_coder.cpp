@@ -435,7 +435,7 @@ void pack_out_bits(
 
       decltype(bit_ptr) resulting_bit_ptr = bit_ptr+in_block.bits;
       ASSERT(bit_ptr,<=,resulting_bit_ptr); // check no overflow
-      ASSERT(resulting_bit_ptr,<,decltype(bit_buffer)::width);
+      ASSERT(resulting_bit_ptr,<=,decltype(bit_buffer)::width);
 
       // next conditional is equivalent to: 
       //          resulting_bit_ptr != OUTPUT_SIZE || resulting_bit_ptr != 0 ?
@@ -473,6 +473,9 @@ void pack_out_bits(
 
         //Next line: equivalent to: bit_buffer >>=OUTPUT_SIZE;
         bit_buffer = bit_buffer(decltype(bit_buffer)::width-1,OUTPUT_SIZE); 
+
+        // if out_byte_block.last_block ==1. Then, send_remaining_data, bit_ptr, bit_buffer 
+        // are all 0, ready for next block (No need to reset them explicitly).
       }
 
       // send_remaining_data = bit_ptr != 0 ?in_block.last_block : ap_uint<1> (0); 
@@ -480,6 +483,7 @@ void pack_out_bits(
 
     }else{ // send the data in the bit_buffer
       ASSERT(bit_ptr,<,OUTPUT_SIZE ); 
+      ASSERT(bit_ptr,>,0 ); 
       byte_block out_byte_block;
       out_byte_block.data = out_word_t(bit_buffer);// select lower bits
       ap_uint<LOG2_OUTPUT_SIZE+1> aux_ptr = bit_ptr+7;
