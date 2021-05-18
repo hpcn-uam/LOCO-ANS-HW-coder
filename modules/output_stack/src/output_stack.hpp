@@ -24,5 +24,4 @@ void output_stack(
   stream<byte_block > &out,
   ap_uint<1> &stack_overflow);
 
-
 #endif // OUTPUT_STACK_HPP

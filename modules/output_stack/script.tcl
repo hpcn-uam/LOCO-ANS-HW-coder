@@ -8,5 +8,5 @@ create_clock -period 10 -name default
 # source "./directives.tcl"
 csim_design -clean
 csynth_design
-cosim_design -enable_dataflow_profiling -trace_level all
+cosim_design -argv "1" -enable_dataflow_profiling -trace_level all
 export_design -flow syn -format ip_catalog

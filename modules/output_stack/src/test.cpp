@@ -15,7 +15,8 @@ using namespace hls;
 
 void output_stack_sw(
   stream<byte_block > &in, 
-  stream<byte_block > &out){
+  stream<byte_block > &out,
+  ap_uint<1> &golden_stack_overflow){
   std::vector<byte_block> aux_vector;
   byte_block in_byte_block;
   bool first_read = true;
@@ -33,15 +34,24 @@ void output_stack_sw(
     out << out_byte_block;
   }
 
+  golden_stack_overflow = out.size()> OUTPUT_STACK_SIZE? 1:0;
+
 }
 
 int main(int argc, char const *argv[])
 {
-  
+  bool is_cosim = false;
+  if(argc>1 && atoi(argv[1])==1) {
+    is_cosim=true;
+    cout<< "Running RTL Cosim"<<endl;
+  }else{
+    cout<< "Running Csim"<<endl;
+  }
+
   for (int blk_idx = 0; blk_idx < NUM_OF_BLCKS; ++blk_idx){
     stream<byte_block> in_hw_data,in_sw_data;
     cout<<"Processing block "<<blk_idx;
-    int block_size = OUTPUT_STACK_SIZE - int(blk_idx/2);
+    int block_size = OUTPUT_STACK_SIZE +10 - int(blk_idx/2)*5;
     
     //generate data
     for (int i = 0; i < block_size; ++i){
@@ -54,12 +64,29 @@ int main(int argc, char const *argv[])
     }
 
     stream<byte_block> out_hw_data,out_sw_data;
-    ap_uint<1> stack_overflow;
+    ap_uint<1> stack_overflow, golden_stack_overflow;
     output_stack(in_hw_data,out_hw_data,stack_overflow);
-    ap_uint<1> golden_stack_overflow = block_size> OUTPUT_STACK_SIZE? 1:0;
-    ASSERT(stack_overflow, == , golden_stack_overflow,"Blk "<<blk_idx);
-    output_stack_sw(in_sw_data,out_sw_data);
-    
+    output_stack_sw(in_sw_data,out_sw_data,golden_stack_overflow);
+
+    if(is_cosim) {  
+      // stack_overflow is a static, ap_vld port. Cosim cannot verify it
+      cout<<"| Warning: Cosim cannot verify overflow flag (inspect waves to check it)";
+    }else{
+      ASSERT(stack_overflow, == , golden_stack_overflow,"Blk "<<blk_idx);
+    }
+
+    if(golden_stack_overflow ==1) {
+      while(!out_hw_data.empty()) {
+        byte_block out_hw_elem = out_hw_data.read();
+      }
+      while(!out_sw_data.empty()) {
+        byte_block out_sw_elem = out_sw_data.read();
+      }
+
+      cout<<"| SUCCESS (Overflow correctly detected, data ignored)"<<endl;
+      continue;
+    }
+
     ASSERT(out_hw_data.size(),==,out_sw_data.size(),"Blk "<<blk_idx);
 
     int i = 0;

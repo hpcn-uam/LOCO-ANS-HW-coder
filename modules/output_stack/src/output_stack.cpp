@@ -10,17 +10,13 @@ void write_binary_stack(
   ap_uint<1> &stack_overflow){
 
   BUILD_BUG_ON(floorlog2(OUTPUT_STACK_SIZE)!= ceillog2(OUTPUT_STACK_SIZE));
-  // ASSERT(ceil(log2(OUTPUT_STACK_SIZE)),==, log2(OUTPUT_STACK_SIZE), 
-  //   "Coder_config: OUTPUT_STACK_SIZE has to be 2^int"); 
 
-  /*to bit stack logic
-        ASSERT(stack_ptr,>=,0,"ERROR: Stack overflow. MAX_SUPPORTED_BPP ("<<
-          MAX_SUPPORTED_BPP<<") it's not enough." );*/
   byte_block new_element;
   stack_overflow = 0;
   ap_uint<OUTPUT_STACK_ADDRESS_SIZE +1> elem_ptr = 0;
   write_binary_stack_loop: do{
-  #pragma HLS PIPELINE 
+    #pragma HLS LOOP_TRIPCOUNT max=OUTPUT_STACK_SIZE
+    #pragma HLS PIPELINE 
     in >> new_element;
     if (new_element.last_block == 1){
       last_element = elem_ptr;
@@ -31,8 +27,7 @@ void write_binary_stack(
 
     // ASSERT(OUTPUT_STACK_SIZE,>,elem_ptr.to_int()+1," Output stack overflow");
     // ASSERT(decltype(elem_ptr)(elem_ptr+1),>,elem_ptr," Output stack pointer overflow");
-
-    if(elem_ptr[decltype(elem_ptr)::width-1] == 1 ) {
+    if(elem_ptr[decltype(elem_ptr)::width-1] == 1 && stack_overflow == 0) {
       stack_overflow = 1;
     }
     elem_ptr++;
@@ -69,18 +64,20 @@ void output_stack(
   stream<byte_block > &out,
   ap_uint<1> &stack_overflow){
   #if OUTPUT_STACK_TOP
-  #pragma HLS INTERFACE axis register_mode=both register port=in
-  #pragma HLS INTERFACE axis register_mode=both register port=out
+    #pragma HLS INTERFACE axis register_mode=both register port=in
+    #pragma HLS INTERFACE axis register_mode=both register port=out
+    #pragma HLS INTERFACE ap_vld register port=stack_overflow
+  #else
+    #pragma HLS INTERFACE ap_ctrl_none port=return
   #endif
 
   #pragma HLS DATAFLOW
-  #pragma HLS INTERFACE ap_ctrl_none port=return
+  #pragma HLS stable variable=stack_overflow
 
   out_word_t binary_stack[OUTPUT_STACK_SIZE];
   #pragma HLS STREAM variable=binary_stack depth=2 off
   ap_uint<OUTPUT_STACK_ADDRESS_SIZE> last_element;
   decltype(byte_block::bytes) last_elem_bytes;
-  // ap_uint<LOG2_OUT_WORD_BYTES+1> last_elem_bytes;
 
   write_binary_stack(in,binary_stack,last_element,last_elem_bytes,stack_overflow);
   read_binary_stack(binary_stack, last_element,last_elem_bytes,out);
