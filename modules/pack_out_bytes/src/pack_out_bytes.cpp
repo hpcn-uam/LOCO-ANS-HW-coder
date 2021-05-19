@@ -74,6 +74,7 @@ void pack_out_bytes(
                                              
       //Next line: only lower LOG2_OUTPUT_SIZE bits of byte_ptr are selected as  
       // byte_ptr shouldn't be >= OUTPUT_SIZE. This optimizes the resulting HW
+      byte_buffer << (byte_ptr(LOG2_OUT_WORD_BYTES-1,0).to_int()*8); 
       byte_buffer |= decltype(byte_buffer)(in_block.data) << (byte_ptr(LOG2_OUT_WORD_BYTES-1,0).to_int()*8); 
       #else
       if(in_block.bytes != 0) {
