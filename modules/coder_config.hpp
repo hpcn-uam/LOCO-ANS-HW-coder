@@ -9,7 +9,7 @@
 #ifndef __SYNTHESIS__
   #define GET_ASSERT_MACRO(_1,_2,_3,_4,NAME,...) NAME
   #define ASSERT(...)  GET_ASSERT_MACRO(__VA_ARGS__,ASSERT4,ASSERT3,ASSERT2,ASSERT1)(__VA_ARGS__)
-  #define ASSERT1(x) assert(x)
+  #define ASSERT1(x) assert(x);
   // #define ASSERT2(x) assert(x) undefined
   #define ASSERT3(v1,comp,v2) \
   if(!(v1 comp v2)){ \
