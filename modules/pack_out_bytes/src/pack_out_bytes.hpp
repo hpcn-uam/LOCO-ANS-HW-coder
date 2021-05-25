@@ -19,13 +19,14 @@ void pack_out_bytes_top(
 
 // This function packs bytes into words of the size determined by the template
 // args.
+// Byte endianness: Little
 // Assumptions: 
 //   * It assumes that the last byte_block is not empty (.bytes == 0)
 //     If the last byte_block is empty it fails to finish the stream with a 
 //     last terminator. 
 //     This function was designed to be used after 
 //     serialize_last_state --> pack_out_bits --> output_stack. 
-//     This secuence never sends the last byte_block with .byte ==0.
+//     This sequence never sends the last byte_block with .byte ==0.
 //     If this functionality is needed, add a function before pack_out_bytes
 //     that removes the trailing empty byte_block and sets the last terminator
 //     in the last non empty byte_block
