@@ -45,25 +45,14 @@ int main(int argc, char const *argv[])
     // ************
     // Run DUT :
     // ************
-    // stream<byte_block> byte_block_stream;
     stream<byte_block<OUT_DMA_BYTES>> packed_byte_block;
     TSG_coder(in_data,packed_byte_block);
-    // stream<byte_block<OUT_WORD_BYTES>> inverted_byte_block;
-    // TSG_coder(in_data,inverted_byte_block);
 
 
     // ************
     // Check output
     // ************
     
-
-    //pack bytes
-    /*#if SYMBOL_ENDIANNESS_LITTLE
-    pack_out_bytes_sw_little_endian(inverted_byte_block,packed_byte_block);
-    #else
-    stream<byte_block<OUT_WORD_BYTES>> &packed_byte_block=inverted_byte_block;
-    #endif*/
-
     // Replicate AXIS to DRAM:  convert stream in array 
     unsigned mem_byte_pointer = 0;
     uint8_t* block_binary = new uint8_t[packed_byte_block.size()*OUT_DMA_BYTES+4]; 
