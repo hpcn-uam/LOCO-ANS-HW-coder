@@ -19,48 +19,8 @@ void ANS_coder(
   #pragma HLS STREAM variable=bit_block_stream depth=2
   serialize_last_state(out_bit_stream,bit_block_stream);
 
-  #if 0
-  stream<bit_blocks> bit_block_stream_1,bit_block_stream_2;
-  while(!bit_block_stream.empty()) {
-    bit_blocks aux = bit_block_stream.read();
-    bit_block_stream_1 << aux;
-    bit_block_stream_2 << aux;
-
-  }
-  stream<byte_block<NUM_OUT_OF_BYTES>> byte_block_stream_1,byte_block_stream_2;
-  pack_out_bits_up<NUM_OUT_OF_BYTES>(bit_block_stream_1,byte_block_stream_1);
-  pack_out_bits<NUM_OUT_OF_BYTES>(bit_block_stream_2,byte_block_stream_2);
-  static int counter = 0,last_counter=0;
-  while(!byte_block_stream_1.empty()) {
-    byte_block<NUM_OUT_OF_BYTES> byte_block_1 = byte_block_stream_1.read();
-    byte_block<NUM_OUT_OF_BYTES> byte_block_2 = byte_block_stream_2.read();
-
-    ap_uint<8* NUM_OUT_OF_BYTES > mask = (ap_uint<8* NUM_OUT_OF_BYTES >(1)<<(byte_block_1.num_of_bytes()*8))-1;
-    ap_uint<8* NUM_OUT_OF_BYTES > data1 = byte_block_1.data &mask;
-    ap_uint<8* NUM_OUT_OF_BYTES > data2 = byte_block_2.data &mask;
-
-    ASSERT(byte_block_1.num_of_bytes(),==,byte_block_2.num_of_bytes(),"blk:"<<last_counter<< " | counter: "<<counter)
-    ASSERT(byte_block_1.is_last(),==,byte_block_2.is_last(),"blk:"<<last_counter<< " | counter: "<<counter)
-    ASSERT(data1,==,data2, "blk:"<<last_counter<< " | counter: "<<counter<<"| last: "<<byte_block_1.is_last()<<
-        "| bytes: "<<byte_block_1.num_of_bytes())
-
-    byte_block_1.data = data1;
-    // byte_block_1.data = byte_block_2.data;
-    // byte_block_2.set_num_of_bytes() = byte_block_1.data;
-    byte_block_stream << byte_block_1;
-
-    counter++;
-    if(byte_block_1.is_last()) {
-      last_counter++;
-      counter =0;
-    }
-  }
-  #else
   pack_out_bits_up<NUM_OUT_OF_BYTES>(bit_block_stream,byte_block_stream);
-  #endif
-  // pack_out_bits<NUM_OUT_OF_BYTES>(bit_block_stream,byte_block_stream);
-  // pack_out_bits_sw<NUM_OUT_OF_BYTES>(bit_block_stream,byte_block_stream);
-  // pack_out_bits(bit_block_stream,byte_block_stream);
+
 }
 
 
@@ -114,7 +74,9 @@ void pack_out_bits_up(
       #if SYMBOL_ENDIANNESS_LITTLE
 
         //this
-        #if 0
+        #if 0 
+        // this way of masking bits is less efficient although it works
+        // better for masking bytes
         for(unsigned i = 0; i < decltype(in_block.data)::width; ++i) {
           #pragma HLS UNROLL
           if(i >= in_block.bits) {
