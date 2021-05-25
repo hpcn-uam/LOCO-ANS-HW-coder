@@ -13,13 +13,13 @@
 
 using namespace std;
 using namespace hls;
-#define NUM_OF_BLCKS (4)
+#define NUM_OF_BLCKS (6)
 
 #define TEST_BUFFER_SIZE 32
 
 #define SPLITED_FREE_KERNELS 0
   
-
+constexpr int ANS_CODER_OUT_BYTES = OUT_WORD_BYTES;
 int main(int argc, char const *argv[])
 {
   stream<coder_interf_t> in_data;
@@ -46,52 +46,45 @@ int main(int argc, char const *argv[])
     input_buffers(in_data, inverted_data);
 
     stream<subsymb_t> symbol_stream;
-    stream<byte_block> bit_block_stream;
     while (! inverted_data.empty()){
       sub_symbol_gen(inverted_data,symbol_stream);
     }
 
+    stream<byte_block<ANS_CODER_OUT_BYTES>> byte_block_stream;
     while (! symbol_stream.empty()){
-  	 ANS_coder(symbol_stream,bit_block_stream);
+  	 ANS_coder_top(symbol_stream,byte_block_stream);
     }
 
 
     //Replicate binary stack logic
-    stream<byte_block> inverted_byte_block;
-    {
-      std::vector<byte_block> aux_vector;
-      while(!bit_block_stream.empty()) {
-        byte_block out_byte_block = bit_block_stream.read();
-        aux_vector.push_back(out_byte_block);
-      }
-      while (!aux_vector.empty()){
-        byte_block out_byte_block = aux_vector.back();
-        aux_vector.pop_back();
-        inverted_byte_block << out_byte_block;
-      }
+    stream<byte_block<ANS_CODER_OUT_BYTES>> inverted_byte_block;
+    ap_uint<1> golden_stack_overflow;
+    output_stack_sw<OUTPUT_STACK_SIZE>(byte_block_stream,inverted_byte_block,golden_stack_overflow);
 
-    }
+    #if SYMBOL_ENDIANNESS_LITTLE
+    stream<byte_block<ANS_CODER_OUT_BYTES>> packed_byte_block;
+    pack_out_bytes_sw_little_endian(inverted_byte_block,packed_byte_block);
+    #else
+    stream<byte_block<ANS_CODER_OUT_BYTES>> &packed_byte_block=inverted_byte_block;
+    // stream<byte_block<ANS_CODER_OUT_BYTES>> packed_byte_block;
+    // pack_out_bytes_sw_big_endian(inverted_byte_block,packed_byte_block);
+    #endif
 
     // Replicate AXIS to DRAM:  convert stream in array 
-    unsigned num_of_out_words = inverted_byte_block.size();
-    uint32_t* block_binary = new uint32_t[num_of_out_words*OUT_WORD_BYTES]; 
-    uint block_binary_ptr = 0;
-    while(! inverted_byte_block.empty()) {
-      byte_block out_byte_block = inverted_byte_block.read();
-      if(block_binary_ptr==0) {
-        ASSERT(out_byte_block.last_block,==,1,"Blk: "<<blk_idx<<" | block_binary_ptr:"<<block_binary_ptr);
+    unsigned mem_byte_pointer = 0;
+    uint8_t* block_binary = new uint8_t[packed_byte_block.size()*ANS_CODER_OUT_BYTES+4]; 
+    while(! packed_byte_block.empty()) {
+      byte_block<ANS_CODER_OUT_BYTES> out_byte_block = packed_byte_block.read();
+      if(packed_byte_block.empty()) {
+        ASSERT(out_byte_block.is_last(),==,true," | mem_byte_pointer: "<<mem_byte_pointer);
       }else{
-        ASSERT(out_byte_block.last_block,==,0,"Blk: "<<blk_idx<<" | block_binary_ptr:"<<block_binary_ptr);
-        ASSERT(out_byte_block.bytes,==,OUT_WORD_BYTES,"Blk: "<<blk_idx<<" | block_binary_ptr:"<<block_binary_ptr);
+        ASSERT(out_byte_block.is_last(),==,false," | mem_byte_pointer: "<<mem_byte_pointer);
+        ASSERT(out_byte_block.num_of_bytes(),==,ANS_CODER_OUT_BYTES," | mem_byte_pointer: "<<mem_byte_pointer);
       }
-      block_binary[block_binary_ptr] = out_byte_block.data;
-      block_binary_ptr++;
-      // while(out_byte_block.bytes >0) {
-      //   uint mask = ((1<<sizeof(block_binary)*8)-1);
-      //   block_binary[block_binary_ptr]= (out_byte_block.data>>) & mask;
-      //   out_byte_block.bytes-= sizeof(block_binary);
-      //   out_byte_block.data >>=sizeof(block_binary)*8;
-      // }
+      for(unsigned j = 0; j < out_byte_block.num_of_bytes(); ++j) {
+        block_binary[mem_byte_pointer] = out_byte_block.data((j+1)*8-1,j*8);
+        mem_byte_pointer++;
+      }
 
     }
 
@@ -130,3 +123,4 @@ int main(int argc, char const *argv[])
 
   return 0;
 }
+
