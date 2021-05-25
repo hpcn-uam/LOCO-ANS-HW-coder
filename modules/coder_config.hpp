@@ -44,6 +44,12 @@ constexpr int ceillog2(int x){
   return x == 0 ? -1 :x == 1 ? 0 : floorlog2(x - 1) + 1;
 }
 
+#define NBITS2(n) ((n&2)?1:0)
+#define NBITS4(n) ((n&(0xC))?(2+NBITS2(n>>2)):(NBITS2(n)))
+#define NBITS8(n) ((n&0xF0)?(4+NBITS4(n>>4)):(NBITS4(n)))
+#define NBITS16(n) ((n&0xFF00)?(8+NBITS8(n>>8)):(NBITS8(n)))
+#define NBITS32(n) ((n&0xFFFF0000)?(16+NBITS16(n>>16)):(NBITS16(n)))
+#define NBITS(n) (n==0?0:NBITS32(n)+1)
 
 #define INPUT_BPP (8)
 
@@ -55,8 +61,8 @@ constexpr int ceillog2(int x){
 
 constexpr int  BUFFER_SIZE = 2048;
 constexpr int BUFFER_ADDR_SIZE =  ceillog2(BUFFER_SIZE); 
-#define CARD_BITS 5
-#define ANS_SYMB_BITS CARD_BITS
+constexpr int ANS_SYMB_BITS = 5; 
+constexpr int CARD_BITS = ANS_SYMB_BITS;
 
 
 #define CTX_ST_FINER_QUANT (false) 
@@ -70,9 +76,10 @@ constexpr int BUFFER_ADDR_SIZE =  ceillog2(BUFFER_SIZE);
 #define CTX_NT_QUANT_BINS (1<<(CTX_NT_PRECISION))
   
 // ANS coder 
-#define EE_REMAINDER_SIZE Z_SIZE
-#define ANS_MAX_SRC_CARDINALITY (9)
-#define EE_MAX_ITERATIONS (7)
+#define SYMBOL_ENDIANNESS_LITTLE true
+constexpr int EE_REMAINDER_SIZE = Z_SIZE; 
+constexpr int ANS_MAX_SRC_CARDINALITY =9;
+constexpr int EE_MAX_ITERATIONS = 7;
 
 #define NUM_ANS_THETA_MODES (15)//16 // supported theta_modes
 #define NUM_ANS_P_MODES (32) //16 //32 // supported theta_modes
@@ -88,16 +95,21 @@ static const ap_uint<CARD_BITS> tANS_cardinality_table[16] = { 1,1,1,1,1,2,2,4,4
 static const ap_uint<Z_SIZE> max_module_per_cardinality_table[16] = { 1*EE_MAX_ITERATIONS,1*EE_MAX_ITERATIONS,1*EE_MAX_ITERATIONS,1*EE_MAX_ITERATIONS,1*EE_MAX_ITERATIONS,2*EE_MAX_ITERATIONS,2*EE_MAX_ITERATIONS,4*EE_MAX_ITERATIONS,4*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,0*EE_MAX_ITERATIONS};
 
 
-//output interface
-#define LOG2_OUT_WORD_BYTES (2) // 4 bytes ->32 bits 
-#define OUT_WORD_BYTES (1<<LOG2_OUT_WORD_BYTES)
-#define LOG2_OUTPUT_SIZE (LOG2_OUT_WORD_BYTES+3)
-#define OUTPUT_SIZE (8*OUT_WORD_BYTES)
-#define MAX_SUPPORTED_BPP 16
+#if SYMBOL_ENDIANNESS_LITTLE
+  // +1 cause I need to send the bit marker
+  // +7 to compute obtain instead of floor
+  constexpr int  OUT_WORD_BYTES = ((NUM_ANS_BITS+1+7)/8);
+#else
+  constexpr int  OUT_WORD_BYTES = 1;
+#endif
+constexpr int LOG2_OUT_WORD_BYTES = ceillog2(OUT_WORD_BYTES);
+constexpr int LOG2_OUTPUT_SIZE = (LOG2_OUT_WORD_BYTES+3);
+constexpr int OUTPUT_SIZE = (8*OUT_WORD_BYTES);
+constexpr int MAX_SUPPORTED_BPP = 16;
 
 // force OUTPUT_STACK_SIZE has to be 2^int
-// TWhy to do this:
-// * BRAMS are going to have 2^int addresses anyway. BRAM avialavility determines 
+// Why to do this:
+// * BRAMS are going to have 2^int addresses anyway. BRAM availability determines 
 //     how big we can set OUTPUT_STACK_SIZE
 constexpr int  OUTPUT_STACK_SIZE =
     (1<< ceillog2(int(BUFFER_SIZE*MAX_SUPPORTED_BPP/OUTPUT_SIZE)) ); 
@@ -107,5 +119,6 @@ constexpr int OUTPUT_STACK_ADDRESS_SIZE = ceillog2(OUTPUT_STACK_SIZE);
 // constexpr int OUTPUT_STACK_ADDRESS_SIZE = int(log2(OUTPUT_STACK_SIZE));
 // #define OUTPUT_STACK_ADDRESS_SIZE int(log2(OUTPUT_STACK_SIZE))
 
-
+//output interface
+constexpr int OUT_DMA_BYTES = 4;
 #endif // CODER_CONFIG_HPP
