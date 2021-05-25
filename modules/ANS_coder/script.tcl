@@ -1,5 +1,5 @@
 open_project ANS_coder.hls_prj
-set_top ANS_coder
+set_top ANS_coder_top
 add_files src/ANS_coder.cpp -cflags "-DANS_CODER_TOP"
 add_files -tb src/test.cpp -cflags "-Wno-unknown-pragmas" -csimflags "-Wno-unknown-pragmas"
 add_files -tb ../subsym_gen/src/subsym_gen.cpp -cflags "-Wno-unknown-pragmas" -csimflags "-Wno-unknown-pragmas"
