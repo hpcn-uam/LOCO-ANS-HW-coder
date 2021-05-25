@@ -9,8 +9,9 @@
 #include "../modules/subsym_gen/src/subsym_gen.hpp"
 #include "../modules/ANS_coder/src/ANS_coder.hpp"
 #include "../modules/output_stack/src/output_stack.hpp"
+#include "../modules/pack_out_bytes/src/pack_out_bytes.hpp"
 
 void TSG_coder(
   stream<coder_interf_t> &in,
-  stream<byte_block> &byte_block_stream);
+  stream<byte_block<OUT_DMA_BYTES>> &byte_block_stream);
 #endif // TSG_CODER_HPP

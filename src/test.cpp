@@ -10,7 +10,7 @@
 
 using namespace std;
 using namespace hls;
-#define NUM_OF_BLCKS (4)
+#define NUM_OF_BLCKS (8)
 
 #define TEST_BUFFER_SIZE 32
 
@@ -33,7 +33,7 @@ int main(int argc, char const *argv[])
       symb_ctrl_t symb_ctrl = (i == block_size-1)? 1:0 ;
 
       int val = i+TEST_BUFFER_SIZE*blk_idx;
-      ap_uint<Z_SIZE> z = blk_idx <= 1? val & 0xF : val & 0x7F ;
+      ap_uint<Z_SIZE> z = blk_idx <= 3? val&0x1:(blk_idx <= 5? val & 0xF : val & 0x7F) ;
       ap_uint<Y_SIZE> y = val & 0x80?1:0 ; 
       ap_uint<THETA_SIZE> theta_id = i >= NUM_ANS_THETA_MODES?NUM_ANS_THETA_MODES-1: i ;
       ap_uint<P_SIZE> p_id = blk_idx/2 ;
@@ -46,54 +46,39 @@ int main(int argc, char const *argv[])
     // Run DUT :
     // ************
     // stream<byte_block> byte_block_stream;
-    stream<byte_block> inverted_byte_block;
-    TSG_coder(in_data,inverted_byte_block);
+    stream<byte_block<OUT_DMA_BYTES>> packed_byte_block;
+    TSG_coder(in_data,packed_byte_block);
+    // stream<byte_block<OUT_WORD_BYTES>> inverted_byte_block;
+    // TSG_coder(in_data,inverted_byte_block);
 
-    //Replicate binary stack logic
-    /*{
-      std::vector<byte_block> aux_vector;
-      while(!byte_block_stream.empty()) {
-        byte_block out_byte_block = byte_block_stream.read();
-        aux_vector.push_back(out_byte_block);
-      }
-      while (!aux_vector.empty()){
-        byte_block out_byte_block = aux_vector.back();
-        aux_vector.pop_back();
-        inverted_byte_block << out_byte_block;
-      }
-
-    }*/
 
     // ************
     // Check output
     // ************
     
 
-    // Replicate AXIS to DRAM:  convert stream in array 
-    unsigned num_of_out_words = inverted_byte_block.size();
-    uint32_t* block_binary = new uint32_t[num_of_out_words*OUT_WORD_BYTES]; 
-    uint block_binary_ptr = 0;
-    while(! inverted_byte_block.empty()) {
-      byte_block out_byte_block = inverted_byte_block.read();
-      
-      if(block_binary_ptr!= 0) { // only the first one can be non packed
-        ASSERT(out_byte_block.bytes,==,OUT_WORD_BYTES,"Blk: "<<blk_idx<<" | block_binary_ptr:"<<block_binary_ptr);
-      }
-      
-      if(inverted_byte_block.empty()) {
-        ASSERT(out_byte_block.last_block,==,1,"Blk: "<<blk_idx<<" | block_binary_ptr:"<<block_binary_ptr);
-      }else{
-        ASSERT(out_byte_block.last_block,==,0,"Blk: "<<blk_idx<<" | block_binary_ptr:"<<block_binary_ptr);
+    //pack bytes
+    /*#if SYMBOL_ENDIANNESS_LITTLE
+    pack_out_bytes_sw_little_endian(inverted_byte_block,packed_byte_block);
+    #else
+    stream<byte_block<OUT_WORD_BYTES>> &packed_byte_block=inverted_byte_block;
+    #endif*/
 
+    // Replicate AXIS to DRAM:  convert stream in array 
+    unsigned mem_byte_pointer = 0;
+    uint8_t* block_binary = new uint8_t[packed_byte_block.size()*OUT_DMA_BYTES+4]; 
+    while(! packed_byte_block.empty()) {
+      byte_block<OUT_DMA_BYTES> out_byte_block = packed_byte_block.read();
+      if(packed_byte_block.empty()) {
+        ASSERT(out_byte_block.is_last(),==,true," | mem_byte_pointer: "<<mem_byte_pointer);
+      }else{
+        ASSERT(out_byte_block.is_last(),==,false," | mem_byte_pointer: "<<mem_byte_pointer);
+        ASSERT(out_byte_block.num_of_bytes(),==,OUT_DMA_BYTES," | mem_byte_pointer: "<<mem_byte_pointer);
       }
-      block_binary[block_binary_ptr] = out_byte_block.data;
-      block_binary_ptr++;
-      // while(out_byte_block.bytes >0) {
-      //   uint mask = ((1<<sizeof(block_binary)*8)-1);
-      //   block_binary[block_binary_ptr]= (out_byte_block.data>>) & mask;
-      //   out_byte_block.bytes-= sizeof(block_binary);
-      //   out_byte_block.data >>=sizeof(block_binary)*8;
-      // }
+      for(unsigned j = 0; j < out_byte_block.num_of_bytes(); ++j) {
+        block_binary[mem_byte_pointer] = out_byte_block.data((j+1)*8-1,j*8);
+        mem_byte_pointer++;
+      }
 
     }
 
