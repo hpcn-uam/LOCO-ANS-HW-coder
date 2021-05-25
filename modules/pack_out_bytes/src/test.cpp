@@ -4,6 +4,7 @@
 #include <ctime>
 #include <cstring>
 #include "./pack_out_bytes.hpp"
+#include "../../test/test.hpp"
 #include "../../coder_config.hpp"
 #include <list>
 
@@ -12,19 +13,24 @@ using namespace hls;
 #define NUM_OF_TESTS (6)
 constexpr int MAX_TEST_VECTOR_SIZE = 64;
 
-void pack_out_bytes_hw_simplified(
+/*void pack_out_bytes_hw_simplified(
+  stream<byte_block> &in_bytes,
+  stream<byte_block> &out_bitstream);*/
+
+/*void pack_out_bytes_sw_big_endian(
   stream<byte_block> &in_bytes,
   stream<byte_block> &out_bitstream);
+*/
+// void pack_out_bytes_sw_little_endian(
+//   stream<byte_block> &in_bytes,
+//   stream<byte_block> &out_bitstream);
 
-void pack_out_bytes_sw(
-  stream<byte_block> &in_bytes,
-  stream<byte_block> &out_bitstream);
+template<unsigned IB>
+void test_vector_gen(std::vector<byte_block<IB> > &test_vec,int test);
 
-
-void test_vector_gen(std::vector<byte_block> &test_vec,int test);
-
-long long unsigned update_checksum(long long unsigned chksum,byte_block new_elem){
-  for(unsigned i = 1; i <= new_elem.bytes; ++i) {
+template<unsigned B>
+long long unsigned update_checksum(long long unsigned chksum,byte_block<B> new_elem){
+  for(unsigned i = 1; i <= new_elem.num_of_bytes() ; ++i) {
     chksum += new_elem.data(i*8-1,(i-1)*8) &0xFF;
     while(chksum >= 1<<8) {
       chksum = (chksum & 0XFF)+(chksum >>8);
@@ -35,6 +41,83 @@ long long unsigned update_checksum(long long unsigned chksum,byte_block new_elem
 
 
 int main(int argc, char const *argv[])
+{
+  
+  for (int test_idx = 0; test_idx < NUM_OF_TESTS; ++test_idx){
+    stream<byte_block<OUT_WORD_BYTES>> in_hw_data,in_sw_data;
+    cout<<"Processing test "<<test_idx;
+    int block_size = OUTPUT_STACK_SIZE - int(test_idx/2);
+    
+    //generate test vector
+    std::vector<byte_block<OUT_WORD_BYTES>> test_vec;
+    test_vector_gen(test_vec, test_idx);
+    std::list<ap_uint<8>> golden_bytes;
+
+    // populate hls streams and compute checksum
+    long long unsigned golden_checksum = 0;
+    for(auto&& in_elem : test_vec) {
+      golden_checksum = update_checksum(golden_checksum, in_elem);
+      for(unsigned i = 0; i <in_elem.num_of_bytes() ; ++i) {
+        golden_bytes.push_back(in_elem.data((i+1)*8-1,i*8) );
+      }
+      in_hw_data << in_elem;
+      in_sw_data << in_elem;
+    }
+
+    // Run DUT and sw version
+    // stream<byte_block> out_sw_data;
+    // stream<byte_block>  &out_hw_data = out_sw_data;
+    stream<byte_block<OUT_DMA_BYTES>> out_hw_data,out_sw_data;
+    pack_out_bytes_top(in_hw_data,out_hw_data);
+    pack_out_bytes_sw_little_endian(in_sw_data,out_sw_data);
+    
+
+    // Check output
+    ASSERT(out_hw_data.size(),==,out_sw_data.size());
+
+    long long unsigned sw_checksum = 0,hw_checksum = 0;
+    int i = 0;
+    auto golden_byte_iter = golden_bytes.begin();
+    while(!out_hw_data.empty()) {
+      auto out_sw_elem = out_sw_data.read();
+      // byte_block<OUT_DMA_BYTES> out_sw_elem = out_sw_data.read();
+      auto out_hw_elem = out_hw_data.read();
+      // byte_block<OUT_DMA_BYTES> out_hw_elem = out_hw_data.read();
+      // byte_block out_hw_elem = out_sw_elem;
+
+      ASSERT(out_hw_elem.num_of_bytes(),==,out_sw_elem.num_of_bytes()," | i:"<<i)
+      ASSERT(out_hw_elem.is_last(),==,out_sw_elem.is_last()," | i:"<<i)
+      ASSERT(out_hw_elem.data,==,out_sw_elem.data," | i:"<<i)
+
+      sw_checksum = update_checksum(sw_checksum ,out_sw_elem );
+      hw_checksum = update_checksum(hw_checksum ,out_hw_elem );
+
+      if(!out_hw_data.empty()) {
+        ASSERT(out_hw_elem.num_of_bytes(),==,OUT_DMA_BYTES," | i:"<<i)
+        ASSERT(out_hw_elem.is_last(),==,false," | i:"<<i)
+      }else{
+        ASSERT(out_hw_elem.is_last(),==,true," | i:"<<i)
+      }
+
+      for(unsigned j = 0; j <out_hw_elem.num_of_bytes() ; ++j) {
+        ap_uint<8> out_byte = out_hw_elem.data((j+1)*8-1,j*8);
+        ASSERT(out_byte,==,*golden_byte_iter," | i:"<<i<<" | byte:"<<j);
+        golden_byte_iter++;
+      }
+
+      i++;
+    }
+    ASSERT(golden_byte_iter == golden_bytes.end() );//check all bytes where packed
+    ASSERT(sw_checksum,==,golden_checksum )
+    ASSERT(hw_checksum,==,golden_checksum )
+    cout<<"| SUCCESS"<<endl;
+  }
+
+  return 0;
+}
+
+#if 0
+int test_sw_version()
 {
   
   for (int test_idx = 0; test_idx < NUM_OF_TESTS; ++test_idx){
@@ -51,28 +134,31 @@ int main(int argc, char const *argv[])
     long long unsigned golden_checksum = 0;
     for(auto&& in_elem : test_vec) {
       golden_checksum = update_checksum(golden_checksum, in_elem);
-      for(unsigned i = in_elem.bytes; i >0 ; --i) {
-        golden_bytes.push_back(in_elem.data(i*8-1,(i-1)*8) );
+      for(unsigned i = 0; i <in_elem.bytes ; ++i) {
+        golden_bytes.push_back(in_elem.data((i+1)*8-1,i*8) );
       }
-      in_hw_data << in_elem;
+      // in_hw_data << in_elem;
       in_sw_data << in_elem;
     }
 
     // Run DUT and sw version
-    stream<byte_block> out_hw_data,out_sw_data;
-    pack_out_bytes(in_hw_data,out_hw_data);
-    pack_out_bytes_sw(in_sw_data,out_sw_data);
+    stream<byte_block> out_sw_data;
+    stream<byte_block>  &out_hw_data = out_sw_data;
+    // stream<byte_block> out_hw_data,out_sw_data;
+    // pack_out_bytes(in_hw_data,out_hw_data);
+    pack_out_bytes_sw_little_endian(in_sw_data,out_sw_data);
     
 
     // Check output
     ASSERT(out_hw_data.size(),==,out_sw_data.size());
 
     long long unsigned sw_checksum = 0,hw_checksum = 0;
-    int i = 0,in_vec_idx= 0 ,in_byte_idx= 0;
+    int i = 0;
     auto golden_byte_iter = golden_bytes.begin();
     while(!out_hw_data.empty()) {
       byte_block out_sw_elem = out_sw_data.read();
-      byte_block out_hw_elem = out_hw_data.read();
+      // byte_block out_hw_elem = out_hw_data.read();
+      byte_block out_hw_elem = out_sw_elem;
 
       ASSERT(out_hw_elem.data,==,out_sw_elem.data," | i:"<<i)
       ASSERT(out_hw_elem.bytes,==,out_sw_elem.bytes," | i:"<<i)
@@ -87,14 +173,22 @@ int main(int argc, char const *argv[])
       }else{
         ASSERT(out_hw_elem.last_block,==,1," | i:"<<i)
       }
-      i++;
 
+      for(unsigned j = 0; j <out_hw_elem.bytes ; ++j) {
+        ap_uint<8> out_byte = out_hw_elem.data((j+1)*8-1,j*8);
+        ASSERT(out_byte,==,*golden_byte_iter," | i:"<<i<<" | byte:"<<j);
+        golden_byte_iter++;
+      }
+
+
+      /*big endian
       for(unsigned j = out_hw_elem.bytes; j > 0 ; --j) {
         ap_uint<8> out_byte = out_hw_elem.data(j*8-1,(j-1)*8);
         ASSERT(out_byte,==,*golden_byte_iter," | i:"<<i);
         golden_byte_iter++;
-      }
+      }*/
 
+      i++;
     }
     ASSERT(golden_byte_iter == golden_bytes.end() );//check all bytes where packed
     ASSERT(sw_checksum,==,golden_checksum )
@@ -104,8 +198,10 @@ int main(int argc, char const *argv[])
 
   return 0;
 }
+#endif
 
-void test_vector_gen(std::vector<byte_block> &test_vec,int test){
+template<unsigned IB>
+void test_vector_gen(std::vector<byte_block<IB> > &test_vec,int test){
   switch(test){
     case 0:
       {
@@ -114,13 +210,11 @@ void test_vector_gen(std::vector<byte_block> &test_vec,int test){
       //generate data
       int block_size = MAX_TEST_VECTOR_SIZE;
       for (int i = 0; i < block_size; ++i){
-        byte_block in_elem;
+        byte_block<IB> in_elem;
         in_elem.data = i ;//| (i<<16);
-        in_elem.bytes = OUT_WORD_BYTES ;
-        in_elem.last_block = (i == block_size-1)?1:0 ;
+        in_elem.set_num_of_bytes( OUT_WORD_BYTES );
+        in_elem.set_last(i == block_size-1);
         test_vec.push_back(in_elem);
-
-
       }
       }
       break;
@@ -130,13 +224,11 @@ void test_vector_gen(std::vector<byte_block> &test_vec,int test){
       //generate data
       int block_size = MAX_TEST_VECTOR_SIZE;
       for (int i = 0; i < block_size; ++i){
-        byte_block in_elem;
+        byte_block<IB> in_elem;
         in_elem.data = i | (i<<16);
-        in_elem.bytes = OUT_WORD_BYTES ;
-        in_elem.last_block = (i == block_size-1)?1:0 ;
+        in_elem.set_num_of_bytes( OUT_WORD_BYTES );
+        in_elem.set_last(i == block_size-1);
         test_vec.push_back(in_elem);
-
-
       }
       }
       break;
@@ -151,10 +243,10 @@ void test_vector_gen(std::vector<byte_block> &test_vec,int test){
     
       //generate data
       for (int i = 0; i < block_size; ++i){
-        byte_block in_elem;
+        byte_block<IB> in_elem;
         in_elem.data = i | (i<<16);
-        in_elem.bytes = (i%(OUT_WORD_BYTES))+1 ;
-        in_elem.last_block = (i == block_size-1)?1:0 ;
+        in_elem.set_num_of_bytes( (i%(OUT_WORD_BYTES))+1 );
+        in_elem.set_last(i == block_size-1);
         test_vec.push_back(in_elem);
       }
       }
@@ -167,49 +259,9 @@ void test_vector_gen(std::vector<byte_block> &test_vec,int test){
   }
 }
 
-void pack_out_bytes_sw(
-  stream<byte_block> &in_bytes,
-  stream<byte_block> &out_bitstream){
 
-  //state variables
-  static list<ap_uint<8>> byte_buffer;
-  while(!in_bytes.empty()) {
-    byte_block in_block;
-    in_bytes >> in_block;
-    ASSERT(in_block.bytes,<=,OUT_WORD_BYTES)
-    for(unsigned i = in_block.bytes; i >0 ; --i) {
-      byte_buffer.push_back(in_block.data(i*8-1,(i-1)*8) );
-    }
 
-    if(in_block.last_block == 1) {
-      int byte_ptr = 0;
-      byte_block out_block;
-      out_block.data = 0 ;
-      out_block.bytes = 0;
-      out_block.last_block = 0;
-      while(!byte_buffer.empty()) {
-        auto new_byte =  byte_buffer.front();
-        byte_buffer.pop_front();
-        out_block.bytes++;
-        // out_block.data <<=8;
-        // out_block.data |= decltype(out_block.data)(new_byte);
-        out_block.data = (out_block.data(23,0),new_byte );
-        out_block.last_block = byte_buffer.empty()?1:0;
-        if(out_block.bytes==OUT_WORD_BYTES || out_block.last_block == 1) {
-          out_bitstream << out_block; 
-          //reset block
-          out_block.data = 0 ;
-          out_block.bytes = 0;
-          out_block.last_block = 0;
-        }
-
-      }
-    }
-  }
-
-}
-
-void pack_out_bytes_hw_simplified(
+/*void pack_out_bytes_hw_simplified(
   stream<byte_block> &in_bytes,
   stream<byte_block> &out_bitstream){
 
@@ -257,4 +309,4 @@ void pack_out_bytes_hw_simplified(
     }
   }
 
-}
+}*/
