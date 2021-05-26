@@ -45,8 +45,11 @@ void pack_out_bytes(
 
   //state variables
   static ap_uint<1> send_remaining_data = 0; // if 1, send the data in the bit_buffer
+  #pragma HLS reset variable=send_remaining_data
   static ap_uint<BYTE_BUFFER_WIDTH> byte_buffer=0;
+  #pragma HLS reset variable=byte_buffer
   static ap_uint<BYTE_PTR_WIDTH> byte_ptr=0;
+  #pragma HLS reset variable=byte_ptr
 
   // START OF SW ONLY LOOP. Not needed in HW as it's a free running pipeline
   #ifndef __SYNTHESIS__
