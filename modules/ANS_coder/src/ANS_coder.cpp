@@ -49,6 +49,7 @@ void code_symbols(
   }; 
 
   static ap_uint<NUM_ANS_BITS> ANS_state = 0;
+  #pragma HLS reset variable=ANS_state
 
   bit_blocks_with_meta<NUM_ANS_BITS> out_bits;
 
@@ -104,6 +105,7 @@ void serialize_last_state(
   // 
   // #pragma HLS LATENCY max=1
   static ap_uint<1> send_output = 0;
+  #pragma HLS reset variable=send_output
   static ap_uint<NUM_ANS_BITS> ANS_state = 0;
 
   bit_blocks_with_meta<NUM_ANS_BITS> in_block;

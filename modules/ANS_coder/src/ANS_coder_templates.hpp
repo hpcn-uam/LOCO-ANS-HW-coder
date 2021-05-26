@@ -45,12 +45,15 @@ void pack_out_bits_up(
   #pragma HLS PIPELINE style=frp
   constexpr int OUT_WORD_BITS = NUM_OUT_OF_BYTES*8;
   constexpr int LOG2_OUT_WORD_BITS = ceillog2(OUT_WORD_BITS);
+  constexpr int BIT_BUFFER_WIDTH = (8*NUM_OUT_OF_BYTES)+BIT_BLOCK_SIZE;
+  ASSERT(OUT_WORD_BITS,>=,BIT_BLOCK_SIZE ); // previous ptr width declaration assumes this
   //state variables
   static ap_uint<1> send_remaining_data = 0; // if 1, send the data in the bit_buffer
+  #pragma HLS reset variable=send_remaining_data 
   static ap_uint<LOG2_OUT_WORD_BITS+1> bit_ptr=0;
-  ASSERT(OUT_WORD_BITS,>=,BIT_BLOCK_SIZE ); // previous ptr width declaration assumes this
-  constexpr int BIT_BUFFER_WIDTH = OUTPUT_SIZE+BIT_BLOCK_SIZE;
+  #pragma HLS reset variable=bit_ptr 
   static ap_uint<BIT_BUFFER_WIDTH> bit_buffer=0;
+  #pragma HLS reset variable=bit_buffer
 
   // START OF SW ONLY LOOP. Not needed in HW as it's a free running pipeline
   #ifndef __SYNTHESIS__
@@ -176,9 +179,12 @@ void pack_out_bits(
   constexpr int LOG2_OUT_WORD_BITS = ceillog2(OUT_WORD_BITS);
   //state variables
   static ap_uint<1> send_remaining_data = 0; // if 1, send the data in the bit_buffer
+  #pragma HLS reset variable=send_remaining_data
   static ap_uint<LOG2_OUT_WORD_BITS+1> bit_ptr=0;
+  #pragma HLS reset variable=bit_ptr
   ASSERT(OUT_WORD_BITS,>=,BIT_BLOCK_SIZE ); // previous ptr width declaration assumes this
   static ap_uint<OUTPUT_SIZE+BIT_BLOCK_SIZE> bit_buffer=0;
+  #pragma HLS reset variable=bit_buffer
 
   // START OF SW ONLY LOOP. Not needed in HW as it's a free running pipeline
   #ifndef __SYNTHESIS__

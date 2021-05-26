@@ -274,12 +274,13 @@ void z_decompose_post(
   const ap_uint<LOG2_BIT_BLOCK_SIZE> remainder_bits = EE_REMAINDER_SIZE - 0; //symbol.remainder_reduct_bits;
   
   static ap_uint<Z_SIZE> module_reminder = 0;
-  static ap_uint<ANS_SYMB_BITS> ans_symb = 0;
+  #pragma HLS reset variable=module_reminder
+  static ap_uint<ANS_SYMB_BITS> ans_symb;
   static ap_uint<CARD_BITS> encoder_cardinality;
   static ap_uint<THETA_SIZE> theta_id;
   static ap_uint<1> end_of_block;
   static ap_uint<1> escape_symbol_flag;
-  ap_uint<Z_SIZE> z = 0;
+  ap_uint<Z_SIZE> z;
 
   subsymb_t out_subsymb;
 
@@ -390,6 +391,7 @@ void serialize_symbols(
   #pragma HLS PIPELINE style=frp
 
   static ap_uint<1> input_select = 0; // 0 -> y | 1 -> z
+  #pragma HLS reset variable=input_select
   subsymb_t subsymb;
 
   // START OF SW ONLY LOOP. Not needed in HW as it's a free running pipeline
