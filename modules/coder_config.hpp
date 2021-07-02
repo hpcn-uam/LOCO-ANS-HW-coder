@@ -6,6 +6,8 @@
 #include "ap_int.h"
 #include <cmath>
 
+
+/********************** Aux functions  ******************************/ 
 #ifndef __SYNTHESIS__
   #define GET_ASSERT_MACRO(_1,_2,_3,_4,NAME,...) NAME
   #define ASSERT(...)  GET_ASSERT_MACRO(__VA_ARGS__,ASSERT4,ASSERT3,ASSERT2,ASSERT1)(__VA_ARGS__)
@@ -51,6 +53,9 @@ constexpr int ceillog2(int x){
 #define NBITS32(n) ((n&0xFFFF0000)?(16+NBITS16(n>>16)):(NBITS16(n)))
 #define NBITS(n) (n==0?0:NBITS32(n)+1)
 
+
+/********************** General parameters ******************************/
+
 #define INPUT_BPP (8)
 
 #define Z_SIZE (INPUT_BPP-1)
@@ -75,7 +80,9 @@ constexpr int CARD_BITS = ANS_SYMB_BITS;
 #define CTX_NT_HALF_IDX (1<<(CTX_NT_PRECISION-1))
 #define CTX_NT_QUANT_BINS (1<<(CTX_NT_PRECISION))
   
-// ANS coder 
+
+/********************** ANS coder ******************************/
+
 #define SYMBOL_ENDIANNESS_LITTLE true
 constexpr int EE_REMAINDER_SIZE = Z_SIZE; 
 constexpr int ANS_MAX_SRC_CARDINALITY =9;
@@ -97,7 +104,7 @@ static const ap_uint<Z_SIZE> max_module_per_cardinality_table[16] = { 1*EE_MAX_I
 
 #if SYMBOL_ENDIANNESS_LITTLE
   // +1 cause I need to send the bit marker
-  // +7 to compute obtain instead of floor
+  // +7 to compute obtain ceil instead of floor
   constexpr int  OUT_WORD_BYTES = ((NUM_ANS_BITS+1+7)/8);
 #else
   constexpr int  OUT_WORD_BYTES = 1;
@@ -119,6 +126,13 @@ constexpr int OUTPUT_STACK_ADDRESS_SIZE = ceillog2(OUTPUT_STACK_SIZE);
 // constexpr int OUTPUT_STACK_ADDRESS_SIZE = int(log2(OUTPUT_STACK_SIZE));
 // #define OUTPUT_STACK_ADDRESS_SIZE int(log2(OUTPUT_STACK_SIZE))
 
-//output interface
+
+
+/********************** memory interface ******************************/
+
 constexpr int OUT_DMA_BYTES = 4;
+constexpr int MAX_ODMA_TRANSACTIONS = 
+        int((OUTPUT_STACK_SIZE*OUT_WORD_BYTES+OUT_DMA_BYTES-1)/OUT_DMA_BYTES);
+
+
 #endif // CODER_CONFIG_HPP
