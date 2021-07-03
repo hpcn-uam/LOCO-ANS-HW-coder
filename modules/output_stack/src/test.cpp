@@ -50,7 +50,7 @@ int main(int argc, char const *argv[])
 
   for (int blk_idx = 0; blk_idx < NUM_OF_BLCKS; ++blk_idx){
     stream<byte_block<OUT_WORD_BYTES>> in_hw_data,in_sw_data;
-    cout<<"Processing block "<<blk_idx;
+    cout<<"Processing block "<<blk_idx<<endl;
     int block_size = OUTPUT_STACK_SIZE +10 - int(blk_idx/2)*5;
     
     //generate data
@@ -65,7 +65,8 @@ int main(int argc, char const *argv[])
 
     stream<byte_block<OUT_WORD_BYTES>> out_hw_data,out_sw_data;
     ap_uint<1> stack_overflow, golden_stack_overflow;
-    output_stack(in_hw_data,out_hw_data,stack_overflow);
+    stream<ap_uint<OUTPUT_STACK_ADDRESS_SIZE> > last_element_idx;
+    output_stack(in_hw_data,out_hw_data,last_element_idx,stack_overflow);
     output_stack_sw(in_sw_data,out_sw_data,golden_stack_overflow);
 
     if(is_cosim) {  
@@ -74,6 +75,10 @@ int main(int argc, char const *argv[])
     }else{
       ASSERT(stack_overflow, == , golden_stack_overflow,"Blk "<<blk_idx);
     }
+
+    int hw_block_size = last_element_idx.read()+1;
+    ASSERT(hw_block_size,==,out_hw_data.size(),"Check last_element_idx");
+    ASSERT(last_element_idx.size(),==,0,"Check last_element_idx size");
 
     if(golden_stack_overflow ==1) {
       while(!out_hw_data.empty()) {
@@ -85,6 +90,9 @@ int main(int argc, char const *argv[])
 
       cout<<"| SUCCESS (Overflow correctly detected, data ignored)"<<endl;
       continue;
+    }else{
+
+      ASSERT(hw_block_size,==,block_size,"Check last_element_idx");
     }
 
     ASSERT(out_hw_data.size(),==,out_sw_data.size(),"Blk "<<blk_idx);
@@ -100,7 +108,7 @@ int main(int argc, char const *argv[])
       i++;
     }
 
-    cout<<"| SUCCESS"<<endl;
+    cout<<"    | SUCCESS"<<endl;
   }
 
   return 0;
