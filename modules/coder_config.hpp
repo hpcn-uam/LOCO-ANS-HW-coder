@@ -134,5 +134,6 @@ constexpr int OUT_DMA_BYTES = 4;
 constexpr int MAX_ODMA_TRANSACTIONS = 
         int((OUTPUT_STACK_SIZE*OUT_WORD_BYTES+OUT_DMA_BYTES-1)/OUT_DMA_BYTES);
 
+constexpr int DMA_ADDRESS_RANGE_BITS = 32; // this limits the maximum file size
 
 #endif // CODER_CONFIG_HPP
