@@ -1,0 +1,6 @@
+DMA_test/
+.Xil/
+.analytics
+.metadata/
+RemoteSystemsTempFiles
+*.str
