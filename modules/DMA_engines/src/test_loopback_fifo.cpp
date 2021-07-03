@@ -2,7 +2,7 @@
 *-----------------------------------------------------------------------------
 *Copyright (c) 2018. All rights reserved
 *-----------------------------------------------------------------------------
-* @Filename      : test_odma_VarSize.cpp
+* @Filename      : test_loopback_fifo.cpp
 * @Author        : Tobias Alonso
 * @Email         : talonsopugliese@gmail.com
 * @Created On    : 2021-07-02 09:05:36
@@ -27,8 +27,7 @@
 using namespace std;
 int main(int argc, char const *argv[])
 {
-  
-  stream<mem_data> in_stream;
+  mem_data in[MAX_ODMA_TRANSACTIONS];
   mem_data hw_out[MAX_ODMA_TRANSACTIONS*2],golden_out[MAX_ODMA_TRANSACTIONS*2];
   ap_uint<NUM_OF_OUT_ELEM_BITS> block_size;
   ap_uint<DMA_ADDRESS_RANGE_BITS> offset;
@@ -40,22 +39,27 @@ int main(int argc, char const *argv[])
 
     for(unsigned i = 0; i < block_size; ++i) {
       mem_data in_elem = i*(test_id+1);
-      in_stream << in_elem;
+      in[i] = in_elem;
       golden_out[i+offset] = in_elem;
     }
 
-    stream< decltype(offset) > off_stream;
-    stream< decltype(block_size) > block_size_stream;
-    off_stream << offset;
-    block_size_stream << block_size;
-    odma_VarSize(in_stream,hw_out,off_stream,block_size_stream);
+
+    stream<mem_data> in_stream,out_stream;
+    idma(in,in_stream,block_size);
+    stream<ap_uint<DMA_ADDRESS_RANGE_BITS>>  out_offset;
+    stream<ap_uint<NUM_OF_OUT_ELEM_BITS>> out_num_of_elememts;
+    ap_uint<NUM_OF_OUT_ELEM_BITS> conf_out_num_of_elememts = block_size - test_id*5;
+    loopback_fifo(in_stream, out_stream,offset, out_offset,
+      block_size,conf_out_num_of_elememts, out_num_of_elememts);
+    odma_VarSize(out_stream,hw_out,out_offset,out_num_of_elememts);
 
     //check
-    for(unsigned i = offset; i < offset+block_size; ++i) {
+    for(unsigned i = offset; i < offset+conf_out_num_of_elememts; ++i) {
       ASSERT(golden_out[i],==,hw_out[i],"Transaction: "<<i)
     }
 
     ASSERT(in_stream.empty())
+    ASSERT(out_stream.empty())
     cout<<"     Pass "<<endl;
   }
 
