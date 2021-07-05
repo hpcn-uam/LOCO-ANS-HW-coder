@@ -22,7 +22,7 @@ using namespace hls;
 void output_stack(
   stream<byte_block<OUT_WORD_BYTES> > &in, 
   stream<byte_block<OUT_WORD_BYTES> > &out,
-  stream<ap_uint<OUTPUT_STACK_ADDRESS_SIZE> > &last_element_idx,
+  stream<ap_uint<OUTPUT_STACK_BYTES_SIZE> > &last_byte_idx,
   ap_uint<1> &stack_overflow);
 
 #endif // OUTPUT_STACK_HPP

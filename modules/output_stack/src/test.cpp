@@ -50,7 +50,7 @@ int main(int argc, char const *argv[])
 
   for (int blk_idx = 0; blk_idx < NUM_OF_BLCKS; ++blk_idx){
     stream<byte_block<OUT_WORD_BYTES>> in_hw_data,in_sw_data;
-    cout<<"Processing block "<<blk_idx<<endl;
+    cout<<"Processing block "<<blk_idx;
     int block_size = OUTPUT_STACK_SIZE +10 - int(blk_idx/2)*5;
     
     //generate data
@@ -71,14 +71,12 @@ int main(int argc, char const *argv[])
 
     if(is_cosim) {  
       // stack_overflow is a static, ap_vld port. Cosim cannot verify it
-      cout<<"| Warning: Cosim cannot verify overflow flag (inspect waves to check it)";
+      cout<<" | Warning: Cosim cannot verify overflow flag (inspect waves to check it)"<<endl;
     }else{
+      cout<<endl;
       ASSERT(stack_overflow, == , golden_stack_overflow,"Blk "<<blk_idx);
     }
 
-    int hw_block_size = last_element_idx.read()+1;
-    ASSERT(hw_block_size,==,out_hw_data.size(),"Check last_element_idx");
-    ASSERT(last_element_idx.size(),==,0,"Check last_element_idx size");
 
     if(golden_stack_overflow ==1) {
       while(!out_hw_data.empty()) {
@@ -90,17 +88,16 @@ int main(int argc, char const *argv[])
 
       cout<<"| SUCCESS (Overflow correctly detected, data ignored)"<<endl;
       continue;
-    }else{
-
-      ASSERT(hw_block_size,==,block_size,"Check last_element_idx");
     }
 
     ASSERT(out_hw_data.size(),==,out_sw_data.size(),"Blk "<<blk_idx);
 
     int i = 0;
+    int sum_of_bytes = 0;
     while(!out_hw_data.empty()) {
       byte_block<OUT_WORD_BYTES> out_hw_elem = out_hw_data.read();
       byte_block<OUT_WORD_BYTES> out_sw_elem = out_sw_data.read();
+      sum_of_bytes += out_hw_elem.num_of_bytes();
       ASSERT(out_hw_elem.data,==,out_sw_elem.data,"Blk "<<blk_idx <<" | i:"<<i)
       ASSERT(out_hw_elem.num_of_bytes(),==,out_sw_elem.num_of_bytes(),"Blk "<<blk_idx <<" | i:"<<i)
       ASSERT(out_hw_elem.is_last(),==,out_sw_elem.is_last(),"Blk "<<blk_idx <<" | i:"<<i)
@@ -108,6 +105,9 @@ int main(int argc, char const *argv[])
       i++;
     }
 
+    int hw_block_size = int(last_element_idx.read())+1;
+    ASSERT(hw_block_size,==,sum_of_bytes,"Check last_element_idx");
+    ASSERT(last_element_idx.size(),==,0,"Check last_element_idx size");
     cout<<"    | SUCCESS"<<endl;
   }
 
