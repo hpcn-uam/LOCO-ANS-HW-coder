@@ -5,11 +5,13 @@
 #include "xil_printf.h"
 #include "xil_cache.h"
 
-#define INPUT_BLOCK_SIZE (2048)
-#define OUTPUT_BLOCK_SIZE (INPUT_BLOCK_SIZE)
+#define INPUT_BLOCK_SIZE (256)
+#define OUTPUT_BLOCK_SIZE (INPUT_BLOCK_SIZE*2)
 
 #include "inttypes.h"
-#include "xhls_dma.h"
+#include "xidma.h"
+#include "xodma_varsize.h"
+#include "xloopback_fifo.h"
 
 #define ASSERT(v1,comp,v2,i) \
   if(!(v1 comp v2)){ \
@@ -19,86 +21,131 @@
 
 
 // DMA instance
-XHls_dma Hls_dma;
+XIdma idma;
+XLoopback_fifo loopback_fifo;
+XOdma_varsize odma;
 
-volatile int64_t out[OUTPUT_BLOCK_SIZE];
-volatile int64_t in[INPUT_BLOCK_SIZE];
+volatile int32_t out[OUTPUT_BLOCK_SIZE];
+volatile int32_t in[INPUT_BLOCK_SIZE];
 
 #define WITH_ACM 1
 int main()
 {
-  int dma_status;
 
+  int idma_status,lb_fifo_status,odma_status;
+  XLoopback_fifo_Config *loopback_fifo_conf;
+  XIdma_Config *idma_conf;
+  XOdma_varsize_Config *odma_conf;
+  printf("################################# \n\r");
+  printf("Start Application (v2) \n\r");
 
+  //config idma
+  idma_conf = XIdma_LookupConfig(XPAR_IDMA_0_DEVICE_ID);
+  idma_status = XIdma_CfgInitialize(&idma,idma_conf);
 
-    XHls_dma_Config *dma_conf;
-    printf("################################# \n\r");
-    printf("Start Application (Variable size 2)\n\r");
+  if(idma_status != XST_SUCCESS){
+    printf("Error initializing IDMA\n\r");
+    return XST_FAILURE;
+  }
 
+  //config LOOPBACK_FIFO
+  loopback_fifo_conf = XLoopback_fifo_LookupConfig(XPAR_LOOPBACK_FIFO_0_DEVICE_ID);
+  lb_fifo_status = XLoopback_fifo_CfgInitialize(&loopback_fifo,loopback_fifo_conf);
 
-//    int64_t in[OUTPUT_BLOCK_SIZE];
-//    int64_t *out;
-//    out = (int64_t *) malloc(sizeof(int64_t)*INPUT_BLOCK_SIZE);
-//    out = (int64_t *) malloc(sizeof(int64_t)*OUTPUT_BLOCK_SIZE);
+  if(lb_fifo_status != XST_SUCCESS){
+    printf("Error initializing LOOPBACK_FIFO\n\r");
+    return XST_FAILURE;
+  }
 
-    dma_conf = XHls_dma_LookupConfig(XPAR_HLS_DMA_0_DEVICE_ID);
+  //config odma
+  // odma_conf = Xodma_LookupConfig(XPAR_ODMA_VARSIZE_0_DEVICE_ID);
+  odma_status = XOdma_varsize_Initialize(&odma,XPAR_ODMA_VARSIZE_0_DEVICE_ID);
 
-    dma_status = XHls_dma_CfgInitialize(&Hls_dma,dma_conf);
-  if(dma_status != XST_SUCCESS){
-    print("Error initializing DMA\n\r");
+  if(odma_status != XST_SUCCESS){
+    printf("Error initializing ODMA\n\r");
     return XST_FAILURE;
   }
 
 
+  printf("Set up args\n\r");
+  //idma
+  int block_size = INPUT_BLOCK_SIZE;
+  XIdma_Set_in_r(&idma,  (u64 )(&in));
+  XIdma_Set_num_of_elememts(&idma,  block_size);
+  printf("block_size: %d \n\r",block_size);
+
+  //lb fifo
+  int offset= 20;
+  ASSERT(offset, <,INPUT_BLOCK_SIZE,0);
+  int out_num_of_elem = block_size-50;
+  out_num_of_elem = out_num_of_elem <0? 0 : out_num_of_elem;
+
+  XLoopback_fifo_Set_conf_offset(&loopback_fifo, offset);
+  XLoopback_fifo_Set_conf_in_num_of_elememts(&loopback_fifo, block_size);
+  XLoopback_fifo_Set_conf_out_num_of_elememts(&loopback_fifo, out_num_of_elem);
+  printf("offset: %d \n\r",offset);
+  printf("out_num_of_elem: %d \n\r",out_num_of_elem);
+
+  //odma
+  XOdma_varsize_Set_out_r(&odma, (u64 )(&out));
+
   printf("Set up input block\n\r");
-  in[0]=OUTPUT_BLOCK_SIZE-4;
-    for(unsigned i = 1; i < INPUT_BLOCK_SIZE; ++i) {
-        in[i]=i;
-        out[i]=0;
-      }
+  const int default_val = 0xCAFFEE;
+  for(unsigned i = 0; i < block_size; ++i) {
+    in[i]=i;
+  }
+  for(unsigned i = 0; i < OUTPUT_BLOCK_SIZE; ++i) {
+    out[i]=default_val;
+  }
 
 
-
-    //Run DMA: hls_dma(in,out);
-    // set in and out ptrs
-    printf("Set up in address\n\r");
-    XHls_dma_Set_in_r(&Hls_dma,  (u64 )(&in));
-    printf("Set up out address\n\r");
-    XHls_dma_Set_out_r(&Hls_dma,  (u64 ) (&out));
-
+  //Run DMAs
+  Xil_DCacheFlush();
   #if !WITH_ACM
-    printf("invalidate caches \n\r");
-//    Xil_DCacheInvalidate();
+    printf("Flush caches \n\r");
     Xil_DCacheFlush();
-#endif
+  #endif
 
-    //start the accelerator
-    printf("Launch dma\n\r");
-    XHls_dma_Start(&Hls_dma);
+  //start the accelerators
+   printf("Check idma is available\n\r");
+   while (!XIdma_IsIdle(&idma)) ;
+   printf("Check loopback_fifo is available\n\r");
+   while (!XLoopback_fifo_IsIdle(&loopback_fifo)) ;
+   printf("Check odma is available\n\r");
+   while (!XOdma_varsize_IsIdle(&odma)) ;
 
-    //wait till end
-    //      while (!XHls_dma_IsReady(&Hls_dma)) ;
-    while (!XHls_dma_IsDone(&Hls_dma)) ;
+  printf("Launch dma\n\r");
 
-    printf("Checking output \n\r");
+  XIdma_Start(&idma);
+  XLoopback_fifo_Start(&loopback_fifo);
+  XOdma_varsize_Start(&odma);
 
-    int elem2write= in[0]+3;
-    ASSERT(elem2write,==,out[0],-1)
-    printf("Got header. Writen vals: %d\n\r",elem2write);
-    for(unsigned i = 0; i < OUTPUT_BLOCK_SIZE-1; ++i) {
-        if(i<elem2write) {
-            /* code */
-        ASSERT(in[i],==,out[i+1],i)
-        }else{
-        ASSERT(0,==,out[i+1],i);
-        }
-    }
 
-    for(int i = INPUT_BLOCK_SIZE; i < INPUT_BLOCK_SIZE+2; i++){
-      printf("out of bound %d: %d\n\r",i,in[i]);
-    }
+  Xil_DCacheInvalidateRange((unsigned int )out, sizeof(*out)*out_num_of_elem);
 
-    printf("End Application\n\r");
+  printf("Waiting odma is done\n\r");
+  //wait till end
+  while (!XOdma_varsize_IsIdle(&odma)) ;
 
-    return 0;
+  printf("Checking output \n\r");
+
+  //before offset
+  printf("    Before offset \n\r");
+  for(unsigned i = 0; i < offset; ++i) {
+    ASSERT(default_val,==,out[i],i);
+  }
+
+  printf("    Data \n\r");
+  for(unsigned i = 0; i < out_num_of_elem ; ++i) {
+    ASSERT(in[i],==,out[i+offset],i)
+  }
+
+  printf("  After data \n\r");
+  for(unsigned i = out_num_of_elem+offset; i < OUTPUT_BLOCK_SIZE; ++i) {
+    ASSERT(default_val,==,out[i],i);
+  }
+
+  printf("End Application\n\r");
+
+  return 0;
 }

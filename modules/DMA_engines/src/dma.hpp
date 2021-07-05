@@ -53,7 +53,7 @@ void stream2mem(
   ap_uint<OFF_W> offset,
   ap_uint<NE_W> num_of_elememts){
 
-  ASSERT(DW,>,0)
+  BUILD_BUG_ON(DW<=0);// ASSERT(DW,>,0)
   ASSERT(NE_W,>,0)
   ASSERT(OFF_W,>,0)
 
