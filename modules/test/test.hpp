@@ -214,6 +214,11 @@ public:
 
   ~Binary_Decoder(){};
   
+  auto get_current_byte_pointer(){
+    // if bit_ptr ==0, consider that the next byte has not been read
+    return (binary_file_ptr-2)*BINARY_BLOCK_BYTES + int((bit_ptr-1)/8);
+  }
+
   unsigned int retrive_pixel(int bits){
     unsigned int symbol;
     assert(bits<=16);
