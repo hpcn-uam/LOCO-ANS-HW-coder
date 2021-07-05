@@ -46,11 +46,16 @@ void read_binary_stack(
   ap_uint<OUTPUT_STACK_ADDRESS_SIZE> last_element, 
   ap_uint<byte_block<NB>::COUNTER_WIDTH> last_elem_bytes,
   stream<byte_block<NB>> &out,  
-  stream<ap_uint<OUTPUT_STACK_ADDRESS_SIZE>> &last_element_idx ){
-
+  stream<ap_uint<OUTPUT_STACK_BYTES_SIZE>> &last_byte_idx ){
 
   auto elem_bytes = last_elem_bytes;
-  last_element_idx <<last_element;
+  // Next conditional can be simplified at compile time
+  if(OUT_WORD_BYTES == 1) { 
+    last_byte_idx <<last_element; //straightforward for OUT_WORD_BYTES == 1
+  }else{
+    last_byte_idx << last_element*OUT_WORD_BYTES + last_elem_bytes -1;
+  }
+
   read_binary_stack_loop:for (int elem_ptr = last_element; elem_ptr >=0 ; --elem_ptr){
     byte_block<NB> new_element;
     #pragma HLS LOOP_TRIPCOUNT max=OUTPUT_STACK_SIZE
@@ -69,7 +74,7 @@ void read_binary_stack(
 void output_stack(
   stream<byte_block<OUT_WORD_BYTES> > &in, 
   stream<byte_block<OUT_WORD_BYTES> > &out,
-  stream<ap_uint<OUTPUT_STACK_ADDRESS_SIZE> > &last_element_idx,
+  stream<ap_uint<OUTPUT_STACK_BYTES_SIZE> > &last_byte_idx,
   ap_uint<1> &stack_overflow){
   #if OUTPUT_STACK_TOP
     #pragma HLS INTERFACE axis register_mode=both register port=in
@@ -88,7 +93,7 @@ void output_stack(
   ap_uint<byte_block<OUT_WORD_BYTES>::COUNTER_WIDTH> last_elem_bytes;
 
   write_binary_stack(in,binary_stack,last_element,last_elem_bytes,stack_overflow);
-  read_binary_stack(binary_stack, last_element,last_elem_bytes,out,last_element_idx);
+  read_binary_stack(binary_stack, last_element,last_elem_bytes,out,last_byte_idx);
 }
 
 
