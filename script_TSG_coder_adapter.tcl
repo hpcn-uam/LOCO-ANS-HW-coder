@@ -8,4 +8,4 @@ set_part {xc7z020clg484-1}
 create_clock -period 10 -name default
 #source "./src/directives.tcl"
 csynth_design
-# export_design -flow syn -format ip_catalog
+export_design -format ip_catalog
