@@ -34,14 +34,14 @@ if { $arg_idx < $arglen } {
 puts "Mode : $mode" 
 
 
-open_project IDMA.hls_prj
+open_project idma.hls_prj
 set_top idma
 add_files src/dma.cpp
 add_files -tb src/test_idma.cpp -cflags "-Wno-unknown-pragmas" -csimflags "-Wno-unknown-pragmas"
 open_solution "solution1" -flow_target vivado
 set_part {xc7z020clg400-1}
 create_clock -period 10 -name default
-#source "./IDMA.hls_prj/solution1/directives.tcl"
+#source "./idma.hls_prj/solution1/directives.tcl"
 if { $mode == 0 } {
   csim_design -clean
 }
