@@ -52,6 +52,10 @@ struct byte_block {
     ap_uint<NUM_OF_BYTES*8> _data, ap_uint<COUNTER_WIDTH> _bytes,
     ap_uint<1>  _last): data(_data),bytes(_bytes),last(_last){};
 
+  inline unsigned get_byte_mask(){
+    return (1<<bytes)-1;
+  }
+
   inline unsigned num_of_bytes(){
     return bytes;
   }
