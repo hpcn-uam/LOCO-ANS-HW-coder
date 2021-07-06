@@ -38,7 +38,7 @@ void TSG_input_adapter(
   stream<coder_interf_t> &out){
   #pragma HLS INTERFACE axis register_mode=both register port=in
   #pragma HLS INTERFACE axis register_mode=both register port=out
-  
+  #pragma HLS INTERFACE ap_ctrl_none port=return
   #pragma HLS PIPELINE style=frp
 
   START_SW_ONLY_LOOP(! in.empty())
