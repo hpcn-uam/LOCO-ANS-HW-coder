@@ -9,4 +9,4 @@ create_clock -period 10 -name default
 csim_design -clean
 csynth_design
 cosim_design -enable_dataflow_profiling -trace_level all
-export_design -flow syn -format ip_catalog
+export_design -format ip_catalog
