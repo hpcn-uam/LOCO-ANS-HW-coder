@@ -29,7 +29,12 @@
   
   #include <iostream>
   using namespace std;
+
+  #define START_SW_ONLY_LOOP(cont_condition) while (cont_condition){
+  #define END_SW_ONLY_LOOP }
 #else
+  #define START_SW_ONLY_LOOP(cont_condition) 
+  #define END_SW_ONLY_LOOP
   #define ASSERT(...) 
 #endif
 
@@ -52,6 +57,7 @@ constexpr int ceillog2(int x){
 #define NBITS16(n) ((n&0xFF00)?(8+NBITS8(n>>8)):(NBITS8(n)))
 #define NBITS32(n) ((n&0xFFFF0000)?(16+NBITS16(n>>16)):(NBITS16(n)))
 #define NBITS(n) (n==0?0:NBITS32(n)+1)
+
 
 
 /********************** General parameters ******************************/
