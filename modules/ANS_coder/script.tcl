@@ -12,5 +12,5 @@ config_export -format ip_catalog -rtl verilog
 csim_design -clean
 csynth_design
 cosim_design -enable_dataflow_profiling -trace_level all
-export_design -flow syn -rtl verilog -format ip_catalog
+export_design -rtl verilog -format ip_catalog
 # export_design -flow impl -rtl verilog -format ip_catalog
