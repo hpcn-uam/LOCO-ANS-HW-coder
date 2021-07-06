@@ -29,7 +29,10 @@ void intf_to_bits(coder_interf_t intf, symb_data_t &symb,symb_ctrl_t &ctrl);
 
 
 
-void input_buffers(stream<coder_interf_t > &in, stream<coder_interf_t > &out);
+void input_buffers(
+  stream<coder_interf_t > &in, 
+  stream<coder_interf_t > &out,
+  stream<ap_uint<1>> &last_block);
 
 
 #endif // INPUT_BUFFERS_HPP
