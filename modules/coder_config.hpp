@@ -137,7 +137,7 @@ constexpr int OUTPUT_STACK_BYTES_SIZE = ceillog2(OUTPUT_STACK_SIZE*OUT_WORD_BYTE
 
 /********************** memory interface ******************************/
 
-constexpr int OUT_DMA_BYTES = 4;
+constexpr int OUT_DMA_BYTES = 1;
 constexpr int MAX_ODMA_TRANSACTIONS = 
         int((OUTPUT_STACK_SIZE*OUT_WORD_BYTES+OUT_DMA_BYTES-1)/OUT_DMA_BYTES);
 
