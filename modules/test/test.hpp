@@ -13,11 +13,25 @@
 #include "../subsym_gen/src/subsym_gen.hpp"
 #include <vector>
 #include <list>
+#include <ap_axi_sdata.h>
 
 #define likely(x) __builtin_expect ((x), 1)
 #define unlikely(x) __builtin_expect ((x), 0)
 
+template<int DBYTES>
+void axis2byteblock(stream<axis<ap_uint<DBYTES*8>,0,0,0 >> &in ,
+            stream<byte_block<DBYTES>> &out){
+  while(!in.empty()) {
+    auto in_elem = in.read();
+    byte_block<DBYTES> out_elem;
+    out_elem.data = in_elem.data;
+    out_elem.set_last(in_elem.last==1?true:false);
+    int nbytes = log2(int(in_elem.keep)+1);
+    out_elem.set_num_of_bytes(nbytes);
+    out <<out_elem;
+  }
 
+}
 
 unsigned int get_bit( std::list<bit_blocks> &binary_list){
   auto block = binary_list.front();
