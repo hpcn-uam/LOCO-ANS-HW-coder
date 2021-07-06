@@ -12,7 +12,8 @@ void intf_to_bits(coder_interf_t intf, symb_data_t &symb,symb_ctrl_t &ctrl){
 void write_block(
   stream<coder_interf_t> &in, 
   symb_data_t buff[BUFFER_SIZE],
-  ap_uint<BUFFER_ADDR_SIZE> &last_element){
+  ap_uint<BUFFER_ADDR_SIZE> &last_element,
+  stream<ap_uint<1>> &last_block){
 
   write_block_loop:for (int elem_ptr = 0; elem_ptr < BUFFER_SIZE ; ++elem_ptr){
   #pragma HLS LOOP_TRIPCOUNT max=BUFFER_SIZE
@@ -23,6 +24,7 @@ void write_block(
     // last_element = elem_ptr;
     if (elem_ptr == BUFFER_SIZE-1 || last_symbol == 1){
       last_element = elem_ptr;
+      last_block << (last_symbol == 1? 1 : 0);
     }
     buff[elem_ptr] = symb_data;
 
@@ -50,19 +52,23 @@ void read_block(
 
 void input_buffers(
   stream<coder_interf_t > &in, 
-  stream<coder_interf_t > &out){
+  stream<coder_interf_t > &out,
+  stream<ap_uint<1>> &last_block){
   #if INPUT_BUFFERS_TOP
-  #pragma HLS INTERFACE axis register_mode=both register port=out
   #pragma HLS INTERFACE axis register_mode=both register port=in
+  #pragma HLS INTERFACE axis register_mode=both register port=out
+  #pragma HLS INTERFACE axis register_mode=both register port=last_block
   #endif
 
   #pragma HLS DATAFLOW
   #pragma HLS INTERFACE ap_ctrl_none port=return
 
+  #pragma HLS STREAM variable=last_block depth=3
+
   symb_data_t buffers[BUFFER_SIZE];
   #pragma HLS STREAM variable=buffers depth=2 off
   ap_uint<BUFFER_ADDR_SIZE> last_element;
-  #pragma HLS dataflow
-  write_block(in, buffers, last_element);
+  write_block(in, buffers, last_element,last_block);
   read_block(buffers, last_element,out);
+
 }
