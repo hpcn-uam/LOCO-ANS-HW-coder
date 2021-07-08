@@ -2,51 +2,24 @@
 
 
 MODE := 1 # 1: just hls synth and export | 0: also csim and cosim
-DEPS := $(wildcard src/*.cc) $(wildcard src/*.hpp) ../coder_config.hpp
+MODE_NAME := 
 
 
 .PHONY: clean all test
 
+ALL_TARGETS = idma odma odma_VarSize loopback_fifo
+BASIC_TARGETS = idma odma 
 
-TARGETS := idma odma_VarSize 
-all: $(TARGETS)
+all_modules: $(ALL_TARGETS)
+
+all: $(BASIC_TARGETS)
 
 test: MODE := 0
 test: all
 
-idma: idma.hls_prj/solution1/impl/ip/
-
-idma.hls_prj/solution1/impl/ip/: $(DEPS)
-ifeq ($(MODE),0)
-	@echo "Compiling $(MODULE) with csim and RTL cosim"
-else
-	@echo "Compiling $(MODULE) "
-endif
-	vitis_hls idma_script.tcl $(MODE)
-
-
-odma_VarSize: odma_VarSize.hls_prj/solution1/impl/ip/
-	
-odma_VarSize.hls_prj/solution1/impl/ip/: $(DEPS)
-ifeq ($(MODE),0)
-	@echo Compiling $(MODULE) with csim and RTL cosim
-else
-	@echo Compiling $(MODULE) 
-endif
-	vitis_hls odma_VarSize_script.tcl $(MODE)
-
-
-loopback_fifo: loopback_fifo.hls_prj/solution1/impl/ip/
-	
-loopback_fifo.hls_prj/solution1/impl/ip/: $(DEPS)
-ifeq ($(MODE),0)
-	@echo "Compiling $(MODULE) with csim and RTL cosim"
-else
-	@echo "Compiling $(MODULE) "
-endif
-	vitis_hls loopback_fifo_script.tcl $(MODE)
-
+$(ALL_TARGETS): 
+	make $@ MODE=$(MODE) -f submake.mk
 
 
 clean:
-	rm -rf *.hls_prj vitis_hls*.log
+	make -f submake.mk clean

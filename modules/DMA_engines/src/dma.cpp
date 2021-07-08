@@ -10,7 +10,7 @@
 *
 *
 *
-* Last Modified : 2021-07-02 11:01:58 
+* Last Modified : 2021-07-07 12:57:57 
 *
 * Revision      : 
 *
@@ -28,8 +28,8 @@ using namespace hls;
 
 
 void idma(
-  volatile mem_data *in,
-  stream<mem_data> & out_stream,
+  volatile idma_data *in,
+  stream<idma_data> & out_stream,
   ap_uint<NUM_OF_IN_ELEM_BITS> num_of_elememts){
 
   #pragma HLS INTERFACE m_axi depth=TB_MAX_BLOCK_SIZE port=in offset=slave bundle=mem
@@ -42,8 +42,8 @@ void idma(
 }
 
 void odma_VarSize(
-  stream<mem_data>  & in_stream,
-  volatile mem_data *out,
+  stream<odma_data>  & in_stream,
+  volatile odma_data *out,
   stream<ap_uint<DMA_ADDRESS_RANGE_BITS>> & offset,
   stream<ap_uint<NUM_OF_OUT_ELEM_BITS>> & num_of_elememts){
 
@@ -58,14 +58,43 @@ void odma_VarSize(
   #pragma HLS INTERFACE s_axilite port=return bundle=control
 
   ap_uint<DMA_ADDRESS_RANGE_BITS> _off = offset.read();
-  ap_uint<DMA_ADDRESS_RANGE_BITS> _num_of_elememts = num_of_elememts.read();
+  ap_uint<NUM_OF_OUT_ELEM_BITS> _num_of_elememts = num_of_elememts.read();
   stream2mem(in_stream,out,_off,_num_of_elememts);
 }
 
+void odma(
+  stream<odma_command> & in_command,
+  stream<odma_data>  & in_stream,
+  volatile odma_data *out){
+
+  #pragma HLS INTERFACE axis register_mode=both register port=in_command
+  #pragma HLS INTERFACE axis register_mode=both register port=in_stream
+  //depth argument is only for tb purposes. is set to MAX_ODMA_TRANSACTIONS*2
+  // given the tb parameters, writing outside of the MAX_ODMA_TRANSACTIONS*2
+  //boundary will make the co-sim fail 
+  #pragma HLS INTERFACE m_axi depth=MAX_ODMA_TRANSACTIONS*2 port=out offset=slave bundle=mem
+  #pragma HLS INTERFACE s_axilite port=out bundle=control
+  #pragma HLS INTERFACE s_axilite port=return bundle=control
+
+  ap_uint<1> last_block= 0;
+
+  while(last_block == 0) {
+    ap_uint<DMA_ADDRESS_RANGE_BITS> cmd_off ;
+    ap_uint<NUM_OF_OUT_ELEM_BITS> cmd_num_of_elememts; 
+    ap_uint<1> cmd_last; 
+    (cmd_off,cmd_num_of_elememts,cmd_last) = in_command.read();
+
+    stream2mem(in_stream,out,cmd_off,cmd_num_of_elememts);
+
+    last_block = cmd_last;
+  }
+}
+
+
 
 void loopback_fifo(
-  stream<mem_data>  & in_stream,
-  stream<mem_data> & out_stream,
+  stream<idma_data>  & in_stream,
+  stream<odma_data> & out_stream,
   ap_uint<DMA_ADDRESS_RANGE_BITS> conf_offset,
   stream<ap_uint<DMA_ADDRESS_RANGE_BITS>> & out_offset,
   ap_uint<NUM_OF_IN_ELEM_BITS> conf_in_num_of_elememts,
@@ -82,13 +111,18 @@ void loopback_fifo(
   #pragma HLS INTERFACE s_axilite port=return bundle=control
   // #pragma HLS INTERFACE ap_ctrl_none port=return  
 
-  stream<mem_data,MAX_ODMA_TRANSACTIONS> fifo;
+  //if idma_data::width > odma_data::width 
+  //          --> change of data alignment and might produce data loss
+  //if idma_data::width < odma_data::width --> change of data alignment 
+  ASSERT(idma_data::width, ==, odma_data::width);
+
+  stream<idma_data,MAX_ODMA_TRANSACTIONS> fifo;
   ap_uint<NUM_OF_OUT_ELEM_BITS> _out_num_of_elememts = 
     MIN(ap_uint<NUM_OF_OUT_ELEM_BITS>(conf_in_num_of_elememts),conf_out_num_of_elememts);
 
 
   for(ap_uint<NUM_OF_IN_ELEM_BITS> i = 0; i < conf_in_num_of_elememts; ++i) {
-    mem_data in_elem = in_stream.read();
+    idma_data in_elem = in_stream.read();
     if(i< _out_num_of_elememts) {
       fifo << in_elem;
     }
@@ -100,7 +134,7 @@ void loopback_fifo(
       out_offset << conf_offset;
       out_num_of_elememts << _out_num_of_elememts;
     }
-    out_stream << fifo.read();
+    out_stream << fifo.read(); 
   }
 
 }

@@ -23,18 +23,10 @@
 #ifndef DMA_HPP
 #define DMA_HPP
 
-
-
-
 #include "../../coder_config.hpp"
 #include <hls_stream.h>
 
-constexpr int INTERFACE_WIDTH = OUT_DMA_BYTES*8;
-constexpr int TB_MAX_BLOCK_SIZE = 2048;
-typedef ap_uint<INTERFACE_WIDTH> mem_data;
-constexpr int NUM_OF_IN_ELEM_BITS = 32;
-constexpr int NUM_OF_OUT_ELEM_BITS = ceillog2(MAX_ODMA_TRANSACTIONS+1);
-
+typedef ap_uint<DMA_ADDRESS_RANGE_BITS+NUM_OF_OUT_ELEM_BITS+1> odma_command;
 using namespace hls;
 
 template<int DW,int NE_W>
@@ -71,20 +63,25 @@ void stream2mem(
 
 
 void idma(
-  volatile mem_data *in,
-  stream<mem_data> & out_stream,
+  volatile idma_data *in,
+  stream<idma_data> & out_stream,
   ap_uint<NUM_OF_IN_ELEM_BITS> num_of_elememts);
 
+void odma(
+  stream<odma_command> & in_command,
+  stream<odma_data>  & in_stream,
+  volatile odma_data *out);
+
 void odma_VarSize(
-  stream<mem_data>  & in_stream,
-  volatile mem_data *out,
+  stream<odma_data>  & in_stream,
+  volatile odma_data *out,
   stream<ap_uint<DMA_ADDRESS_RANGE_BITS>> & offset,
   stream<ap_uint<NUM_OF_OUT_ELEM_BITS>> & num_of_elememts);
 
 
 void loopback_fifo(
-  stream<mem_data>  & in_stream,
-  stream<mem_data> & out_stream,
+  stream<idma_data>  & in_stream,
+  stream<odma_data> & out_stream,
   ap_uint<DMA_ADDRESS_RANGE_BITS> conf_offset,
   stream<ap_uint<DMA_ADDRESS_RANGE_BITS>> & out_offset,
   ap_uint<NUM_OF_IN_ELEM_BITS> conf_in_num_of_elememts,
