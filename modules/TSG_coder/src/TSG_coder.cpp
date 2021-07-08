@@ -1,6 +1,24 @@
 
 #include "TSG_coder.hpp"
 
+// ap_axis adds tkeep and strobe signals, which I don't think I should be supporting 
+// Instead, if a more AXIS compatible interface is needed, the next adapter 
+// can be used
+void TSG_input_adapter(
+  stream<axis<ap_uint<IN_INTERF_WIDTH>,0,0,0>> &in,
+  stream<coder_interf_t> &out){
+  #ifdef TSG_INPUT_ADAPTER_TOP
+  #pragma HLS INTERFACE axis register_mode=both register port=in
+  #pragma HLS INTERFACE axis register_mode=both register port=out
+  #pragma HLS INTERFACE ap_ctrl_none port=return
+  #endif
+  #pragma HLS PIPELINE style=frp
+
+  START_SW_ONLY_LOOP(! in.empty())
+  auto ie= in.read();
+  out << bits_to_intf(ie.data,ie.last);
+  END_SW_ONLY_LOOP
+}
 
 
 void output_data_interface(
@@ -8,6 +26,12 @@ void output_data_interface(
   stream<byte_block<OUT_WORD_BYTES>> &byte_block_stream,
   //output
   stream<TSG_out_intf> &out_data_stream){
+  #ifdef OUTPUT_DATA_INTERFACE_TOP
+  #pragma HLS INTERFACE axis register_mode=both register port=byte_block_stream
+  #pragma HLS INTERFACE axis register_mode=both register port=out_data_stream
+  #pragma HLS INTERFACE ap_ctrl_none port=return
+  #endif
+
   #pragma HLS PIPELINE style=frp
 
   auto in_data = byte_block_stream.read();
@@ -28,6 +52,14 @@ void output_metadata_interface(
   stream<ap_uint<1>> &last_block,
   //output
   stream<tsg_blk_metadata> &out_blk_metadata){
+
+  #ifdef OUTPUT_METADATA_INTERFACE_TOP
+  #pragma HLS INTERFACE axis register_mode=both register port=last_byte_idx
+  #pragma HLS INTERFACE axis register_mode=both register port=last_block
+  #pragma HLS INTERFACE axis register_mode=both register port=out_blk_metadata
+  #pragma HLS INTERFACE ap_ctrl_none port=return
+  #endif
+
   #pragma HLS PIPELINE style=frp
   auto last_block_elem = last_block.read();
   auto last_byte_idx_elem = last_byte_idx.read();
@@ -45,10 +77,12 @@ void TSG_coder(
   // ap_uint<1> stack_overflow
   ){
 
+  #ifdef TSG_CODER_TOP
   #pragma HLS INTERFACE axis register_mode=both register port=in
   #pragma HLS INTERFACE axis register_mode=both register port=byte_block_stream
   #pragma HLS INTERFACE axis register_mode=both register port=out_blk_metadata
   #pragma HLS INTERFACE ap_ctrl_none port=return
+  #endif
   //status registers
   // #pragma HLS INTERFACE s_axilite port=stack_overflow bundle=control
 
@@ -64,7 +98,7 @@ void TSG_coder(
   stream<subsymb_t> symbol_stream;
   #pragma HLS STREAM variable=symbol_stream depth=2
   START_SW_ONLY_LOOP(! inverted_data.empty())
-  sub_symbol_gen(inverted_data,symbol_stream);
+  subsymbol_gen(inverted_data,symbol_stream);
   END_SW_ONLY_LOOP
 
   stream<byte_block<OUT_WORD_BYTES>> coded_byte_stream;
