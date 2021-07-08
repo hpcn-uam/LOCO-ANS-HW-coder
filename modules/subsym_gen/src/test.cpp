@@ -38,11 +38,17 @@ int main(int argc, char const *argv[])
     }
 
     stream<coder_interf_t> inverted_data;
-    input_buffers(in_data, inverted_data);
+    stream<ap_uint<1>> last_block;
+    input_buffers(in_data, inverted_data,last_block);
+
+    //last_block block signal not tested in this testbench
+    while (! last_block.empty()){
+      auto tmp = last_block.read();
+    }
 
     stream<subsymb_t> symbol_stream;
     while (! inverted_data.empty()){
-        sub_symbol_gen(inverted_data,symbol_stream);
+        subsymbol_gen(inverted_data,symbol_stream);
     }
 
     // while(!symbol_stream.empty()) {
@@ -135,7 +141,8 @@ int main(int argc, char const *argv[])
       i++;
 
     }
-
+    ASSERT(inverted_data.size(),==,0);
+    ASSERT(symbol_stream.size(),==,0);
     cout<<"| SUCCESS"<<endl;
   }
 

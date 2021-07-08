@@ -28,7 +28,7 @@ struct subsymb_t{
 
   };
 
-void sub_symbol_gen(
+void subsymbol_gen(
   stream<coder_interf_t> &in,
   stream<subsymb_t> &symbol_stream
   );
