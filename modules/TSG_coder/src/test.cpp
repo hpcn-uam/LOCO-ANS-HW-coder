@@ -4,13 +4,13 @@
 #include <ctime>
 #include <cstring>
 #include "TSG_coder.hpp"
-#include "../modules/test/test.hpp"
+#include "../../test/test.hpp"
 #include <vector>
 #include <list>
 
 using namespace std;
 using namespace hls;
-#define NUM_OF_BLCKS (8)
+#define NUM_OF_BLCKS 1 //(8)
 
 #define TEST_BUFFER_SIZE 32
 
@@ -27,16 +27,22 @@ int main(int argc, char const *argv[])
     // ************
     // Generate input 
     // ************
-    int block_size = TEST_BUFFER_SIZE - int(blk_idx/2);
+    int block_size = 20;
+    // int block_size = TEST_BUFFER_SIZE - int(blk_idx/2);
     for (int i = 0; i < block_size; ++i){
       symb_data_t symb_data;
       symb_ctrl_t symb_ctrl = (i == block_size-1)? 1:0 ;
 
       int val = i+TEST_BUFFER_SIZE*blk_idx;
+//      val = 2;
       ap_uint<Z_SIZE> z = blk_idx <= 3? val&0x1:(blk_idx <= 5? val & 0xF : val & 0x7F) ;
       ap_uint<Y_SIZE> y = val & 0x80?1:0 ; 
       ap_uint<THETA_SIZE> theta_id = i >= NUM_ANS_THETA_MODES?NUM_ANS_THETA_MODES-1: i ;
       ap_uint<P_SIZE> p_id = blk_idx/2 ;
+      cout<<"p_id: "<<p_id;
+      cout<<", theta_id: "<<theta_id;
+      cout<<", y: "<<y;
+      cout<<", z: "<<z<<endl;
       symb_data = (z,y,theta_id,p_id);
       in_data.write(bits_to_intf(symb_data ,symb_ctrl));
       input_vector.push_back(bits_to_intf(symb_data ,symb_ctrl));
@@ -85,6 +91,7 @@ int main(int argc, char const *argv[])
       //write to memory
       for(unsigned j = 0; j < out_byte_block.num_of_bytes(); ++j) {
         block_binary[mem_pointer] = out_byte_block.data((j+1)*8-1,j*8);
+        printf("%d: %02X\n", mem_pointer, block_binary[mem_pointer]);
         mem_pointer++;
       }
 
