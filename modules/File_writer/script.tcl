@@ -1,3 +1,5 @@
+
+# For arg parsing to work Vitis HLS needs to be called as: vitis_hls this_script.tcl [args]
 set arglen [llength $argv]
 set arg_idx 0
 
@@ -14,6 +16,7 @@ if { $arg_idx < $arglen } {
 puts "Mode : $mode" 
 
 set module File_writer
+
 open_project "${module}.hls_prj"
 set_top "${module}"
 add_files "src/${module}.cpp"

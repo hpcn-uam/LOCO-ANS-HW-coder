@@ -1,7 +1,4 @@
 
-
-
-
 #include <iostream>
 #include <cmath>
 #include <ctime>
@@ -23,10 +20,9 @@ int main(int argc, char const *argv[])
   stream<TSG_out_intf> in_byte_block_stream;
   stream<tsg_blk_metadata> in_blk_metadata;
   //outputs
-  stream<mem_data>   out_stream;
-  stream<ap_uint<DMA_ADDRESS_RANGE_BITS>>  out_offset;
-  stream<ap_uint<NUM_OF_OUT_ELEM_BITS>>  out_num_of_elememts;
-
+  stream<odma_data>   out_stream;
+  stream<odma_command>  out_command;
+  std::list<odma_data> in_list;
   int byte_counter = 0 ;
   for(unsigned test_id = 0; test_id < NUM_OF_TESTS; ++test_id) {
     cout<<"Processing test "<<test_id<<endl;
@@ -42,6 +38,8 @@ int main(int argc, char const *argv[])
       in_elem.keep = -1;
       in_elem.strb = -1;
       in_byte_block_stream << in_elem;
+
+      in_list.push_back(i);
     }
 
     //DUT
@@ -51,23 +49,51 @@ int main(int argc, char const *argv[])
       in_blk_metadata,
     //outputs
      out_stream,
-     out_offset,
-     out_num_of_elememts);
+     out_command);
 
 
     //check output
-    int hw_out_offset = out_offset.read();
-    ASSERT(hw_out_offset,==,byte_counter);
+    ap_uint<DMA_ADDRESS_RANGE_BITS> cmd_off ;
+    ap_uint<NUM_OF_OUT_ELEM_BITS> cmd_num_of_elememts; 
+    ap_uint<1> cmd_last; 
 
+    (cmd_off,cmd_num_of_elememts,cmd_last)  = out_command.read();
+
+    ASSERT(cmd_off,==,byte_counter+OFFSET_INIT);
+    ASSERT(cmd_num_of_elememts,==,block_size);
+    ASSERT(cmd_last,==,0);
+
+    for(unsigned elem_idx = 0; elem_idx < block_size; ++elem_idx) {
+      odma_data out_elem = out_stream.read();
+      odma_data golden_data = in_list.front();
+      in_list.pop_front();
+
+      ASSERT(out_elem,==,golden_data,"elem_idx: "<<elem_idx);
+    }
+
+    byte_counter += block_size;
+
+    if(last_block==1) {
+      (cmd_off,cmd_num_of_elememts,cmd_last)  = out_command.read();
+      ASSERT(cmd_off,==,0);
+      ASSERT(cmd_num_of_elememts,==,OFFSET_INIT);
+      ASSERT(cmd_last,==,1);
+
+      for(unsigned elem_idx = 0; elem_idx < OFFSET_INIT; ++elem_idx) {
+        odma_data out_elem = out_stream.read();
+        odma_data golden_data = (byte_counter>>(elem_idx*8)) & 0xFF;
+
+        ASSERT(out_elem,==,golden_data,"elem_idx: "<<elem_idx);
+      }
+    }
 
     ASSERT(in_byte_block_stream.size(), ==, 0);
     ASSERT(in_blk_metadata.size(), ==, 0);
     ASSERT(out_stream.size(), ==, 0);
-    ASSERT(out_offset.size(), ==, 0);
-    ASSERT(out_num_of_elememts.size(), ==, 0);
+    ASSERT(out_command.size(), ==, 0);
     cout<<"  | SUCCESS"<<endl;
 
-    byte_counter += block_size;
+
 
   }
   return 0;
