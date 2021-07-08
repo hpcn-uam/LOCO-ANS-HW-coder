@@ -79,10 +79,10 @@ void output_stack(
   #if OUTPUT_STACK_TOP
     #pragma HLS INTERFACE axis register_mode=both register port=in
     #pragma HLS INTERFACE axis register_mode=both register port=out
+    #pragma HLS INTERFACE axis register_mode=both register port=last_byte_idx
     #pragma HLS INTERFACE ap_vld register port=stack_overflow
-  #else
-    #pragma HLS INTERFACE ap_ctrl_none port=return
   #endif
+  #pragma HLS INTERFACE ap_ctrl_none port=return
 
   #pragma HLS DATAFLOW
   #pragma HLS stable variable=stack_overflow
