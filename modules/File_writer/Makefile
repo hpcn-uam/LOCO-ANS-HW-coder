@@ -1,25 +1,28 @@
 
 MODULE := File_writer
+RED=\e[31m
+GREEN=\e[32m
+NC=\e[0m
 
 MODE := 1 # 1: just hls synth and export | 0: also csim and cosim
-DEPS := $(wildcard src/*.cc) $(wildcard src/*.h) $(wildcard src/ANS_tables/*.dat )
+MODE_NAME := 
+DEPS := $(wildcard src/*.cpp) $(wildcard src/*.hpp) ../coder_config.hpp
 
 .PHONY: clean all
+
+all_modules: all 
 
 all: $(MODULE)
 
 test: MODE := 0
+test: MODE_NAME := (with csim and RTL cosim)
 test: $(MODULE)
 
 $(MODULE): $(MODULE).hls_prj/solution1/impl/ip/
 
 $(MODULE).hls_prj/solution1/impl/ip/: $(DEPS)
-ifeq ($(MODE),0)
-	@echo "Compiling $(MODULE) (with csim and RTL cosim)"
-else
-	@echo "Compiling $(MODULE) "
-endif
-	vitis_hls script.tcl $(MODE)
+	@echo  "$(GREEN) #########  Compiling $(MODULE) $(MODE_NAME) #########$(NC)"
+	vitis_hls script.tcl $(MODE) > $(MODULE)_compile.log
 
 clean:
 	rm -rf $(MODULE).hls_prj vitis_hls*.tcl

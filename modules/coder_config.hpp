@@ -6,6 +6,10 @@
 #include "ap_int.h"
 #include <cmath>
 
+// HLS libs
+#include <hls_stream.h>
+#include <ap_axi_sdata.h>
+
 
 /********************** Aux functions  ******************************/ 
 #ifndef __SYNTHESIS__
@@ -135,11 +139,28 @@ constexpr int OUTPUT_STACK_BYTES_SIZE = ceillog2(OUTPUT_STACK_SIZE*OUT_WORD_BYTE
 
 
 
+/********************** TSG output interface ******************************/
+typedef ap_uint<OUTPUT_STACK_BYTES_SIZE+1> tsg_blk_metadata;
+typedef hls::axis<ap_uint<OUTPUT_SIZE>,0,0,0 > TSG_out_intf;
+
 /********************** memory interface ******************************/
 
+
+constexpr int IN_DMA_BYTES = 4;
 constexpr int OUT_DMA_BYTES = 1;
+
+constexpr int IN_INTERF_WIDTH = IN_DMA_BYTES*8;
+constexpr int OUT_INTERF_WIDTH = OUT_DMA_BYTES*8;
+constexpr int TB_MAX_BLOCK_SIZE = 2048;
+typedef ap_uint<IN_INTERF_WIDTH> idma_data;
+typedef ap_uint<OUT_INTERF_WIDTH> odma_data;
+
 constexpr int MAX_ODMA_TRANSACTIONS = 
         int((OUTPUT_STACK_SIZE*OUT_WORD_BYTES+OUT_DMA_BYTES-1)/OUT_DMA_BYTES);
+        
+constexpr int NUM_OF_IN_ELEM_BITS = 32;
+constexpr int NUM_OF_OUT_ELEM_BITS = ceillog2(MAX_ODMA_TRANSACTIONS+1);
+
 
 constexpr int DMA_ADDRESS_RANGE_BITS = 32; // this limits the maximum file size
 
