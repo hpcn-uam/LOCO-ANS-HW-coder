@@ -88,9 +88,17 @@ void split_stream(
   stream<coder_interf_t> &in,
   stream<ap_uint <Y_SIZE+P_SIZE> > &y_stream,
   stream<ap_uint <Z_SIZE+THETA_SIZE+1> > &z_stream){
+
+  #if SPLIT_STREAM_TOP
+    #pragma HLS INTERFACE axis register_mode=both register port=in
+    #pragma HLS INTERFACE axis register_mode=both register port=y_stream
+    #pragma HLS INTERFACE axis register_mode=both register port=z_stream
+  #endif
+  #pragma HLS INTERFACE ap_ctrl_none port=return
+
   // #pragma HLS INTERFACE ap_ctrl_none port=return
   // #pragma HLS PIPELINE
-  #pragma HLS PIPELINE style=frp
+  #pragma HLS PIPELINE style=flp
   symb_data_t symb_data;
   symb_ctrl_t symb_ctrl;
   ap_uint<Z_SIZE> z;
@@ -239,8 +247,13 @@ void split_stream(
 #define Z_META_STREAM_SIZE (CARD_BITS+ANS_SYMB_BITS+ 1+ 2*Z_SIZE+THETA_SIZE+1)
 void z_decompose_pre(
   stream<ap_uint <Z_SIZE+THETA_SIZE+1> > &z_stream,
-  stream<ap_uint <Z_META_STREAM_SIZE> > &z_stream_with_meta
-  ){
+  stream<ap_uint <Z_META_STREAM_SIZE> > &z_stream_with_meta){
+
+  #if Z_DECOMPOSE_PRE_TOP
+    #pragma HLS INTERFACE axis register_mode=both register port=z_stream
+    #pragma HLS INTERFACE axis register_mode=both register port=z_stream_with_meta
+  #endif
+  #pragma HLS INTERFACE ap_ctrl_none port=return
 
   #pragma HLS PIPELINE style=frp
 
@@ -266,8 +279,12 @@ void z_decompose_pre(
 
 void z_decompose_post(
   stream<ap_uint <Z_META_STREAM_SIZE> > &z_stream_with_meta,
-  stream<subsymb_t> &z_decomposed
-  ){
+  stream<subsymb_t> &z_decomposed){
+  #if Z_DECOMPOSE_POST_TOP
+    #pragma HLS INTERFACE axis register_mode=both register port=z_stream_with_meta
+    #pragma HLS INTERFACE axis register_mode=both register port=z_decomposed
+  #endif
+  #pragma HLS INTERFACE ap_ctrl_none port=return
 
   #pragma HLS PIPELINE style=frp
   
@@ -387,7 +404,13 @@ void serialize_symbols(
   stream<subsymb_t > &z_decomposed,
   stream<subsymb_t> &symbol_stream){
   // #pragma HLS INTERFACE ap_ctrl_none port=return
-  
+  #if SERIALIZE_SYMBOLS_TOP
+    #pragma HLS INTERFACE axis register_mode=both register port=y_stream
+    #pragma HLS INTERFACE axis register_mode=both register port=z_decomposed
+    #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
+  #endif
+  #pragma HLS INTERFACE ap_ctrl_none port=return
+
   #pragma HLS PIPELINE style=frp
 
   static ap_uint<1> input_select = 0; // 0 -> y | 1 -> z
@@ -498,7 +521,7 @@ void serialize_symbols(
 
 }*/
 
-void sub_symbol_gen(
+void subsymbol_gen(
   stream<coder_interf_t> &in,
   stream<subsymb_t> &symbol_stream
   ){
@@ -506,9 +529,9 @@ void sub_symbol_gen(
     #pragma HLS INTERFACE axis register_mode=both register port=in
     #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
   #endif
+  #pragma HLS INTERFACE ap_ctrl_none port=return
 
   #pragma HLS DATAFLOW disable_start_propagation
-  #pragma HLS INTERFACE ap_ctrl_none port=return
   
   stream<ap_uint <Y_SIZE+P_SIZE> > y_stream;
   #pragma HLS STREAM variable=y_stream depth=8
