@@ -6,7 +6,7 @@ NC=\e[0m
 CFLAGS := -I/tools/Xilinx/Vitis_HLS/2020.2/include/
 # CFLAGS+= -I/home/tobi/NVME/Xilinx/Vitis_HLS/2020.2/include/
 
-sources :=  $(wildcard src/*.cpp) ../input_buffers/src/input_buffers.cpp ../subsym_gen/src/subsym_gen.cpp ../ANS_coder/src/ANS_coder.cpp
+sources :=  $(wildcard src/*.cpp) ../input_buffers/src/input_buffers.cpp ../subsym_gen/src/subsym_gen.cpp ../ANS_coder/src/ANS_coder.cpp ../output_stack/src/output_stack.cpp
 deps  := src/TSG_coder.cpp $(wildcard src/*.hpp) $(wildcard ../ANS_tables/*.dat )
 
 MODE := 1 # 1: just hls synth and export | 0: also csim and cosim
@@ -41,8 +41,8 @@ TSG_coder: TSG_coder.hls_prj/solution1/impl/ip/
 
 
 
-TSG_Cosim_clang_sim: $(sources) $(DEPS)
-	clang++ $(CFLAGS) $(sources)  -o TSG_Cosim_clang_sim
+TSG_csim_clang_sim: $(sources) $(DEPS)
+	clang++ $(CFLAGS) $(sources) -O2 -o TSG_csim_clang_sim
 
 clean:
-	rm -rf TSG_Cosim_clang_sim *.hls_prj
+	rm -rf TSG_csim_clang_sim *.hls_prj

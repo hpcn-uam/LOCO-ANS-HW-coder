@@ -567,7 +567,8 @@ void subsymbol_gen(
   #pragma HLS DATAFLOW disable_start_propagation
   
   stream<ap_uint <Y_SIZE+P_SIZE> > y_stream;
-  #pragma HLS STREAM variable=y_stream depth=8
+  #pragma HLS RESOURCE variable=y_stream core=FIFO_LUTRAM
+  #pragma HLS STREAM variable=y_stream depth=32
   stream<ap_uint <Z_SIZE+THETA_SIZE+1> > z_stream;
   #pragma HLS STREAM variable=z_stream depth=2
   split_stream(in,y_stream,z_stream);
@@ -577,7 +578,8 @@ void subsymbol_gen(
   z_decompose_pre(z_stream,z_stream_with_meta);
 
   stream<subsymb_t> z_decomposed;
-  #pragma HLS STREAM variable=z_decomposed depth=4
+  #pragma HLS STREAM variable=z_decomposed depth=32
+  #pragma HLS RESOURCE variable=z_decomposed core=FIFO_LUTRAM
   z_decompose_post(z_stream_with_meta,z_decomposed);
 
   serialize_symbols(y_stream,z_decomposed,symbol_stream);

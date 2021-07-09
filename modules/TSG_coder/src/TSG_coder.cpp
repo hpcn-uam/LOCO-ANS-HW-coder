@@ -91,12 +91,14 @@ void TSG_coder(
   stream<coder_interf_t> inverted_data;
   #pragma HLS STREAM variable=inverted_data depth=2
   stream<ap_uint<1>> last_block;
+  #pragma HLS RESOURCE variable=last_block core=FIFO_LUTRAM
   #pragma HLS STREAM variable=last_block depth=32
   input_buffers(in, inverted_data,last_block);
 
 
   stream<subsymb_t> symbol_stream;
-  #pragma HLS STREAM variable=symbol_stream depth=2
+  #pragma HLS STREAM variable=symbol_stream depth=32
+  #pragma HLS RESOURCE variable=symbol_stream core=FIFO_LUTRAM
   START_SW_ONLY_LOOP(! inverted_data.empty())
   subsymbol_gen(inverted_data,symbol_stream);
   END_SW_ONLY_LOOP
