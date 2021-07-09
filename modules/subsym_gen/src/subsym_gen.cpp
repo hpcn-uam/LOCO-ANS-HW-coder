@@ -116,6 +116,39 @@ void split_stream(
   y_stream << (y,p_id); // possibly a non-blocking write
   }
 
+// next HLS code generates the same RTL than  split_stream function above
+/*
+void split_stream_1(
+  coder_interf_t & in,
+  volatile ap_uint <Y_SIZE+P_SIZE>  &y_stream,
+  volatile ap_uint <Z_SIZE+THETA_SIZE+1>  &z_stream){
+
+  #if SPLIT_STREAM_1_TOP
+    #pragma HLS INTERFACE axis register_mode=both register port=in
+    #pragma HLS INTERFACE axis register_mode=both register port=y_stream
+    #pragma HLS INTERFACE axis register_mode=both register port=z_stream
+  #endif
+  #pragma HLS INTERFACE ap_ctrl_none port=return
+
+  #pragma HLS PIPELINE style=frp
+  symb_data_t symb_data;
+  symb_ctrl_t symb_ctrl;
+  ap_uint<Z_SIZE> z;
+  ap_uint<Y_SIZE> y;
+  ap_uint<THETA_SIZE> theta_id;
+  ap_uint<P_SIZE> p_id;
+
+  //  intf_to_bits(in.read(), symb_data,symb_ctrl);
+  (symb_ctrl,symb_data) = in;
+
+  (z,y,theta_id,p_id) = symb_data;
+  ap_uint <1> end_of_block = symb_ctrl(0,0);
+
+  z_stream = (z,theta_id,end_of_block);
+  y_stream = (y,p_id); 
+  }
+*/
+
 /*void serialize_symbols_with_z_decompose(
   stream<ap_uint <Y_SIZE+P_SIZE> > &y_stream,
   stream<ap_uint <Z_SIZE+THETA_SIZE+1> > &z_stream,
@@ -525,7 +558,7 @@ void subsymbol_gen(
   stream<coder_interf_t> &in,
   stream<subsymb_t> &symbol_stream
   ){
-  #if SUB_SYMBOL_GEN_TOP
+  #if SUBSYMBOL_GEN_TOP
     #pragma HLS INTERFACE axis register_mode=both register port=in
     #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
   #endif
