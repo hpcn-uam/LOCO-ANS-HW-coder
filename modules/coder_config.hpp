@@ -74,7 +74,7 @@ constexpr int ceillog2(int x){
 #define THETA_SIZE (5) //32 tables
 #define P_SIZE (5) //32 tables
 
-constexpr int  BUFFER_SIZE = 2048;
+constexpr int BUFFER_SIZE = 2048;
 constexpr int BUFFER_ADDR_SIZE =  ceillog2(BUFFER_SIZE); 
 constexpr int ANS_SYMB_BITS = 5; 
 constexpr int CARD_BITS = ANS_SYMB_BITS;
@@ -157,7 +157,7 @@ typedef ap_uint<OUT_INTERF_WIDTH> odma_data;
 
 constexpr int MAX_ODMA_TRANSACTIONS = 
         int((OUTPUT_STACK_SIZE*OUT_WORD_BYTES+OUT_DMA_BYTES-1)/OUT_DMA_BYTES);
-        
+
 constexpr int NUM_OF_IN_ELEM_BITS = 32;
 constexpr int NUM_OF_OUT_ELEM_BITS = ceillog2(MAX_ODMA_TRANSACTIONS+1);
 
