@@ -42,7 +42,7 @@ TSG_coder: TSG_coder.hls_prj/solution1/impl/ip/
 
 
 TSG_csim_clang_sim: $(sources) $(DEPS)
-	clang++ $(CFLAGS) $(sources) -O2 -o TSG_csim_clang_sim
+	clang++ $(CFLAGS) $(sources)  -o TSG_csim_clang_sim
 
 clean:
 	rm -rf TSG_csim_clang_sim *.hls_prj
