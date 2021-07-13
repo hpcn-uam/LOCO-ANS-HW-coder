@@ -144,7 +144,7 @@ class TSGCoderOverlay(Overlay):
         #use C++ checker to validate output binary
         outfile = "/run/user/1000/out_bytes.loco_ans"
         self.store_out_binary(outfile=outfile)
-        cmd =["/home/xilinx/loco_ans/tsg_coder_test/TSG_checker/TSG_checker"]
+        cmd =["../TSG_checker/TSG_checker"]
         cmd += [outfile]
         cmd += [str(block_size)]
         cmd += [str(block_idx)]
