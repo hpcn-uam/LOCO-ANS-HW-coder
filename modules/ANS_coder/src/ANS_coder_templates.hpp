@@ -42,7 +42,8 @@ void pack_out_bits_up(
   stream<bit_blocks> &bit_block_stream,
   stream<byte_block<NUM_OUT_OF_BYTES>> &out_bitstream){
 
-  #pragma HLS PIPELINE style=frp
+  #pragma HLS PIPELINE style=flp
+  // #pragma HLS PIPELINE style=frp
   constexpr int OUT_WORD_BITS = NUM_OUT_OF_BYTES*8;
   constexpr int LOG2_OUT_WORD_BITS = ceillog2(OUT_WORD_BITS);
   constexpr int BIT_BUFFER_WIDTH = (8*NUM_OUT_OF_BYTES)+BIT_BLOCK_SIZE;
@@ -174,7 +175,8 @@ void pack_out_bits(
   stream<bit_blocks> &bit_block_stream,
   stream<byte_block<NUM_OUT_OF_BYTES>> &out_bitstream){
 
-  #pragma HLS PIPELINE style=frp
+  #pragma HLS PIPELINE style=flp
+  // #pragma HLS PIPELINE style=frp
   constexpr int OUT_WORD_BITS = NUM_OUT_OF_BYTES*8;
   constexpr int LOG2_OUT_WORD_BITS = ceillog2(OUT_WORD_BITS);
   //state variables

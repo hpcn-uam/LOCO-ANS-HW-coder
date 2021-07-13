@@ -35,8 +35,8 @@ void code_symbols(
   #pragma HLS INTERFACE ap_ctrl_none port=return
   #endif
 
-  // #pragma HLS PIPELINE style=flp
-  #pragma HLS PIPELINE style=frp
+  #pragma HLS PIPELINE style=flp
+  // #pragma HLS PIPELINE style=frp
   
   static const tANS_table_t 
     tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
@@ -101,7 +101,8 @@ void serialize_last_state(
   #pragma HLS INTERFACE ap_ctrl_none port=return
   #endif
 
-  #pragma HLS PIPELINE style=frp
+  #pragma HLS PIPELINE style=flp
+  // #pragma HLS PIPELINE style=frp
   // 
   // #pragma HLS LATENCY max=1
   static ap_uint<1> send_output = 0;

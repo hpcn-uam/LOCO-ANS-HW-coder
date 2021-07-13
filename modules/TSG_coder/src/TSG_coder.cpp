@@ -12,7 +12,7 @@ void TSG_input_adapter(
   #pragma HLS INTERFACE axis register_mode=both register port=out
   #pragma HLS INTERFACE ap_ctrl_none port=return
   #endif
-  #pragma HLS PIPELINE style=frp
+  #pragma HLS PIPELINE style=flp
 
   START_SW_ONLY_LOOP(! in.empty())
   auto ie= in.read();
@@ -32,7 +32,7 @@ void output_data_interface(
   #pragma HLS INTERFACE ap_ctrl_none port=return
   #endif
 
-  #pragma HLS PIPELINE style=frp
+  #pragma HLS PIPELINE style=flp
 
   auto in_data = byte_block_stream.read();
 
@@ -60,7 +60,7 @@ void output_metadata_interface(
   #pragma HLS INTERFACE ap_ctrl_none port=return
   #endif
 
-  #pragma HLS PIPELINE style=frp
+  #pragma HLS PIPELINE style=flp
   auto last_block_elem = last_block.read();
   auto last_byte_idx_elem = last_byte_idx.read();
 
@@ -91,14 +91,14 @@ void TSG_coder(
   stream<coder_interf_t> inverted_data;
   #pragma HLS STREAM variable=inverted_data depth=2
   stream<ap_uint<1>> last_block;
-  #pragma HLS RESOURCE variable=last_block core=FIFO_LUTRAM
+  #pragma HLS bind_storage variable=last_block type=FIFO impl=LUTRAM
   #pragma HLS STREAM variable=last_block depth=32
   input_buffers(in, inverted_data,last_block);
 
 
   stream<subsymb_t> symbol_stream;
   #pragma HLS STREAM variable=symbol_stream depth=32
-  #pragma HLS RESOURCE variable=symbol_stream core=FIFO_LUTRAM
+  #pragma HLS bind_storage variable=symbol_stream type=FIFO impl=LUTRAM
   START_SW_ONLY_LOOP(! inverted_data.empty())
   subsymbol_gen(inverted_data,symbol_stream);
   END_SW_ONLY_LOOP
