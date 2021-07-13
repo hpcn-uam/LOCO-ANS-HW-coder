@@ -19,7 +19,7 @@ $(TARGETS): %: basic_modules %_hw_platform/$(TARGET_BOARD)_output_products/platf
 
 basic_modules:
 	@echo  "$(GREEN) #########  Building $@ #########$(NC)"
-	make -C modules 
+	make -C modules -j4
 
 
 $(ALL_TARGETS):
