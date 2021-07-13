@@ -288,7 +288,7 @@ void z_decompose_pre(
   #endif
   #pragma HLS INTERFACE ap_ctrl_none port=return
 
-  #pragma HLS PIPELINE style=frp
+  #pragma HLS PIPELINE style=flp
 
   ap_uint<Z_SIZE> z;
   ap_uint<THETA_SIZE> theta_id;
@@ -319,7 +319,7 @@ void z_decompose_post(
   #endif
   #pragma HLS INTERFACE ap_ctrl_none port=return
 
-  #pragma HLS PIPELINE style=frp
+  #pragma HLS PIPELINE style=flp
   
   const ap_uint<LOG2_BIT_BLOCK_SIZE> remainder_bits = EE_REMAINDER_SIZE - 0; //symbol.remainder_reduct_bits;
   
@@ -444,7 +444,7 @@ void serialize_symbols(
   #endif
   #pragma HLS INTERFACE ap_ctrl_none port=return
 
-  #pragma HLS PIPELINE style=frp
+  #pragma HLS PIPELINE style=flp
 
   static ap_uint<1> input_select = 0; // 0 -> y | 1 -> z
   #pragma HLS reset variable=input_select
@@ -567,7 +567,7 @@ void subsymbol_gen(
   #pragma HLS DATAFLOW disable_start_propagation
   
   stream<ap_uint <Y_SIZE+P_SIZE> > y_stream;
-  #pragma HLS RESOURCE variable=y_stream core=FIFO_LUTRAM
+  #pragma HLS bind_storage variable=y_stream type=FIFO impl=LUTRAM
   #pragma HLS STREAM variable=y_stream depth=32
   stream<ap_uint <Z_SIZE+THETA_SIZE+1> > z_stream;
   #pragma HLS STREAM variable=z_stream depth=2
@@ -579,7 +579,7 @@ void subsymbol_gen(
 
   stream<subsymb_t> z_decomposed;
   #pragma HLS STREAM variable=z_decomposed depth=32
-  #pragma HLS RESOURCE variable=z_decomposed core=FIFO_LUTRAM
+  #pragma HLS bind_storage variable=z_decomposed type=FIFO impl=LUTRAM
   z_decompose_post(z_stream_with_meta,z_decomposed);
 
   serialize_symbols(y_stream,z_decomposed,symbol_stream);

@@ -18,7 +18,7 @@ puts "Mode : $mode"
 set module ANS_coder
 
 open_project "${module}.hls_prj"
-set_top "${module}"
+set_top ANS_coder_top
 add_files src/ANS_coder.cpp -cflags "-DANS_CODER_TOP"
 add_files -tb src/test.cpp -cflags "-Wno-unknown-pragmas" -csimflags "-Wno-unknown-pragmas"
 add_files -tb ../subsym_gen/src/subsym_gen.cpp -cflags "-Wno-unknown-pragmas" -csimflags "-Wno-unknown-pragmas"
@@ -27,6 +27,7 @@ open_solution "solution1" -flow_target vivado
 set_part {xc7z020-clg484-1}
 create_clock -period 10 -name default
 config_export -format ip_catalog -rtl verilog
+# config_compile -pipeline_style flp
 # source "./directives.tcl"
 if { $mode == 0 } {
   csim_design -clean
