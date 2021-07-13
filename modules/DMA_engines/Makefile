@@ -10,9 +10,10 @@ MODE_NAME :=
 ALL_TARGETS = idma odma odma_VarSize loopback_fifo
 BASIC_TARGETS = idma odma 
 
+all: $(BASIC_TARGETS)
+	
 all_modules: $(ALL_TARGETS)
 
-all: $(BASIC_TARGETS)
 
 test: MODE := 0
 test: all
