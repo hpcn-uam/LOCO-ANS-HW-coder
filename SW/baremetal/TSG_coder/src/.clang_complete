@@ -1,0 +1,5 @@
+-I/tools/Xilinx/Vitis_HLS/2020.2/include/
+-I../vitis_workspace/TSG_coder_1/hw/drivers/idma_v1_0/src/
+-I../vitis_workspace/TSG_coder_1/hw/drivers/odma_Varsize_v1_0/src/
+-I../vitis_workspace/TSG_coder_1/hw/drivers/TSG_coder_v1_0/src/
+-I../vitis_workspace/TSG_coder_1/export/TSG_coder_1/sw/TSG_coder_1/standalone_domain/bspinclude/include/
