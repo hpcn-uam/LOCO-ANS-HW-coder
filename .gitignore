@@ -1,5 +1,6 @@
 TSG_CODER_csim
 *.log
+*.zip
 
 #HLS project
 *.hls_prj
