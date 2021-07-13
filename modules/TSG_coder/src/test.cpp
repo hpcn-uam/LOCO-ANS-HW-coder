@@ -10,15 +10,14 @@
 
 using namespace std;
 using namespace hls;
-#define NUM_OF_BLCKS 1 //(8)
+#define NUM_OF_BLCKS (8)
 
-#define TEST_BUFFER_SIZE 32
+#define TEST_BUFFER_SIZE 2048
 
 int main(int argc, char const *argv[])
 {
   stream<coder_interf_t> in_data;
   
-
   int num_of_errors = 0;
   for (int blk_idx = 0; blk_idx < NUM_OF_BLCKS; ++blk_idx){
 	  std::vector<coder_interf_t> input_vector;
@@ -27,8 +26,7 @@ int main(int argc, char const *argv[])
     // ************
     // Generate input 
     // ************
-    int block_size = 20;
-    // int block_size = TEST_BUFFER_SIZE - int(blk_idx/2);
+    int block_size = TEST_BUFFER_SIZE + 20- 20*int(blk_idx/2);
     for (int i = 0; i < block_size; ++i){
       symb_data_t symb_data;
       symb_ctrl_t symb_ctrl = (i == block_size-1)? 1:0 ;
@@ -39,10 +37,6 @@ int main(int argc, char const *argv[])
       ap_uint<Y_SIZE> y = val & 0x80?1:0 ; 
       ap_uint<THETA_SIZE> theta_id = i >= NUM_ANS_THETA_MODES?NUM_ANS_THETA_MODES-1: i ;
       ap_uint<P_SIZE> p_id = blk_idx/2 ;
-      cout<<"p_id: "<<p_id;
-      cout<<", theta_id: "<<theta_id;
-      cout<<", y: "<<y;
-      cout<<", z: "<<z<<endl;
       symb_data = (z,y,theta_id,p_id);
       in_data.write(bits_to_intf(symb_data ,symb_ctrl));
       input_vector.push_back(bits_to_intf(symb_data ,symb_ctrl));
@@ -53,11 +47,18 @@ int main(int argc, char const *argv[])
     // ************
     stream<TSG_out_intf> axis_byte_blocks; 
     stream<tsg_blk_metadata> out_blk_metadata;
-    TSG_coder(in_data,axis_byte_blocks,out_blk_metadata);
+    int call_cnt = 0;
+    while(!in_data.empty()){
+    	TSG_coder(in_data,axis_byte_blocks,out_blk_metadata);
+    	call_cnt++;
+    }
+
 
     // ************
     // Check output
     // ************
+    const int golden_call_cnt = ceil(float(block_size)/BUFFER_SIZE);
+    ASSERT(call_cnt, ==, golden_call_cnt);
     ASSERT(axis_byte_blocks.empty(),==,false);
     ASSERT(out_blk_metadata.empty(),==,false);
 
@@ -71,40 +72,55 @@ int main(int argc, char const *argv[])
 
     ASSERT(packed_byte_block.empty(),==,false);
 
+    ap_uint<OUTPUT_STACK_BYTES_SIZE> hw_last_byte_idx_element;
+    ap_uint<1> hw_last_block;
+    (hw_last_byte_idx_element,hw_last_block)=out_blk_metadata.read();
     
     // Replicate AXIS to DRAM:  convert stream in array 
-    unsigned mem_pointer = 0;
+    unsigned mem_pointer = 0,blk_byte_cnt=0;
+
     int byte_counter = 0; // counter to check last_byte_idx signal
     uint8_t* block_binary = new uint8_t[packed_byte_block.size()*OUT_DMA_BYTES+4]; 
     while(! packed_byte_block.empty()) {
       byte_block<OUT_DMA_BYTES> out_byte_block = packed_byte_block.read();
       byte_counter += out_byte_block.num_of_bytes();
 
-      // test last and num_of_bytes info
-      if(packed_byte_block.empty()) {
-        ASSERT(out_byte_block.is_last(),==,true," | mem_pointer: "<<mem_pointer);
-      }else{
-        ASSERT(out_byte_block.is_last(),==,false," | mem_pointer: "<<mem_pointer);
-        ASSERT(out_byte_block.num_of_bytes(),==,OUT_DMA_BYTES," | mem_pointer: "<<mem_pointer);
-      }
-
       //write to memory
       for(unsigned j = 0; j < out_byte_block.num_of_bytes(); ++j) {
         block_binary[mem_pointer] = out_byte_block.data((j+1)*8-1,j*8);
+		#ifdef DEBUG
         printf("%d: %02X\n", mem_pointer, block_binary[mem_pointer]);
+		#endif
         mem_pointer++;
+        blk_byte_cnt++;
+      }
+
+      // test last and num_of_bytes info
+      if(blk_byte_cnt-1 == hw_last_byte_idx_element) {
+        ASSERT(out_byte_block.is_last(),==,true," | mem_pointer: "
+                                <<mem_pointer<< " | blk_byte_cnt: blk_byte_cnt");
+        if(!packed_byte_block.empty()) {
+          ASSERT(hw_last_block,==,0);
+          (hw_last_byte_idx_element,hw_last_block)=out_blk_metadata.read();
+        }else{
+          ASSERT(hw_last_block,==,1);
+        }
+        blk_byte_cnt =0;
+      #ifdef DEBUG
+        cout<<"End of code block"<<endl;
+      #endif
+      }else{
+        ASSERT(out_byte_block.is_last(),==,false," | mem_pointer: "
+                                <<mem_pointer<< " | blk_byte_cnt: blk_byte_cnt"); 
+        ASSERT(out_byte_block.num_of_bytes(),==,OUT_DMA_BYTES," | mem_pointer: "
+                                <<mem_pointer<< " | blk_byte_cnt: blk_byte_cnt");
       }
 
     }
     // used to check words read at the end of decoding process
     const int last_mem_pointer = mem_pointer-1; 
 
-    ap_uint<OUTPUT_STACK_BYTES_SIZE> hw_last_byte_idx_element;
-    ap_uint<1> hw_last_block;
-
-    (hw_last_byte_idx_element,hw_last_block) = out_blk_metadata.read();
-    ASSERT(hw_last_byte_idx_element,==,byte_counter-1,"last_byte_idx output check ");
-    ASSERT(hw_last_block,==,1,"last_byte_idx output check "); // TODO: use bigger blocks
+  
 
     // Decode and check
     Binary_Decoder bin_decoder(block_binary,block_size);
@@ -135,7 +151,7 @@ int main(int argc, char const *argv[])
     }
 
     // check all memory words have been used 
-    ASSERT(bin_decoder.get_current_byte_pointer(),==,last_mem_pointer);
+    // ASSERT(bin_decoder.get_current_byte_pointer(),==,last_mem_pointer);
 
     // Assert all hw streams have been consumed
     ASSERT(in_data.size(),==,0," Check that TSG consumed all input elements")
