@@ -1,10 +1,9 @@
 
 SUBTARGET := all
 
-ALL_TARGETS := ANS_coder DMA_engines File_writer input_buffers output_stack subsym_gen 
+BASIC_TARGETS := DMA_engines TSG_coder File_writer
+ALL_TARGETS := $(BASIC_TARGETS) ANS_coder input_buffers output_stack subsym_gen 
 
-
-BASIC_TARGETS := DMA_engines TSG_coder
 
 .PHONY:	all all_modules $(ALL_TARGETS)
 
