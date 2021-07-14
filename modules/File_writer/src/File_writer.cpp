@@ -23,6 +23,7 @@ void File_writer(
 
 
   static ap_uint<DMA_ADDRESS_RANGE_BITS> offset = OFFSET_INIT;
+  #pragma HLS reset variable=offset
   //static odma_data out_buffer=0; 
   //static ap_uint<> buffer_ptr=0 ;
   ap_uint<OUTPUT_STACK_BYTES_SIZE> last_byte_idx_elem;
