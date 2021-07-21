@@ -63,7 +63,7 @@ typedef int row_ptr_t;
 
 #define CTX_B_PRECISION 3 // number of fractional bits
 
-#define END_OF_LINE_CALL 1
+#define END_OF_LINE_CALL 0
 
 void LOCO_decorrelator(
   col_ptr_t config_cols,

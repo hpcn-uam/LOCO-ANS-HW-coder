@@ -58,6 +58,163 @@ int gradient_quantizer(int g){
   //OPT? using simetry
   // OPT implement like a tree
   // or both, first  check if it's  in the central threshold, if not remove sign and continue
+  #if 0
+  if (g <= -T3) {
+    q = -4;
+  } else if (g <= -T2) {
+    q = -3;
+  } else if (g <= -T1) {
+    q = -2;
+  } else if (g <  -T0) {
+    q = -1;
+  } else if (g <=  T0) {
+    q = 0;
+  } else if (g <   T1) {
+    q = 1;
+  } else if (g <   T2) {
+    q = 2;
+  } else if (g <   T3) {
+    q = 3;
+  } else {
+    q = 4;
+  }
+  return  q;
+  #elif 0
+
+  int sign;
+  if(g < 0){
+    sign = 1;
+    g = -g;
+  }else{
+    sign = 0;
+  }
+  if(g <= T0){
+    q = 0;
+  }else if (g < T1){
+    q = 1;
+  }else if (g < T2){
+    q = 2;
+  }else if (g < T3){
+    q = 3;
+    }else{
+      q = 4;
+    }
+  
+  return sign==0? q:-q;
+  #elif 0
+
+  int abs_g = abs(g);
+  if(abs_g <= T0){
+    q = 0;
+  }else if (abs_g < T1){
+    q = 1;
+  }else if (abs_g < T2){
+    q = 2;
+  }else if (abs_g < T3){
+    q = 3;
+    }else{
+      q = 4;
+    }
+  
+  return g<0? -q:q;
+
+  #else
+    int abs_g = abs(g);
+
+    if(abs_g < T2) {
+      if (abs_g < T1){
+        if(abs_g <=T0) {
+          q=0;
+        }else{
+          q=1;
+        }
+      }else{
+        q=2;
+      }
+    }else{
+      if (abs_g < T3){
+      q = 3;
+      }else{
+        q = 4;
+      }
+    }
+
+  return g<0? -q:q;
+  #endif
+}
+
+int gradient_quantizer_0(int g){
+  #pragma HLS inline
+  constexpr int T0=0,T1=3,T2=7,T3=21;
+  
+  int q;
+  //OPT? using simetry
+  // OPT implement like a tree
+  // or both, first  check if it's  in the central threshold, if not remove sign and continue
+
+  if (g <= -T3) {
+    q = -4;
+  } else if (g <= -T2) {
+    q = -3;
+  } else if (g <= -T1) {
+    q = -2;
+  } else if (g <  -T0) {
+    q = -1;
+  } else if (g <=  T0) {
+    q = 0;
+  } else if (g <   T1) {
+    q = 1;
+  } else if (g <   T2) {
+    q = 2;
+  } else if (g <   T3) {
+    q = 3;
+  } else {
+    q = 4;
+  }
+
+  return q;
+}
+
+int gradient_quantizer_1(int g){
+  #pragma HLS inline
+  constexpr int T0=0,T1=3,T2=7,T3=21;
+  
+  int q;
+  //OPT? using simetry
+  // OPT implement like a tree
+  // or both, first  check if it's  in the central threshold, if not remove sign and continue
+
+  if (g <= -T3) {
+    q = -4;
+  } else if (g <= -T2) {
+    q = -3;
+  } else if (g <= -T1) {
+    q = -2;
+  } else if (g <  -T0) {
+    q = -1;
+  } else if (g <=  T0) {
+    q = 0;
+  } else if (g <   T1) {
+    q = 1;
+  } else if (g <   T2) {
+    q = 2;
+  } else if (g <   T3) {
+    q = 3;
+  } else {
+    q = 4;
+  }
+
+  return q;
+}
+
+int gradient_quantizer_2(int g){
+  #pragma HLS inline
+  constexpr int T0=0,T1=3,T2=7,T3=21;
+  
+  int q;
+  //OPT? using simetry
+  // OPT implement like a tree
+  // or both, first  check if it's  in the central threshold, if not remove sign and continue
 
   if (g <= -T3) {
     q = -4;
