@@ -20,8 +20,8 @@ class image_buffer
 public:
   //opt: partition?
   px_t buffer[_COLS]; //don't init to allow URAM
-private:
   px_t b_reg;
+private:
   col_ptr_t col_ptr;
   col_ptr_t px_remaining_in_col;
   ap_uint<1> first_col;
@@ -83,7 +83,7 @@ public:
     // compute fixed prediction
     int dx, dy, dxy, s,s_1;
     dy = c - a;
-    dx = b - c;
+    dx = b - c; // OPT: this is the same gradient as d0 in prev iteration
     dxy = a -b;
     s = (dy ^ dx)<0?  1 : 0 ;
     s_1 = (dy ^ dxy)<0? a :b;
@@ -152,6 +152,8 @@ public:
             (col_ptr == cols-2? col_ptr_t(cols-1):col_ptr_t(col_ptr+2));
 
       if(col_ptr == cols -1) {
+        //assuming image width of at least 10 px
+        #pragma HLS occurrence cycle=10 
         b = b_reg;
         a = b;
         c = prev_1st_a; 
@@ -179,10 +181,15 @@ public:
       buffer[col_ptr]= new_px;
 
       if(col_ptr == 0){
+        #pragma HLS occurrence cycle=10 
         b_reg = new_px;
       }
 
-      first_col = col_ptr == cols -2? ap_uint<1>(0):first_col;
+      if(col_ptr == cols -2) {
+        #pragma HLS occurrence cycle=10 
+        first_col = 0;
+      }
+      // first_col = col_ptr == cols -2? ap_uint<1>(0):first_col;
 
       col_ptr = col_ptr == cols -1? col_ptr_t(0): col_ptr_t(col_ptr+1);
     
