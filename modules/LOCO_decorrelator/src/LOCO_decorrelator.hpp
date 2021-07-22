@@ -113,23 +113,23 @@ public:
     };
   ~DecorrelatorOutput(){};
   
-  void St(unsigned int _St){ data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE+ CTX_ST_SIZE-1,Z_SIZE+2+P_SIZE + CTX_CNT_SIZE)=_St; };
-  unsigned int St(){return data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE+ CTX_ST_SIZE-1,Z_SIZE+2+P_SIZE + CTX_CNT_SIZE);}
+  inline void St(unsigned int _St){ data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE+ CTX_ST_SIZE-1,Z_SIZE+2+P_SIZE + CTX_CNT_SIZE)=_St; };
+  inline unsigned int St(){return data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE+ CTX_ST_SIZE-1,Z_SIZE+2+P_SIZE + CTX_CNT_SIZE);}
   
-  void cnt(unsigned int _cnt){ data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE -1,Z_SIZE+2+P_SIZE)=_cnt; };
-  unsigned int cnt(){return data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE -1,Z_SIZE+2+P_SIZE);}
+  inline void cnt(unsigned int _cnt){ data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE -1,Z_SIZE+2+P_SIZE)=_cnt; };
+  inline unsigned int cnt(){return data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE -1,Z_SIZE+2+P_SIZE);}
   
-  void p_idx(unsigned int _p_idx){ data(Z_SIZE+2+P_SIZE-1,Z_SIZE+2)=_p_idx; };
-  unsigned int p_idx(){return data(Z_SIZE+2+P_SIZE-1,Z_SIZE+2);}
+  inline void p_idx(unsigned int _p_idx){ data(Z_SIZE+2+P_SIZE-1,Z_SIZE+2)=_p_idx; };
+  inline unsigned int p_idx(){return data(Z_SIZE+2+P_SIZE-1,Z_SIZE+2);}
   
-  void y(unsigned int _y){ data[Z_SIZE+1]=_y; };
-  unsigned int y(){return data[Z_SIZE+1];}
+  inline void y(unsigned int _y){ data[Z_SIZE+1]=_y; };
+  inline unsigned int y(){return data[Z_SIZE+1];}
   
-  void z(unsigned int _z){ data(Z_SIZE,1)=_z; };
-  unsigned int z(){return data(Z_SIZE,1);}
+  inline void z(unsigned int _z){ data(Z_SIZE,1)=_z; };
+  inline unsigned int z(){return data(Z_SIZE,1);}
   
-  void last(unsigned int _last){ data[0]=_last; };
-  unsigned int last(){return data[0];}
+  inline void last(unsigned int _last){ data[0]=_last; };
+  inline unsigned int last(){return data[0];}
 
   DecorrelatorOutput & operator=(const DecorrelatorOutput & other){
     data = other.data;
@@ -138,7 +138,15 @@ public:
 
 };
 
+
 void LOCO_decorrelator(
+  col_ptr_t config_cols,
+  row_ptr_t config_rows,
+  hls::stream<px_t>& src,
+  hls::stream<px_t>& first_px_out,
+  hls::stream<coder_interf_t> & out_symbols);
+
+void LOCO_decorrelator_1(
   col_ptr_t config_cols,
   row_ptr_t config_rows,
   hls::stream<px_t>& src,
@@ -146,6 +154,9 @@ void LOCO_decorrelator(
   hls::stream<DecorrelatorOutput> & symbols);
 
 
+void St_idx_compute(
+  hls::stream<DecorrelatorOutput> & in_symbols,
+  hls::stream<coder_interf_t> & out_symbols);
 
 
 
