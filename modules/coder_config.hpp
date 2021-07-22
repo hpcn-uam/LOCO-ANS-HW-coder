@@ -67,7 +67,7 @@ constexpr int ceillog2(int x){
 /********************** General parameters ******************************/
 
 #define INPUT_BPP (8)
-
+constexpr int MAXVAL = (1<<INPUT_BPP)-1;
 #define Z_SIZE (INPUT_BPP-1)
 #define LOG2_Z_SIZE (3)
 #define Y_SIZE (1)
@@ -86,12 +86,23 @@ constexpr int CARD_BITS = ANS_SYMB_BITS;
 
 #define CTX_NT_CENTERED_QUANT (true)
 #define CTX_NT_PRECISION (6) // number of fractional bits
-#define HALF_Y_CODER (false) 
+#define HALF_Y_CODER (true) 
 #define CTX_NT_HALF_IDX (1<<(CTX_NT_PRECISION-1))
 #define CTX_NT_QUANT_BINS (1<<(CTX_NT_PRECISION))
   
 
+#define ITERATIVE_ST 1
 /********************** ANS coder ******************************/
+
+// Coder input interface types and conversions
+#define PRED_SYMB_SIZE (Z_SIZE + Y_SIZE + THETA_SIZE + P_SIZE)
+#define SYMB_DATA_SIZE MAX(INPUT_BPP,PRED_SYMB_SIZE)
+#define SYMB_CTRL_SIZE 1
+
+typedef ap_uint<SYMB_DATA_SIZE> symb_data_t;
+typedef ap_uint<SYMB_CTRL_SIZE> symb_ctrl_t;
+typedef ap_uint<SYMB_DATA_SIZE+SYMB_CTRL_SIZE> coder_interf_t; //
+
 
 #define SYMBOL_ENDIANNESS_LITTLE true
 constexpr int EE_REMAINDER_SIZE = Z_SIZE; 
