@@ -7,7 +7,7 @@
 #if END_OF_LINE_CALL
 
   // void LOCO_decorrelator_fn(
-  void LOCO_decorrelator(
+  void LOCO_decorrelator_1(
     col_ptr_t config_cols,
     row_ptr_t config_rows,
     // ctx_bias_t context_bias[NUM_OF_CTX],
@@ -111,20 +111,23 @@
 
 #else
 
-void LOCO_decorrelator(
+void LOCO_decorrelator_1(
   col_ptr_t config_cols,
   row_ptr_t config_rows,
   hls::stream<px_t>& src,
   hls::stream<px_t>& first_px_out,
   hls::stream<DecorrelatorOutput> & symbols){ 
 
+  #ifdef LOCO_DECORRELATOR_1_TOP
   //interface configuration
   #pragma HLS INTERFACE axis register_mode=both register port=src
   #pragma HLS INTERFACE axis register_mode=both register port=symbols
+  #pragma HLS INTERFACE axis register_mode=both register port=first_px_out
   #pragma HLS INTERFACE s_axilite port=config_rows bundle=config
   #pragma HLS INTERFACE s_axilite port=config_cols bundle=config
+  #pragma HLS INTERFACE s_axilite port=return bundle=config
   // #pragma HLS INTERFACE ap_ctrl_none port=return
-
+  #endif
 
   image_buffer<BUFFER_COLS> quantized_img;
   #pragma HLS BIND_STORAGE variable=quantized_img.buffer type=ram_2p impl=bram latency=1
@@ -252,6 +255,115 @@ void LOCO_decorrelator(
 
 
 #endif
+
+
+void St_idx_compute(
+  hls::stream<DecorrelatorOutput> & in_symbols,
+  hls::stream<coder_interf_t> & out_symbols){
+  #ifdef ST_IDX_COMPUTE_TOP
+  #pragma HLS INTERFACE axis register_mode=both register port=in_symbols
+  #pragma HLS INTERFACE axis register_mode=both register port=out_symbols
+  #endif
+
+  #pragma HLS INTERFACE ap_ctrl_none port=return
+  // #pragma HLS PIPELINE
+  #pragma HLS PIPELINE style=flp 
+  START_SW_ONLY_LOOP(!in_symbols.empty())
+
+
+
+  ap_uint<THETA_SIZE> theta_id;
+  DecorrelatorOutput in_symbol = in_symbols.read();
+
+  ap_uint<Z_SIZE> z = in_symbol.z();
+  ap_uint<Y_SIZE> y = in_symbol.y();
+  ap_uint<P_SIZE> p_id = in_symbol.p_idx();
+  ap_uint<1> last = in_symbol.last();
+
+  auto cnt = in_symbol.cnt();
+  auto St = in_symbol.St();
+
+  #if CTX_ST_FINER_QUANT
+    int idx = 0;
+    // for(e = 0; St > l; l<<=1,e+=2) {;}
+    for(unsigned i = 2; i <= MAX_ST_IDX; i+=2) {
+      if(St > cnt) {
+        idx = i;
+        cnt<<=1;
+      }
+    }
+
+    if(St> cnt-((cnt+2)>>2)){
+      #if MAX_ST_IDX % 2 == 1
+      idx |=1;
+      #else
+      if(idx< MAX_ST_IDX) {
+        idx |=1;
+      }
+      #endif
+    }
+
+    theta_id = idx;
+  #else
+    // for(theta_id = 0; St > (cnt<<(theta_id)); ++theta_id) {;}
+    #if 1
+    theta_id = 0;
+    for(unsigned i = 1; i <= MAX_ST_IDX; ++i) {
+      if(St > (cnt<<(i-1))) {
+        theta_id = i;
+      }
+    }
+    #else 
+    // This is a bit faster but haven't tested in different configurations
+    // OPT: HLS doesn't seem to be building a balance tree, so a tree 
+    // implementation using binary search might be the optimum way of doing this
+    constexpr int MIDDLE = (MAX_ST_IDX/2);
+    if(St > (cnt<<(MIDDLE-1))) {
+      theta_id = MIDDLE;
+      for(unsigned i = MIDDLE+1; i <= MAX_ST_IDX; ++i) {
+        if(St > (cnt<<(i-1))) {
+          theta_id = i;
+        }
+      }
+    }else{
+      theta_id = 0;
+      for(unsigned i = 1; i <= MIDDLE-1; ++i) {
+        if(St > (cnt<<(i-1))) {
+          theta_id = i;
+        }
+      }
+    }
+    #endif
+  #endif
+
+  ASSERT(theta_id, <=,MAX_ST_IDX)
+  out_symbols << (last,z,y,theta_id,p_id);
+
+  END_SW_ONLY_LOOP
+
+}
+
+void LOCO_decorrelator(
+  col_ptr_t config_cols,
+  row_ptr_t config_rows,
+  hls::stream<px_t>& src,
+  hls::stream<px_t>& first_px_out,
+  hls::stream<coder_interf_t> & out_symbols){ 
+
+  //interface configuration
+  #pragma HLS INTERFACE axis register_mode=both register port=src
+  #pragma HLS INTERFACE axis register_mode=both register port=first_px_out
+  #pragma HLS INTERFACE axis register_mode=both register port=out_symbols
+  #pragma HLS INTERFACE s_axilite port=config_cols bundle=config
+  #pragma HLS INTERFACE s_axilite port=config_rows bundle=config
+  #pragma HLS INTERFACE s_axilite port=return bundle=config
+
+  #pragma HLS DATAFLOW disable_start_propagation
+  
+  hls::stream<DecorrelatorOutput>  pre_symbols;
+  LOCO_decorrelator_1(config_cols,config_rows,src,first_px_out,pre_symbols);
+  St_idx_compute(pre_symbols,out_symbols);
+}
 
 /*void LOCO_decorrelator(
   col_ptr_t config_cols,
