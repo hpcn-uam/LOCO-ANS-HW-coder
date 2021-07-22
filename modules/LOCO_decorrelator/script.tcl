@@ -22,7 +22,7 @@ set module LOCO_decorrelator
 open_project "${module}.hls_prj"
 set_top "${module}"
 add_files src/${module}.cpp -cflags "-DLOCO_DECORRELATOR_TOP -Wmissing-field-initializers "
-add_files -tb src/${module}_test.cpp -cflags "-Wno-unknown-pragmas -Wmissing-field-initializers " -csimflags "-Wno-unknown-pragmas -Wmissing-field-initializers "
+add_files -tb src/${module}_test.cpp -cflags "-Wno-unknown-pragmas -Wmissing-field-initializers " -csimflags "-std=c++14 -fexceptions -Wno-unknown-pragmas -Wmissing-field-initializers "
 add_files -tb src/sw_implementation.cpp -cflags "-Wno-unknown-pragmas -Wmissing-field-initializers " -csimflags "-Wno-unknown-pragmas -Wmissing-field-initializers "
 open_solution "solution1" -flow_target vivado
 set_part {xc7z020-clg484-1}
