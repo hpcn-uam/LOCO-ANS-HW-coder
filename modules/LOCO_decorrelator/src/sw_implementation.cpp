@@ -10,7 +10,7 @@
 *
 *
 *
-* Last Modified : 2021-07-20 12:41:46 
+* Last Modified : 2021-07-21 22:04:45 
 *
 * Revision      : 
 *
@@ -32,7 +32,7 @@ using namespace std;
 #define SW_USING_DIV_RED_LUT 1
 // int prediction_errors[512]={0};
 
-constexpr int MAXVAL = (1<<INPUT_BPP)-1;
+// constexpr int MAXVAL = (1<<INPUT_BPP)-1;
 #define ADD_GRAD_4 0
 
 int UQ(int error, int delta, int near){
@@ -54,6 +54,33 @@ int predict(int a, int b, int c){
   dxy &= (dy ^ dxy)<0? -1 : 0 ;
   return  !s ? b + dy: a - dxy;
 
+}
+
+ int sw_impl::get_theta_idx(int ctx_cnt, int ctx_St){
+  int idx;
+  #if CTX_ST_FINER_QUANT
+    int e, l = ctx_cnt;
+    for(e = 0; ctx_St > l; l<<=1,e+=2) {;}
+    // idx = e<<1;
+    idx = e;
+    if(ctx_St> l-((l+2)>>2)){
+      idx++;
+    }
+  #else
+    for(idx = 0; ctx_St > (ctx_cnt<<(idx)); ++idx) {;}
+  #endif
+
+  #if DEBUG
+    if(idx > MAX_ST_IDX) {
+      WARN_MAX_ST_IDX_cnt++;
+      idx = MAX_ST_IDX;
+    }
+  #else
+    idx = idx>MAX_ST_IDX?MAX_ST_IDX:idx;
+  #endif
+
+
+  return idx;
 }
 
 
@@ -97,7 +124,7 @@ inline void get_prediction_and_context(RowBuffer &row_buffer,int col, int MAXVAL
 
 
 void sw_impl::image_scanner(int near,int cols, int rows,
-  hls::stream<int>& src, hls::stream<int>& symbols){
+  hls::stream<int>& src, hls::stream<ee_symb_data>& symbols){
   const int delta = 2*near +1;
   const int alpha = near ==0?MAXVAL + 1 :
                      (MAXVAL + 2 * near) / delta + 1;
@@ -119,7 +146,9 @@ void sw_impl::image_scanner(int near,int cols, int rows,
   {
     int channel_value = src.read(); 
     row_buffer.update(channel_value,0);
-    symbols<< channel_value;
+    ee_symb_data symbol;
+    symbol.z = channel_value;
+    symbols<< symbol;
   }
 
 
@@ -154,7 +183,7 @@ void sw_impl::image_scanner(int near,int cols, int rows,
       int acc_inv_sign = (ctx_acc[context.id] > 0)? -1:0;
       error = mult_by_sign(error,context.sign^acc_inv_sign);
       
-      symbols<< error; 
+      // symbols<< error; 
 
       #if 0
         #if SW_USING_DIV_RED_LUT
@@ -178,6 +207,7 @@ void sw_impl::image_scanner(int near,int cols, int rows,
         symbol.p_id = ctx_p_idx[context.id];
         symbol.remainder_reduct_bits = remainder_reduct_bits;
       
+      symbols<< symbol; 
 
 
       // get decoded value

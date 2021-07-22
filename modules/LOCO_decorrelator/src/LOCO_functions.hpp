@@ -28,7 +28,7 @@ private:
   px_t prev_1st_a;
   // col_ptr_t read_addr;
 public:
-  int rows;
+  // int rows;
   ap_uint<LOG2_MAX_COLS+1> cols;
   // Map of pixels:
   //   |c|b|d |
@@ -42,8 +42,9 @@ public:
 
   image_buffer(){};
 
-  image_buffer(int _row,int _cols):col_ptr(0),first_col(1),
-    rows(_row),cols(_cols),
+  image_buffer(int _cols):col_ptr(0),first_col(1),
+    // rows(_row),
+    cols(_cols),
     px_remaining_in_col(_cols-1),
     // read_addr(2),
     a(0),b(0), c(0), d(0),prev_1st_a(0),b_reg(0)
@@ -56,8 +57,8 @@ public:
     #endif
   }
 
-  void init(int _row,int _cols){
-    rows=_row;
+  void init(int _cols){
+    // rows=_row;
     cols=_cols;
     col_ptr=0;
     first_col=1;

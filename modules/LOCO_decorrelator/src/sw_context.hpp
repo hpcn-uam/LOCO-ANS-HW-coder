@@ -232,32 +232,7 @@ int get_st_idx(Context_t context){
 
 
 
-inline int get_theta_idx(int ctx_cnt, int ctx_St){
-  int idx;
-  #if CTX_ST_FINER_QUANT
-    int e, l = ctx_cnt;
-    for(e = 0; ctx_St > l; l<<=1,e+=2) {;}
-    // idx = e<<1;
-    idx = e;
-    if(ctx_St> l-((l+2)>>2)){
-      idx++;
-    }
-  #else
-    for(idx = 0; ctx_St > (ctx_cnt<<(idx)); ++idx) {;}
-  #endif
 
-  #if DEBUG
-    if(idx > MAX_ST_IDX) {
-      WARN_MAX_ST_IDX_cnt++;
-      idx = MAX_ST_IDX;
-    }
-  #else
-    idx = idx>MAX_ST_IDX?MAX_ST_IDX:idx;
-  #endif
-
-
-  return idx;
-}
 
 inline int get_context_theta_idx(Context_t context){
   #if ITERATIVE_ST
@@ -266,7 +241,6 @@ inline int get_context_theta_idx(Context_t context){
     return ctx_St_idx[context.id];
   #endif
 }
-
 
 
 
@@ -478,7 +452,7 @@ void update_context(Context_t ctx, int prediction_error,int z, int y){
   // adjust
     if((cnt >= CTX_ADJUST_CNT )) { 
       cnt >>=1;
-      acc >>=1;  
+      acc = (acc >= 0)? (acc >> 1): -((1 - acc) >> 1);
       Nt  >>=1;
       St  >>=1;
     }    

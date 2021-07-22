@@ -26,7 +26,9 @@ add_files -tb src/${module}_test.cpp -cflags "-Wno-unknown-pragmas -Wmissing-fie
 add_files -tb src/sw_implementation.cpp -cflags "-Wno-unknown-pragmas -Wmissing-field-initializers " -csimflags "-Wno-unknown-pragmas -Wmissing-field-initializers "
 open_solution "solution1" -flow_target vivado
 set_part {xc7z020-clg484-1}
-create_clock -period 10 -name default
+create_clock -period 17 -name default
+set_clock_uncertainty 2
+config_schedule  -verbose
 config_export -format ip_catalog -rtl verilog
 
 # source "./directives.tcl"

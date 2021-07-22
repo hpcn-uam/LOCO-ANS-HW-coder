@@ -7,8 +7,26 @@
 #include "../../coder_config.hpp"
 namespace sw_impl {
 
+   int get_theta_idx(int ctx_cnt, int ctx_St);
+
+  struct ee_symb_data {
+    ee_symb_data():z(0),y(0),remainder_reduct_bits(0),theta_id(0),p_id(0){}
+    uint16_t z;
+    uint8_t y;
+    uint8_t remainder_reduct_bits; //reminder_bits =  EE_REMAINDER_SIZE - remainder_reduct_bits
+    uint16_t theta_id;
+    uint16_t p_id;
+
+    // int32_t z;
+    // int32_t theta_id;
+    // int32_t p_id;
+    // int32_t y;
+    // int32_t remainder_reduct_bits; //reminder_bits =  EE_REMAINDER_SIZE - remainder_reduct_bits
+  }__attribute__((packed));
+
+
   void image_scanner(int near,int cols, int rows,
-    hls::stream<int>& src, hls::stream<int>& symbols);
+    hls::stream<int>& src, hls::stream<ee_symb_data>& symbols);
 
 
   struct Context_t{
@@ -104,22 +122,9 @@ namespace sw_impl {
       
     };
 
-  struct ee_symb_data {
-    ee_symb_data():z(0),y(0),remainder_reduct_bits(0),theta_id(0),p_id(0){}
-    uint16_t z;
-    uint8_t y;
-    uint8_t remainder_reduct_bits; //reminder_bits =  EE_REMAINDER_SIZE - remainder_reduct_bits
-    uint16_t theta_id;
-    uint16_t p_id;
-
-    // int32_t z;
-    // int32_t theta_id;
-    // int32_t p_id;
-    // int32_t y;
-    // int32_t remainder_reduct_bits; //reminder_bits =  EE_REMAINDER_SIZE - remainder_reduct_bits
 
 
-  }__attribute__((packed));
+  
 
 } // sw_impl
 

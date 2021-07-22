@@ -13,6 +13,7 @@
 
 using namespace std;
 using namespace hls;
+using namespace sw_impl;
 
 // #define PRINT_INPUT
 
@@ -23,10 +24,11 @@ const int NUM_OF_TESTS = 6;
 int main(int argc, char const *argv[])
 {
   int near = 0;
-  hls::stream<px_t> in_px_stream;
-  hls::stream<err_t> out_symbol_stream;
+  hls::stream<px_t> in_px_stream,out_first_px;
+  hls::stream<DecorrelatorOutput> out_symbol_stream;
 
-  hls::stream<int> sw_in_stream, sw_out_symbol_stream;
+  hls::stream<int> sw_in_stream;
+  stream<ee_symb_data> sw_out_symbol_stream;
 
   for(unsigned test_idx = 0; test_idx < NUM_OF_TESTS; ++test_idx) {
     int img_rows = ROWS+test_idx;
@@ -78,20 +80,34 @@ int main(int argc, char const *argv[])
 
     ASSERT(in_px_stream.size(),==,img_rows*img_cols);
     ASSERT(sw_in_stream.size(),==,img_rows*img_cols);
-
-    LOCO_decorrelator(img_rows,img_cols, in_px_stream, out_symbol_stream);
+    // int number_of_images = 1;
+    LOCO_decorrelator(img_rows,img_cols, in_px_stream, out_first_px,out_symbol_stream);
 
     sw_impl::image_scanner(near, img_rows, img_cols, sw_in_stream, sw_out_symbol_stream);
 
-    ASSERT(out_symbol_stream.size(),==,sw_out_symbol_stream.size());
+    ASSERT(out_symbol_stream.size()+1,==,sw_out_symbol_stream.size());
+    ASSERT(out_first_px.size(),==,1);
 
 
     for (int row = 0; row < img_rows; ++row){
       for (int col = 0; col < img_cols; ++col){
-        auto hw_out = out_symbol_stream.read();
-        auto sw_out = sw_out_symbol_stream.read();
 
-        ASSERT(hw_out,==,sw_out,"row,col:("<<row<<","<<col<<")")
+        auto sw_out = sw_out_symbol_stream.read();
+        if(row == 0 && col == 0) {
+          auto hw_1px_out = out_first_px.read();
+          ASSERT(hw_1px_out,==,sw_out.z,"row,col:("<<row<<","<<col<<")")
+
+        }else{
+
+          auto hw_out = out_symbol_stream.read();
+          ASSERT(hw_out.z(),==,sw_out.z,"row,col:("<<row<<","<<col<<")")
+          ASSERT(hw_out.y(),==,sw_out.y,"row,col:("<<row<<","<<col<<")")
+          ASSERT(hw_out.p_idx(),==,sw_out.p_id,"row,col:("<<row<<","<<col<<")")
+
+          // calc theta_id
+          auto hw_theta_id = sw_impl::get_theta_idx(hw_out.cnt(), hw_out.St());
+          ASSERT(hw_theta_id,==,sw_out.theta_id,"row,col:("<<row<<","<<col<<")")
+        }
       }
     }
 

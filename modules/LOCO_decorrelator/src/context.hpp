@@ -5,23 +5,16 @@
 #include "LOCO_decorrelator.hpp"
 
 
-constexpr int CTX_0 = 0;
-constexpr int CTX_BINS_PER_DIM =9;
-constexpr int CTX_GRAD_BINS =(((CTX_BINS_PER_DIM)*(CTX_BINS_PER_DIM)*(CTX_BINS_PER_DIM)+1)/2);
-constexpr int CTX_ADJUST_CNT_BITS   =6;
-constexpr int CTX_ADJUST_CNT   =1<<CTX_ADJUST_CNT_BITS;
 
-typedef  ap_int<8> ctx_bias_t;
-// typedef  ap_int<10> ctx_bias_t;
-// typedef  ap_uint<CTX_ADJUST_CNT_BITS+5> ctx_cnt_t;
-typedef  ap_uint<CTX_ADJUST_CNT_BITS+1> ctx_cnt_t;
-// typedef  ap_int<INPUT_BPP+CTX_ADJUST_CNT_BITS+5> ctx_acc_t;
-typedef  ap_int<INPUT_BPP+CTX_ADJUST_CNT_BITS> ctx_acc_t;
+
 
 struct ContextElement {
   ctx_cnt_t cnt;
   ctx_bias_t bias;
   ctx_acc_t acc;
+  ctx_Nt_t Nt;
+  ctx_p_idx_t p_idx;
+  ctx_St_t St;
 };
 
 class Context
@@ -38,13 +31,20 @@ ContextElement context_stats[NUM_OF_CTX];
 // ctx_bias_t context_bias[CTX_GRAD_BINS];
 // ctx_acc_t context_acc[NUM_OF_CTX];
 
-void init_context(){
-  // #pragma HLS inline
+void init_context(int near, int alpha){
+  #pragma HLS inline
+  const int ctx_initial_Nt = 0;
+  const int ctx_initial_p_idx = std::max(CTX_NT_HALF_IDX>>1 ,CTX_NT_HALF_IDX -2 -near);
+  const int ctx_initial_St = std::max(2, ((alpha + 32) >> 6 ))<<CTX_ST_PRECISION;
   init_ctx_loop: for(unsigned i = 0; i < CTX_GRAD_BINS; ++i) {
     // context_bias[i] = 0;
     context_stats[i].cnt = 1;
     context_stats[i].bias = 0;
     context_stats[i].acc = 0;
+    context_stats[i].Nt = ctx_initial_Nt;
+    context_stats[i].p_idx = ctx_initial_p_idx;
+    context_stats[i].St= ctx_initial_St;
+
   }
 }
 
@@ -143,103 +143,6 @@ int gradient_quantizer(int g){
   #endif
 }
 
-int gradient_quantizer_0(int g){
-  #pragma HLS inline
-  constexpr int T0=0,T1=3,T2=7,T3=21;
-  
-  int q;
-  //OPT? using simetry
-  // OPT implement like a tree
-  // or both, first  check if it's  in the central threshold, if not remove sign and continue
-
-  if (g <= -T3) {
-    q = -4;
-  } else if (g <= -T2) {
-    q = -3;
-  } else if (g <= -T1) {
-    q = -2;
-  } else if (g <  -T0) {
-    q = -1;
-  } else if (g <=  T0) {
-    q = 0;
-  } else if (g <   T1) {
-    q = 1;
-  } else if (g <   T2) {
-    q = 2;
-  } else if (g <   T3) {
-    q = 3;
-  } else {
-    q = 4;
-  }
-
-  return q;
-}
-
-int gradient_quantizer_1(int g){
-  #pragma HLS inline
-  constexpr int T0=0,T1=3,T2=7,T3=21;
-  
-  int q;
-  //OPT? using simetry
-  // OPT implement like a tree
-  // or both, first  check if it's  in the central threshold, if not remove sign and continue
-
-  if (g <= -T3) {
-    q = -4;
-  } else if (g <= -T2) {
-    q = -3;
-  } else if (g <= -T1) {
-    q = -2;
-  } else if (g <  -T0) {
-    q = -1;
-  } else if (g <=  T0) {
-    q = 0;
-  } else if (g <   T1) {
-    q = 1;
-  } else if (g <   T2) {
-    q = 2;
-  } else if (g <   T3) {
-    q = 3;
-  } else {
-    q = 4;
-  }
-
-  return q;
-}
-
-int gradient_quantizer_2(int g){
-  #pragma HLS inline
-  constexpr int T0=0,T1=3,T2=7,T3=21;
-  
-  int q;
-  //OPT? using simetry
-  // OPT implement like a tree
-  // or both, first  check if it's  in the central threshold, if not remove sign and continue
-
-  if (g <= -T3) {
-    q = -4;
-  } else if (g <= -T2) {
-    q = -3;
-  } else if (g <= -T1) {
-    q = -2;
-  } else if (g <  -T0) {
-    q = -1;
-  } else if (g <=  T0) {
-    q = 0;
-  } else if (g <   T1) {
-    q = 1;
-  } else if (g <   T2) {
-    q = 2;
-  } else if (g <   T3) {
-    q = 3;
-  } else {
-    q = 4;
-  }
-
-  return q;
-}
-
-
 
 inline void map_gradients_to_int(int g1, int g2, int g3,int &context,int &sign){
   #pragma HLS inline
@@ -281,6 +184,8 @@ inline void map_gradients_to_int(int g1, int g2, int g3,int &context,int &sign){
 inline void update_context(
   int context,
   int error,
+  int y,
+  int z,
   ContextElement current_stats,
   ContextElement &updated_stats){
   #pragma HLS inline
@@ -288,12 +193,15 @@ inline void update_context(
   auto & acc = current_stats.acc;
   auto & cnt = current_stats.cnt;
   auto & bias = current_stats.bias;
+  auto & Nt = current_stats.Nt;
+  auto & p_idx = current_stats.p_idx;
+  auto & St = current_stats.St;
 
   if((context != CTX_0)) {
     acc += error;
   }
-  // Nt += y<<CTX_NT_PRECISION;
-  // St += (z<<CTX_ST_PRECISION );
+  Nt += y<<CTX_NT_PRECISION;
+  St += (z<<CTX_ST_PRECISION );
   cnt++;
 
   //update_context_divisions
@@ -302,32 +210,72 @@ inline void update_context(
   const int Li =-((cnt+1)>>1); //ceil(cnt/2) // OPT: the +1 probably has no practical effect on compression
   const int Ls = ((cnt)>>1); // floor(cnt/2)
 
-  if ((Li >= acc)){
-    bias--;
-    acc += cnt;
-    if((Li >= acc)){acc= Li+1; }
-  } else if ((acc > Ls)){
-    bias++;
-    acc -= cnt ;
-    if ((acc > Ls)){ acc= Ls;}
-  }
+  // update bias
+    if ((Li >= acc)){
+      bias--;
+      acc += cnt;
+      if((Li >= acc)){acc= Li+1; }
+    } else if ((acc > Ls)){
+      bias++;
+      acc -= cnt ;
+      if ((acc > Ls)){ acc= Ls;}
+    }
   
+  //update p id
+    ASSERT(CTX_NT_CENTERED_QUANT,==,true);
+    ASSERT(HALF_Y_CODER,==,true);
+    Nt -= p_idx;
+
+    #if 0
+      const int low_diff = Nt -Li;
+      const int high_diff = Ls -Nt;
+      const int low_mask =(low_diff)>>(sizeof(low_diff)*8 -1);
+      const int high_mask =(high_diff)>>(sizeof(high_diff)*8 -1);
+      #define MAX_Nt_IDX  CTX_NT_HALF_IDX-1
+      if((p_idx <MAX_Nt_IDX)) {
+        /* code */
+        p_idx -= high_mask;
+        Nt -= cnt&high_mask;
+      }
+
+      p_idx += low_mask;
+      Nt += cnt&low_mask;
+
+    #else
+
+      if ((Li > Nt)){
+        p_idx--;
+        Nt += cnt;
+      } else if ((Nt >= Ls)){
+        #if HALF_Y_CODER
+          #define MAX_Nt_IDX  CTX_NT_HALF_IDX-1//((1<<(CTX_NT_PRECISION))-1)// CTX_NT_HALF_IDX-1
+          if ((p_idx <MAX_Nt_IDX)) {
+            p_idx++;
+            Nt -= cnt ;
+          }
+        #else
+          p_idx++;
+          Nt -= cnt ;
+        #endif
+      }
+
+    #endif
+    assert(p_idx>=0);
+    #if CTX_NT_CENTERED_QUANT
+      assert(p_idx<=(1<<CTX_NT_PRECISION));
+    #else
+      assert(p_idx<(1<<CTX_NT_PRECISION));
+    #endif
+ 
   if(cnt >= CTX_ADJUST_CNT ) { 
     cnt >>=1; 
-    acc >>=1;  
-    // Nt  >>=1;
-    // St  >>=1;
+    acc = (acc >= 0)? ctx_acc_t(acc >> 1): ctx_acc_t(-((1 - acc) >> 1));
+    Nt  >>=1;
+    St  >>=1;
   }    
 
-  updated_stats.bias = bias;
-  updated_stats.cnt = cnt;
-  updated_stats.acc = acc;
-
-  // updated_bias =bias;
-  // context_stats[context].cnt=cnt ;
-  // context_stats[context].bias= updated_bias;
-  // context_stats[context].acc= acc;
-  context_stats[context]= updated_stats;
+  updated_stats = current_stats;
+  context_stats[context]= current_stats;
 
 }
 
