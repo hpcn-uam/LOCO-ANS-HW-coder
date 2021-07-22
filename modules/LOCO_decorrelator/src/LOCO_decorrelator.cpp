@@ -137,9 +137,16 @@ void LOCO_decorrelator(
   quantized_img.init(cols);
 
   //context init
-  const int near =0, delta =1;
+  constexpr int near =0, delta =1;
   constexpr int alpha = near ==0?MAXVAL + 1 :
                      (MAXVAL + 2 * near) / delta + 1;
+
+  constexpr int MIN_REDUCT_ERROR = -near;
+  constexpr int MAX_REDUCT_ERROR =  MAXVAL + near;
+  constexpr int DECO_RANGE = alpha * delta;     
+  constexpr int MAX_ERROR =  (alpha+1)/2 -1; //  std::ceil(alpha/2.0) -1;
+  constexpr int MIN_ERROR = -(alpha/2); // -std::floor(alpha/2.0);
+
   init_context(near,alpha);
 
   ContextElement prev_ctx_stats;
@@ -168,8 +175,6 @@ void LOCO_decorrelator(
 
       auto channel_value = src.read(); 
       quantized_img.update(q_channel_value);
-      int q_idx;
-
 
       int fixed_prediction;
       int ctx_id;
@@ -191,21 +196,47 @@ void LOCO_decorrelator(
       #endif
 
       int error = channel_value - prediction;
-      
       int acc_inv_sign = (ctx_stats.acc > 0)? 1:0;
       error = acc_inv_sign^ctx_sign ? -error: error;
-      int y = error <0? 1:0;
-      int z = abs(error)-y;
-      int q_error ;
+      
 
-      #if 0
-        UQ_n_reduce(error,delta,q_idx,q_error);
+
+      #if USING_DIV_RED_LUT
+        error = div_reduct_lut[delta][error][0] ;
+        int q_error = div_reduct_lut[delta][error][1];//error*delta;
       #else
-        q_error = acc_inv_sign ? - error: error;
-        q_idx = error;
+        // error = UQ(error, delta,near ); // quantize
+        #if ERROR_REDUCTION
+          if((error < MIN_ERROR)){
+            error += alpha;
+          }else if((error > MAX_ERROR)){
+            error -= alpha;
+          }
+        #endif
+        int q_error = error*delta;
       #endif
 
-      q_channel_value = clamp(prediction + (ctx_sign==1? -q_error:q_error));
+      int y = error <0? 1:0;
+      int z = abs(error)-y;
+
+
+      q_error = (acc_inv_sign ? - q_error: q_error);
+
+      q_channel_value = prediction + (ctx_sign==1? -q_error:q_error);
+
+      #if ERROR_REDUCTION
+        if((q_channel_value < MIN_REDUCT_ERROR)){
+          q_channel_value += DECO_RANGE;
+        }else if((q_channel_value > MAX_REDUCT_ERROR)){
+          q_channel_value -= DECO_RANGE;
+        }
+      #endif 
+
+      q_channel_value = clamp(q_channel_value);
+
+      ASSERT(abs(q_channel_value-channel_value),<=,near,"px_idx: "<<px_idx<<
+          " | q_channel_value: "<<int(q_channel_value)<<" | channel_value: "<<int(channel_value)
+          <<" | q_error: "<<q_error<<" | error: "<<error);
 
       int last_symbol = px_idx == img_pixels-1? 1:0;
       DecorrelatorOutput out_symbol(ctx_stats.St,ctx_stats.cnt,ctx_stats.p_idx, y,z,last_symbol);
