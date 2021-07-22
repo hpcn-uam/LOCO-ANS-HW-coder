@@ -262,11 +262,11 @@ inline void update_context(
       }
 
     #endif
-    assert(p_idx>=0);
+    ASSERT(p_idx,>=,0);
     #if CTX_NT_CENTERED_QUANT
-      assert(p_idx<=(1<<CTX_NT_PRECISION));
+      ASSERT(p_idx,<=,(1<<CTX_NT_PRECISION));
     #else
-      assert(p_idx<(1<<CTX_NT_PRECISION));
+      ASSERT(p_idx,<,(1<<CTX_NT_PRECISION));
     #endif
  
   if(cnt >= CTX_ADJUST_CNT ) { 
