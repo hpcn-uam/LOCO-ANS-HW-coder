@@ -10,7 +10,7 @@
 *
 *
 *
-* Last Modified : 2021-07-21 22:04:45 
+* Last Modified : 2021-07-22 11:01:48 
 *
 * Revision      : 
 *
@@ -185,7 +185,7 @@ void sw_impl::image_scanner(int near,int cols, int rows,
       
       // symbols<< error; 
 
-      #if 0
+      #if 1
         #if SW_USING_DIV_RED_LUT
           error = *(div_reduct_lut+error) ;
         #else

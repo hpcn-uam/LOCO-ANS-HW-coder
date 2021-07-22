@@ -66,6 +66,8 @@ typedef int pixel_ptr_t;
 #define CTX_B_PRECISION 3 // number of fractional bits
 
 #define END_OF_LINE_CALL 0
+#define USING_DIV_RED_LUT 0
+#define ERROR_REDUCTION 1
 
 
 constexpr int CTX_0 = 0;
@@ -86,17 +88,12 @@ typedef  ap_uint<P_SIZE> ctx_p_idx_t;
 #define CTX_ST_SIZE  (INPUT_BPP+CTX_ADJUST_CNT_BITS-1+CTX_ST_PRECISION) 
 typedef  ap_uint<CTX_ST_SIZE> ctx_St_t; 
 
-/*|St|cnt|p_idx|y|z|last|  */
-typedef ap_uint<ctx_St_t::width
-                +ctx_cnt_t::width
-                +ctx_p_idx_t::width 
-                +Y_SIZE
-                +Z_SIZE
-                +1 > decorrel_out_t;
+
 
 // create class to aggregate output. VITIS HLS aligns fields to 2^x, x>=3
 class DecorrelatorOutput
 {
+  /*|St|cnt|p_idx|y|z|last|  */
   ap_uint<CTX_ST_SIZE
                 +CTX_CNT_SIZE
                 +P_SIZE
