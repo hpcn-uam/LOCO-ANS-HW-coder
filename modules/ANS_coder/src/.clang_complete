@@ -1,4 +1,4 @@
 -I./ANS_coder.hpp
 -I../../subsym_gen/src/subsym_gen.hpp
 -I../../coder_config.hpp
--I/tools/Xilinx/Vitis_HLS/2020.2/include/
+-I/tools/Xilinx/Vitis_HLS/2021.1/include/
