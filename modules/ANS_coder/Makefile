@@ -9,7 +9,7 @@ MODE_NAME :=
 sources :=  ../input_buffers/src/input_buffers.cpp ../subsym_gen/src/subsym_gen.cpp $(wildcard src/*.cpp)
 DEPS := $(sources) $(wildcard src/*.hpp) $(wildcard ../input_buffers/src/*.hpp) $(wildcard ../subsym_gen/src/*.hpp)  $(wildcard ../ANS_tables/*.dat )
 
-CFLAGS := -I/tools/Xilinx/Vitis_HLS/2020.2/include/
+CFLAGS := -I/tools/Xilinx/Vitis_HLS/2021.1/include/
 
 .PHONY: clean all run_sim $(MODULE)
 

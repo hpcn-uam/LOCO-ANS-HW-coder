@@ -3,8 +3,8 @@ RED=\e[31m
 GREEN=\e[32m
 NC=\e[0m
 
-CFLAGS := -I/tools/Xilinx/Vitis_HLS/2020.2/include/
-# CFLAGS+= -I/home/tobi/NVME/Xilinx/Vitis_HLS/2020.2/include/
+CFLAGS := -I/tools/Xilinx/Vitis_HLS/2021.1/include/
+# CFLAGS+= -I/home/tobi/NVME/Xilinx/Vitis_HLS/2021.1/include/
 
 sources :=  $(wildcard src/*.cpp) ../input_buffers/src/input_buffers.cpp ../subsym_gen/src/subsym_gen.cpp ../ANS_coder/src/ANS_coder.cpp ../output_stack/src/output_stack.cpp
 deps  := src/TSG_coder.cpp $(wildcard src/*.hpp) $(wildcard ../ANS_tables/*.dat )
