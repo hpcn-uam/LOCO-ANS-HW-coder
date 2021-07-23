@@ -139,14 +139,14 @@ public:
 };
 
 
-void LOCO_decorrelator(
+/*void LOCO_decorrelator(
   col_ptr_t config_cols,
   row_ptr_t config_rows,
   hls::stream<px_t>& src,
   hls::stream<px_t>& first_px_out,
-  hls::stream<coder_interf_t> & out_symbols);
+  hls::stream<coder_interf_t> & out_symbols);*/
 
-void LOCO_decorrelator_1(
+void LOCO_decorrelator(
   col_ptr_t config_cols,
   row_ptr_t config_rows,
   hls::stream<px_t>& src,

@@ -1,7 +1,7 @@
 
 SUBTARGET := all
 
-BASIC_TARGETS := DMA_engines TSG_coder File_writer
+BASIC_TARGETS := DMA_engines TSG_coder File_writer LOCO_decorrelator
 ALL_TARGETS := $(BASIC_TARGETS) ANS_coder input_buffers output_stack subsym_gen 
 
 

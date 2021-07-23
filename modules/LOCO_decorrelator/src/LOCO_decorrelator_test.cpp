@@ -17,8 +17,10 @@ using namespace sw_impl;
 
 // #define PRINT_INPUT
 
-#define ROWS 128
-#define COLS 128
+#define ROWS 10
+#define COLS 10
+// #define ROWS 128
+// #define COLS 128
 const int NUM_OF_TESTS = 6;
 
 int main(int argc, char const *argv[])
@@ -84,11 +86,12 @@ int main(int argc, char const *argv[])
     // int number_of_images = 1;
     #if 1
     hls::stream<DecorrelatorOutput> out_presymbol_stream;
-    LOCO_decorrelator_1(img_rows,img_cols, in_px_stream, out_first_px,out_presymbol_stream);
-    // while(!out_presymbol_stream.empty()) {
+    LOCO_decorrelator(img_rows,img_cols, in_px_stream, out_first_px,out_presymbol_stream);
+    
+    while(!out_presymbol_stream.empty()) {
     // for(unsigned i = 0; i < img_rows*img_rows-1; ++i) {
       St_idx_compute(out_presymbol_stream,out_symbol_stream);
-    // }
+    }
     #else
     LOCO_decorrelator(img_rows,img_cols, in_px_stream, out_first_px,out_symbol_stream);
     #endif
