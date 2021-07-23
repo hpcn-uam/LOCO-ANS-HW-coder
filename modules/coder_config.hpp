@@ -66,7 +66,10 @@ constexpr int ceillog2(int x){
 
 /********************** General parameters ******************************/
 
-#define INPUT_BPP (8)
+//!!!!!! px is defined as unsigned char (ap_uint<>) generates some undesired effects
+#define INPUT_BPP (8) 
+typedef unsigned char px_t;
+
 constexpr int MAXVAL = (1<<INPUT_BPP)-1;
 #define Z_SIZE (INPUT_BPP-1)
 #define LOG2_Z_SIZE (3)
