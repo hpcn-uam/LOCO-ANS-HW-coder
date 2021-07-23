@@ -111,14 +111,14 @@
 
 #else
 
-void LOCO_decorrelator_1(
+void LOCO_decorrelator(
   col_ptr_t config_cols,
   row_ptr_t config_rows,
   hls::stream<px_t>& src,
   hls::stream<px_t>& first_px_out,
   hls::stream<DecorrelatorOutput> & symbols){ 
 
-  #ifdef LOCO_DECORRELATOR_1_TOP
+  #ifdef LOCO_DECORRELATOR_TOP
   //interface configuration
   #pragma HLS INTERFACE axis register_mode=both register port=src
   #pragma HLS INTERFACE axis register_mode=both register port=symbols
@@ -268,7 +268,7 @@ void St_idx_compute(
   #pragma HLS INTERFACE ap_ctrl_none port=return
   // #pragma HLS PIPELINE
   #pragma HLS PIPELINE style=flp 
-  START_SW_ONLY_LOOP(!in_symbols.empty())
+  // START_SW_ONLY_LOOP(!in_symbols.empty())
 
 
 
@@ -339,11 +339,11 @@ void St_idx_compute(
   ASSERT(theta_id, <=,MAX_ST_IDX)
   out_symbols << (last,z,y,theta_id,p_id);
 
-  END_SW_ONLY_LOOP
+  // END_SW_ONLY_LOOP
 
 }
 
-void LOCO_decorrelator(
+/*void LOCO_decorrelator(
   col_ptr_t config_cols,
   row_ptr_t config_rows,
   hls::stream<px_t>& src,
@@ -363,7 +363,7 @@ void LOCO_decorrelator(
   hls::stream<DecorrelatorOutput>  pre_symbols;
   LOCO_decorrelator_1(config_cols,config_rows,src,first_px_out,pre_symbols);
   St_idx_compute(pre_symbols,out_symbols);
-}
+}*/
 
 /*void LOCO_decorrelator(
   col_ptr_t config_cols,
