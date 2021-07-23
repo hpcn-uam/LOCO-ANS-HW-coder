@@ -19,11 +19,15 @@ int main(int argc, char const *argv[])
   //inputs
   stream<TSG_out_intf> in_byte_block_stream;
   stream<tsg_blk_metadata> in_blk_metadata;
+  stream<px_t> first_px_stream;
   //outputs
   stream<odma_data>   out_stream;
   stream<odma_command>  out_command;
   std::list<odma_data> in_list;
   int byte_counter = 0 ;
+
+  const px_t first_px = 0xCE;
+  first_px_stream << first_px; 
   for(unsigned test_id = 0; test_id < NUM_OF_TESTS; ++test_id) {
     cout<<"Processing test "<<test_id<<endl;
     //generate input
@@ -43,13 +47,16 @@ int main(int argc, char const *argv[])
     }
 
     //DUT
-    File_writer(
-    //inputs
-      in_byte_block_stream,
-      in_blk_metadata,
-    //outputs
-     out_stream,
-     out_command);
+    while(!first_px_stream.empty() || !in_blk_metadata.empty()) {
+      File_writer(
+      //inputs
+        in_byte_block_stream,
+        in_blk_metadata,
+        first_px_stream,
+      //outputs
+       out_stream,
+       out_command);
+    }
 
 
     //check output
@@ -79,12 +86,18 @@ int main(int argc, char const *argv[])
       ASSERT(cmd_num_of_elememts,==,OFFSET_INIT);
       ASSERT(cmd_last,==,1);
 
-      for(unsigned elem_idx = 0; elem_idx < OFFSET_INIT; ++elem_idx) {
+      for(unsigned elem_idx = 0; elem_idx < 4; ++elem_idx) {
         odma_data out_elem = out_stream.read();
         odma_data golden_data = (byte_counter>>(elem_idx*8)) & 0xFF;
 
         ASSERT(out_elem,==,golden_data,"elem_idx: "<<elem_idx);
       }
+
+      //check first px
+        odma_data out_elem = out_stream.read();
+
+        ASSERT(out_elem,==,first_px);
+
     }
 
     ASSERT(in_byte_block_stream.size(), ==, 0);

@@ -52,12 +52,12 @@ typedef int pixel_ptr_t;
 
 #define OPTIMIZED_PIXEL_TIPE 1
 #if OPTIMIZED_PIXEL_TIPE
-  typedef unsigned char px_t;
+  // typedef unsigned char px_t;
   // typedef  ap_uint<8> px_t;
   typedef ap_int<10> err_t; // OPT can be reduced to 9
 #else
   // typedef unsigned int px_t;
-  typedef unsigned char px_t;
+  // typedef unsigned char px_t;
   typedef int err_t; // OPT can be reduced to 9
 #endif
 
