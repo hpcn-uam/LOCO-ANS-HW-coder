@@ -12,6 +12,9 @@ all: $(BASIC_TARGETS)
 all_modules: SUBTARGET := all_modules
 all_modules: $(ALL_TARGETS)
 
+clean: SUBTARGET := clean
+clean: $(ALL_TARGETS)
+
 $(ALL_TARGETS):
 	make -C $@ $(SUBTARGET)
 

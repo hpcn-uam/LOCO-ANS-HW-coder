@@ -24,7 +24,7 @@ test: $(TEST_TARGETS)
 complete: $(TEST_TARGETS) $(TARGETS) 
 
 
-.PHONY: clean  distclean all $(TARGETS)
+.PHONY: clean all $(TARGETS)
 
 $(TARGETS): %: %.hls_prj/solution1/syn  %.hls_prj/solution1/impl/ip/
 # $(MODULE):  hls_synth export_ip
@@ -58,7 +58,4 @@ logs:
 	vitis_hls $*_script.tcl 3 > logs/$*_export.log
 
 clean:
-	rm -rf logs *.log
-
-distclean: clean
-	rm -rf *.hls_prj
+	rm -rf logs *.log *.hls_prj
