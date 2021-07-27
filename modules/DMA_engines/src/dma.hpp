@@ -88,5 +88,9 @@ void loopback_fifo(
   ap_uint<NUM_OF_OUT_ELEM_BITS> conf_out_num_of_elememts,
   stream<ap_uint<NUM_OF_OUT_ELEM_BITS>> & out_num_of_elememts);
 
+void idma_TSG(
+  volatile ap_uint<32> *in,
+  stream<ap_uint<32>> & out_stream,
+  ap_uint<NUM_OF_IN_ELEM_BITS> num_of_elememts);
 
 #endif // DMA_HPP

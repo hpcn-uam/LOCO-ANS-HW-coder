@@ -7,7 +7,7 @@ MODE_NAME :=
 
 .PHONY: clean all test
 
-ALL_TARGETS = idma odma odma_VarSize loopback_fifo
+ALL_TARGETS = idma odma odma_VarSize loopback_fifo idma_TSG
 BASIC_TARGETS = idma odma 
 
 all: $(BASIC_TARGETS)
