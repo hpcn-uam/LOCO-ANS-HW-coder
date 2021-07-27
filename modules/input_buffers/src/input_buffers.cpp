@@ -63,7 +63,6 @@ void input_buffers(
   #pragma HLS DATAFLOW
   #pragma HLS INTERFACE ap_ctrl_none port=return
 
-  #pragma HLS STREAM variable=last_block depth=3
 
   symb_data_t buffers[BUFFER_SIZE];
   #pragma HLS STREAM variable=buffers depth=2 off
