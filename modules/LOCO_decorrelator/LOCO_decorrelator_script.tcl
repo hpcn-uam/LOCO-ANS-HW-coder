@@ -28,6 +28,7 @@ open_solution "solution1" -flow_target vivado
 set_part {xc7z020-clg484-1}
 create_clock -period 17 -name default
 set_clock_uncertainty 2
+config_compile -enable_auto_rewind=false
 config_schedule  -verbose
 config_export -format ip_catalog -rtl verilog -library loco_ans -vendor HPCN -version "1.0" -vivado_synth_strategy "Flow_PerfOptimized_high" -vivado_optimization_level 3 -vivado_impl_strategy "Performance_ExtraTimingOpt" -vivado_phys_opt all  -vivado_report_level 2
 

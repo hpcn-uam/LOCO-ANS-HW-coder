@@ -28,6 +28,7 @@ open_solution "solution1" -flow_target vivado
 set_part {xc7z020-clg484-1}
 create_clock -period 17 -name default
 set_clock_uncertainty 2
+config_compile -enable_auto_rewind=false
 config_schedule  -verbose
 config_export -format ip_catalog -rtl verilog
 

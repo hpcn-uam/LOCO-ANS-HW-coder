@@ -10,7 +10,7 @@
 # 
 # 
 # 
-#  Last Modified : 2021-07-02 11:12:47 
+#  Last Modified : 2021-07-27 11:40:08 
 # 
 #  Revision      : 
 # 
@@ -42,6 +42,7 @@ add_files -tb src/test_loopback_fifo.cpp -cflags "-Wno-unknown-pragmas" -csimfla
 open_solution "solution1" -flow_target vivado
 set_part {xc7z020clg400-1}
 create_clock -period 10 -name default
+config_compile -enable_auto_rewind=false
 config_interface -m_axi_max_widen_bitwidth 64
 config_interface -m_axi_alignment_byte_size 1
 #source "./loopback_fifo.hls_prj/solution1/directives.tcl"
