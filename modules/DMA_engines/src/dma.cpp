@@ -10,7 +10,7 @@
 *
 *
 *
-* Last Modified : 2021-07-07 12:57:57 
+* Last Modified : 2021-07-25 09:36:41 
 *
 * Revision      : 
 *
@@ -30,6 +30,20 @@ using namespace hls;
 void idma(
   volatile idma_data *in,
   stream<idma_data> & out_stream,
+  ap_uint<NUM_OF_IN_ELEM_BITS> num_of_elememts){
+
+  #pragma HLS INTERFACE m_axi depth=TB_MAX_BLOCK_SIZE port=in offset=slave bundle=mem
+  #pragma HLS INTERFACE axis register_mode=both register port=out_stream
+  #pragma HLS INTERFACE s_axilite port=in bundle=control
+  #pragma HLS INTERFACE s_axilite port=num_of_elememts bundle=control
+  #pragma HLS INTERFACE s_axilite port=return bundle=control 
+  mem2stream(in,out_stream,num_of_elememts);
+
+}
+
+void idma_TSG(
+  volatile ap_uint<32> *in,
+  stream<ap_uint<32>> & out_stream,
   ap_uint<NUM_OF_IN_ELEM_BITS> num_of_elememts){
 
   #pragma HLS INTERFACE m_axi depth=TB_MAX_BLOCK_SIZE port=in offset=slave bundle=mem

@@ -160,7 +160,7 @@ typedef hls::axis<ap_uint<OUTPUT_SIZE>,0,0,0 > TSG_out_intf;
 /********************** memory interface ******************************/
 
 
-constexpr int IN_DMA_BYTES = 4;
+constexpr int IN_DMA_BYTES = 1;
 constexpr int OUT_DMA_BYTES = 1;
 
 constexpr int IN_INTERF_WIDTH = IN_DMA_BYTES*8;

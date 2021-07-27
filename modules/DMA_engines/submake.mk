@@ -6,7 +6,7 @@ RED=\e[31m
 GREEN=\e[32m
 NC=\e[0m
 
-TARGETS =  idma  odma odma_VarSize loopback_fifo
+TARGETS =  idma  odma odma_VarSize loopback_fifo idma_TSG
 .PHONY: clean  test $(TARGETS)
 	
 
