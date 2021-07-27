@@ -70,7 +70,7 @@ void File_writer(
       if(last_block_elem == 1) {
         //store bytes in complete block
         out_command << (decltype(offset)(0),decltype(num_of_elements)(OFFSET_INIT),ap_uint<1>(1) );
-        auto bytes_sent = offset - OFFSET_INIT;
+        auto bytes_sent = offset +1 - OFFSET_INIT ;
         for(unsigned i = 0; i < 4; ++i) {
           out_stream << (bytes_sent>>(i*8)); //store in little endian
         }
