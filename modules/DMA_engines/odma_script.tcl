@@ -10,7 +10,7 @@
 # 
 # 
 # 
-#  Last Modified : 2021-07-07 13:16:47 
+#  Last Modified : 2021-07-27 11:40:16 
 # 
 #  Revision      : 
 # 
@@ -49,6 +49,7 @@ add_files -tb src/test_${module}.cpp -cflags "-Wno-unknown-pragmas" -csimflags "
 open_solution "solution1" -flow_target vivado
 set_part {xc7z020clg400-1}
 create_clock -period 10 -name default
+config_compile -enable_auto_rewind=false
 config_interface -m_axi_max_widen_bitwidth 64
 config_interface -m_axi_alignment_byte_size 1
 #source "./${module}.hls_prj/solution1/directives.tcl"

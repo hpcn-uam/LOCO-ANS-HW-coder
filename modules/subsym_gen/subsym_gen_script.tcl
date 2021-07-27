@@ -25,6 +25,7 @@ add_files -tb ../input_buffers/src/input_buffers.cpp -cflags "-Wno-unknown-pragm
 open_solution "solution1" -flow_target vivado
 set_part {xc7z020-clg484-1}
 create_clock -period 10 -name default
+config_compile -enable_auto_rewind=false
 # config_compile -pipeline_style flp
 
 # source "./directives.tcl"

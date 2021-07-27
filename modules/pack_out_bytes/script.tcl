@@ -5,6 +5,7 @@ add_files -tb src/test.cpp -cflags "-Wno-unknown-pragmas" -csimflags "-Wno-unkno
 open_solution "solution1" -flow_target vivado
 set_part {xc7z020-clg484-1}
 create_clock -period 10 -name default
+config_compile -enable_auto_rewind=false
 # source "./directives.tcl"
 csim_design -clean
 csynth_design
