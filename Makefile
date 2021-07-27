@@ -4,7 +4,7 @@ GREEN=\e[32m
 NC=\e[0m
 TARGET_BOARD = pynq_z2
 
-TARGETS = TSG_coder
+TARGETS = TSG_coder 
 .PHONY:	all  $(TARGETS) TSG_coder_hw_platform basic_modules
 
 all: TSG_coder
@@ -22,6 +22,6 @@ basic_modules:
 	make -C modules -j4
 
 
-$(ALL_TARGETS):
-	make -C $@ $(SUBTARGET)
-
+clean:
+	make -C modules clean
+# 	make -C HW_platforms clean

@@ -38,4 +38,4 @@ serialize_symbols: serialize_symbols.hls_prj/solution1/impl/ip/
 	vitis_hls $*_script.tcl $(MODE) > $*_compile.log
 
 clean:
-	rm -rf $(MODULE).hls_prj vitis_hls*.tcl
+	rm -rf *.hls_prj vitis_hls*.tcl
