@@ -113,6 +113,9 @@ public:
     };
   ~DecorrelatorOutput(){};
   
+  inline void set_data(long unsigned int _data){ data=_data; };
+  inline long unsigned int get_data(){return data;}
+
   inline void St(unsigned int _St){ data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE+ CTX_ST_SIZE-1,Z_SIZE+2+P_SIZE + CTX_CNT_SIZE)=_St; };
   inline unsigned int St(){return data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE+ CTX_ST_SIZE-1,Z_SIZE+2+P_SIZE + CTX_CNT_SIZE);}
   
