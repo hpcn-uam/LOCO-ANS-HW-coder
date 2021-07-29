@@ -57,5 +57,12 @@ logs:
 	@echo  "$(GREEN) #########  Export IP : $* #########$(NC)"
 	vitis_hls $*_script.tcl 3 > logs/$*_export.log
 
+
+
+CFLAGS := -I/tools/Xilinx/Vitis_HLS/2021.1/include/ `pkg-config --cflags  opencv`
+clang_sim: $(sources) $(test_sources)
+	clang++ $(sources) src/LOCO_decorrelator_test.cpp src/sw_implementation.cpp  $(CFLAGS) `pkg-config --libs  opencv`  -o $@ 
+# 	clang++ $(sources) src/LOCO_decorrelator_test.cpp src/sw_implementation.cpp  $(CFLAGS) `pkg-config --libs  opencv`  -o $@ --verbose
+
 clean:
-	rm -rf logs *.log *.hls_prj
+	rm -rf logs *.log *.hls_prj  clang_sim
