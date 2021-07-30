@@ -311,11 +311,11 @@ void update_context(Context_t ctx, int prediction_error,int z, int y){
 
       //TODO limit mu values to decide it's range, and in consequence it's bits
       if ((Li >= acc)){
-        mean--;
+        if(mean >-128) {mean--;}
         acc += cnt;
         if((Li >= acc)){acc= Li+1; }
       } else if ((acc > Ls)){
-        mean++;
+        if(mean <127) {mean++;}
         acc -= cnt ;
         if ((acc > Ls)){ acc= Ls;}
       }

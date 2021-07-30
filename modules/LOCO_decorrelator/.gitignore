@@ -1,3 +1,5 @@
 *.hls_prj
 *.log
 logs/
+clang_sim
+hw_out_file.dat
