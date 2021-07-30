@@ -210,15 +210,16 @@ inline void update_context(
 
   // update limits // rounding range [-1/2, +1/2)
   const int Li =-((cnt+1)>>1); //ceil(cnt/2) // OPT: the +1 probably has no practical effect on compression
+  // const int Li =-((cnt+1)>>1); //ceil(cnt/2) // OPT: the +1 probably has no practical effect on compression
   const int Ls = ((cnt)>>1); // floor(cnt/2)
 
   // update bias
     if ((Li >= acc)){
-      bias--;
+      if(bias >-128) {bias--;}
       acc += cnt;
       if((Li >= acc)){acc= Li+1; }
     } else if ((acc > Ls)){
-      bias++;
+      if(bias <127) {bias++;}
       acc -= cnt ;
       if ((acc > Ls)){ acc= Ls;}
     }
