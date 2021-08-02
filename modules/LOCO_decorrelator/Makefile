@@ -10,7 +10,7 @@ test_sources :=  src/LOCO_decorrelator_test.cpp src/sw_implementation.cpp src/sw
 DEPS := $(sources) ../coder_config.hpp $(wildcard src/*.hpp) 
 
 # TARGETS := LOCO_decorrelator
-TARGETS := LOCO_decorrelator St_idx_compute
+TARGETS := LOCO_decorrelator LOCO_decorrelator_LS St_idx_compute
 TEST_TARGETS := $(addsuffix _test, $(TARGETS))
 
 .NOTPARALLEL:

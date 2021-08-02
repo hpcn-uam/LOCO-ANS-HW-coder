@@ -27,12 +27,40 @@ public:
 
 ContextElement context_stats[CTX_GRAD_BINS];
 
+struct quant_reduct_lut_elem{
+  ap_int<8> reduct_error;
+  ap_int<9> reconstruct_error;
+};
+
+constexpr int QUANT_RED_LUT_SIZE = (1<<(INPUT_BPP+1));
+quant_reduct_lut_elem quant_reduct_lut[QUANT_RED_LUT_SIZE];
+
+
+int Uniform_quantizer(int error, int delta, int near){
+  if(error > 0){
+    error = (near + error)/delta;
+  }else{
+    error = -(near - error)/delta;
+  }
+  return error;
+}
+
 void init_context(int near, int alpha){
   #pragma HLS inline
   const int ctx_initial_Nt = 0;
   const int ctx_initial_p_idx = std::max(CTX_NT_HALF_IDX>>1 ,CTX_NT_HALF_IDX -2 -near);
   const int ctx_initial_St = std::max(2, ((alpha + 32) >> 6 ))<<CTX_ST_PRECISION;
-  init_ctx_loop: for(unsigned i = 0; i < CTX_GRAD_BINS; ++i) {
+
+  const int delta = (near <<1) +1;
+  const int MIN_REDUCT_ERROR = -near;
+  const int MAX_REDUCT_ERROR =  MAXVAL + near;
+  const int DECO_RANGE = alpha * delta;     
+  const int MAX_ERROR =  (alpha+1)/2 -1; //  std::ceil(alpha/2.0) -1;
+  const int MIN_ERROR = -(alpha/2); // -std::floor(alpha/2.0);
+
+  constexpr int LOOP_ITERS = MAX(CTX_GRAD_BINS,QUANT_RED_LUT_SIZE);
+  init_ctx_loop: for(int i = 0; i < LOOP_ITERS; ++i) {
+  // init_ctx_loop: for(unsigned i = 0; i < CTX_GRAD_BINS; ++i) {
     // #pragma HLS unroll factor=2 
     // I can unroll x2 switching from s2p_ram to t2p_ram
     // This comes at the cost of doubling the number of BRAMs (if these are used) 
@@ -40,12 +68,28 @@ void init_context(int near, int alpha){
     //  wider config is 18x1028.  
     // CTX_GRAD_BINS = 365 for T=4 and 3 grads.
 
-    context_stats[i].cnt = 1;
-    context_stats[i].bias = 0;
-    context_stats[i].acc = 0;
-    context_stats[i].Nt = ctx_initial_Nt;
-    context_stats[i].p_idx = ctx_initial_p_idx;
-    context_stats[i].St= ctx_initial_St;
+    if(i < CTX_GRAD_BINS) {
+      context_stats[i].cnt = 1;
+      context_stats[i].bias = 0;
+      context_stats[i].acc = 0;
+      context_stats[i].Nt = ctx_initial_Nt;
+      context_stats[i].p_idx = ctx_initial_p_idx;
+      context_stats[i].St= ctx_initial_St;
+    }
+
+    if (i < QUANT_RED_LUT_SIZE){
+      int error = i - MAXVAL;
+      ap_uint<INPUT_BPP+1> lut_address = error;
+
+      error = Uniform_quantizer(error,delta,near);
+      if((error < MIN_ERROR)){
+        error += alpha;
+      }else if((error > MAX_ERROR)){
+        error -= alpha;
+      }
+      quant_reduct_lut[lut_address].reduct_error = error;
+      quant_reduct_lut[lut_address].reconstruct_error = error*delta;
+    }
 
   }
 }

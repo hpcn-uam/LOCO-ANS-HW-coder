@@ -27,7 +27,7 @@
 
 // if MAX_ROWS is a  power of 2 logic is simplified 
 // not a big deal if this is changed
-#define LOG2_MAX_COLS 10
+#define LOG2_MAX_COLS 13
 constexpr int LOG2_MAX_ROWS = 16;
 constexpr int MAX_COLS  = (1<<LOG2_MAX_COLS) ;
 constexpr int MAX_ROWS  = (1<<LOG2_MAX_ROWS) ;
@@ -65,8 +65,7 @@ typedef int pixel_ptr_t;
 
 #define CTX_B_PRECISION 3 // number of fractional bits
 
-#define END_OF_LINE_CALL 0
-#define USING_DIV_RED_LUT 0
+#define USING_DIV_RED_LUT 1
 #define ERROR_REDUCTION 1
 
 
@@ -152,10 +151,18 @@ public:
 void LOCO_decorrelator(
   col_ptr_t config_cols,
   row_ptr_t config_rows,
+  ap_uint<8> config_near,
   hls::stream<px_t>& src,
   hls::stream<px_t>& first_px_out,
   hls::stream<DecorrelatorOutput> & symbols);
 
+
+void LOCO_decorrelator_LS(
+  col_ptr_t config_cols,
+  row_ptr_t config_rows,
+  hls::stream<px_t>& src,
+  hls::stream<px_t>& first_px_out,
+  hls::stream<DecorrelatorOutput> & symbols);
 
 void St_idx_compute(
   hls::stream<DecorrelatorOutput> & in_symbols,
