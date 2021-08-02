@@ -10,9 +10,21 @@
 
 using namespace std;
 using namespace hls;
-#define NUM_OF_BLCKS (8)
 
 #define TEST_BUFFER_SIZE 2048
+
+// #define DEBUG
+// #define USE_EXTERNAL_INPUT_VECTOR
+
+#ifdef USE_EXTERNAL_INPUT_VECTOR 
+  #define EXT_VECTOR_SIZE (99)
+  const long unsigned ext_input_vector[EXT_VECTOR_SIZE]={
+    #include "../../LOCO_decorrelator/hw_out_file.dat"
+  };
+  #define NUM_OF_BLCKS (1)
+#else
+  #define NUM_OF_BLCKS (8)
+#endif
 
 int main(int argc, char const *argv[])
 {
@@ -21,26 +33,36 @@ int main(int argc, char const *argv[])
   int num_of_errors = 0;
   for (int blk_idx = 0; blk_idx < NUM_OF_BLCKS; ++blk_idx){
 	  std::vector<coder_interf_t> input_vector;
-    cout<<"Processing block "<<blk_idx<<endl;
 
     // ************
     // Generate input 
     // ************
-    int block_size = TEST_BUFFER_SIZE + 20- 20*int(blk_idx/2);
-    for (int i = 0; i < block_size; ++i){
-      symb_data_t symb_data;
-      symb_ctrl_t symb_ctrl = (i == block_size-1)? 1:0 ;
+    #ifdef USE_EXTERNAL_INPUT_VECTOR 
+      cout<<"Processing external vector "<<endl;
+      int block_size = EXT_VECTOR_SIZE;
+      for (int i = 0; i < block_size; ++i){
+        coder_interf_t in_elem = ext_input_vector[i];
+        in_data.write(in_elem);
+        input_vector.push_back(in_elem);
+      }
 
-      int val = i+TEST_BUFFER_SIZE*blk_idx;
-//      val = 2;
-      ap_uint<Z_SIZE> z = blk_idx <= 3? val&0x1:(blk_idx <= 5? val & 0xF : val & 0x7F) ;
-      ap_uint<Y_SIZE> y = val & 0x80?1:0 ; 
-      ap_uint<THETA_SIZE> theta_id = i >= NUM_ANS_THETA_MODES?NUM_ANS_THETA_MODES-1: i ;
-      ap_uint<P_SIZE> p_id = blk_idx/2 ;
-      symb_data = (z,y,theta_id,p_id);
-      in_data.write(bits_to_intf(symb_data ,symb_ctrl));
-      input_vector.push_back(bits_to_intf(symb_data ,symb_ctrl));
-    }
+    #else
+      cout<<"Processing block "<<blk_idx<<endl;
+      int block_size = TEST_BUFFER_SIZE + 20- 20*int(blk_idx/2);
+      for (int i = 0; i < block_size; ++i){
+        symb_data_t symb_data;
+        symb_ctrl_t symb_ctrl = (i == block_size-1)? 1:0 ;
+
+        int val = i+TEST_BUFFER_SIZE*blk_idx;
+        ap_uint<Z_SIZE> z = blk_idx <= 3? val&0x1:(blk_idx <= 5? val & 0xF : val & 0x7F) ;
+        ap_uint<Y_SIZE> y = val & 0x80?1:0 ; 
+        ap_uint<THETA_SIZE> theta_id = i >= NUM_ANS_THETA_MODES?NUM_ANS_THETA_MODES-1: i ;
+        ap_uint<P_SIZE> p_id = blk_idx/2 ;
+        symb_data = (z,y,theta_id,p_id);
+        in_data.write(bits_to_intf(symb_data ,symb_ctrl));
+        input_vector.push_back(bits_to_intf(symb_data ,symb_ctrl));
+      }
+    #endif
 
     // ************
     // Run DUT :
@@ -125,6 +147,9 @@ int main(int argc, char const *argv[])
     // Decode and check
     Binary_Decoder bin_decoder(block_binary,block_size);
     int i = 0;
+    const int near = 1;
+    const int remainder_reduct_bits = std::floor(std::log2(float(2*near+1)));
+      const int remainder_bits = EE_REMAINDER_SIZE - remainder_reduct_bits;
     for (auto elem_it : input_vector){
       // get golden values
       symb_data_t golden_data;
@@ -138,7 +163,6 @@ int main(int argc, char const *argv[])
       (golden_z,golden_y,golden_theta_id,golden_p_id) = golden_data;
       
       //decode 
-      const int remainder_bits = EE_REMAINDER_SIZE - 0;
       int deco_z, deco_y;
       bin_decoder.retrive_TSG_symbol(golden_theta_id, 
                   golden_p_id, remainder_bits, deco_z, deco_y);
