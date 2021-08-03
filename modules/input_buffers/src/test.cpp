@@ -26,7 +26,8 @@ int main(int argc, char const *argv[])
     std::vector<coder_interf_t> current_blk;
     for (int i = 0; i < in_stream_size; ++i){
       symb_data_t symb_data;
-      symb_ctrl_t symb_ctrl = (i == in_stream_size-1)? 1:0 ;
+      ap_uint<1> last_symbol = (i == in_stream_size-1)? 1:0 ;
+      ap_uint<REM_REDUCT_SIZE> in_remainder_reduct = test_idx <=7? test_idx: 7;
 
       int val = i+BUFFER_SIZE*test_idx;
       ap_uint<Z_SIZE> z = val & 0x80?1:0 ;
@@ -34,8 +35,12 @@ int main(int argc, char const *argv[])
       ap_uint<THETA_SIZE> theta_id = test_idx ;
       ap_uint<P_SIZE> p_id = test_idx/2 ;
       symb_data = (z,y,theta_id,p_id);
-      in_data.write(bits_to_intf(symb_data ,symb_ctrl));
-      current_blk.push_back(bits_to_intf(symb_data ,symb_ctrl));
+
+      coder_interf_t in_inf_data = (last_symbol,in_remainder_reduct,symb_data);
+      in_data <<in_inf_data;
+      // in_data.write(bits_to_intf(symb_data ,symb_ctrl));
+      current_blk.push_back(in_inf_data);
+      // current_blk.push_back(bits_to_intf(symb_data ,symb_ctrl));
       if(current_blk.size() == BUFFER_SIZE) {
         input_list.push_back(current_blk);
         current_blk.clear();
@@ -69,16 +74,23 @@ int main(int argc, char const *argv[])
       int golden_last_block = input_list.empty()? 1: 0;
       ASSERT(hw_last_block_elem,==,golden_last_block)
 
+      int elem_cnt = 0;
       while(!testing_in_block.empty()){ // iterate over blocks
         symb_data_t golden_data;
-        symb_ctrl_t old_ctrl;
-        intf_to_bits(testing_in_block.back(),golden_data,old_ctrl);
+        // symb_ctrl_t old_ctrl;
+        ap_uint<REM_REDUCT_SIZE> golden_remainder_reduct;
+        ap_uint<1> old_last_symbol;
+        // intf_to_bits(testing_in_block.back(),golden_data,old_ctrl);
+        (old_last_symbol, golden_remainder_reduct,golden_data) = testing_in_block.back();
         testing_in_block.pop_back();
+
         symb_ctrl_t golden_last_symbol = testing_in_block.empty()? 1: 0;
 
         symb_data_t symb_data;
+        ap_uint<REM_REDUCT_SIZE> hw_remainder_reduct;
         ap_uint<1> last_symbol;
-        intf_to_bits(out_data.read(),symb_data,last_symbol);
+        (last_symbol,hw_remainder_reduct,symb_data) = out_data.read();
+        // intf_to_bits(out_data.read(),symb_data,last_symbol);
 
         #if DEBUG
           int db_golden_data = golden_data;
@@ -87,8 +99,9 @@ int main(int argc, char const *argv[])
           int db_last_symbol = last_symbol;
         #endif
 
-        assert(symb_data == golden_data);
-        assert(last_symbol == golden_last_symbol);     
+        ASSERT(symb_data ,==, golden_data, "elem_cnt: "<<elem_cnt);
+        ASSERT(last_symbol ,==, golden_last_symbol, "elem_cnt: "<<elem_cnt);     
+        ASSERT(hw_remainder_reduct ,==, golden_remainder_reduct, "elem_cnt: "<<elem_cnt);
       }
       blk_idx++;
     }
