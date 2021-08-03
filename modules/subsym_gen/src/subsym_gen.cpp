@@ -87,7 +87,7 @@
 void split_stream(
   stream<coder_interf_t> &in,
   stream<ap_uint <Y_SIZE+P_SIZE> > &y_stream,
-  stream<ap_uint <Z_SIZE+THETA_SIZE+1> > &z_stream){
+  stream<ap_uint <REM_REDUCT_SIZE+Z_SIZE+THETA_SIZE+1> > &z_stream){
 
   #if SPLIT_STREAM_TOP
     #pragma HLS INTERFACE axis register_mode=both register port=in
@@ -99,20 +99,23 @@ void split_stream(
   // #pragma HLS INTERFACE ap_ctrl_none port=return
   // #pragma HLS PIPELINE
   #pragma HLS PIPELINE style=flp
-  symb_data_t symb_data;
-  symb_ctrl_t symb_ctrl;
+  // symb_data_t symb_data;
+  // symb_ctrl_t symb_ctrl;
+  ap_uint <1> end_of_block;
+  ap_uint<REM_REDUCT_SIZE> remainder_reduct;
   ap_uint<Z_SIZE> z;
   ap_uint<Y_SIZE> y;
   ap_uint<THETA_SIZE> theta_id;
   ap_uint<P_SIZE> p_id;
 
   //  intf_to_bits(in.read(), symb_data,symb_ctrl);
-  (symb_ctrl,symb_data) = in.read();
+  // (symb_ctrl,symb_data) = in.read();
+  (end_of_block,remainder_reduct, z,y,theta_id,p_id) = in.read();
 
-  (z,y,theta_id,p_id) = symb_data;
-  ap_uint <1> end_of_block = symb_ctrl(0,0);
+  // (z,y,theta_id,p_id) = symb_data;
+  // (end_of_block,remainder_reduct) = symb_ctrl(0,0);
 
-  z_stream << (z,theta_id,end_of_block);
+  z_stream << (z,theta_id,remainder_reduct,end_of_block);
   y_stream << (y,p_id); // possibly a non-blocking write
   }
 
@@ -277,9 +280,9 @@ void split_stream_1(
 }*/
 
 
-#define Z_META_STREAM_SIZE (CARD_BITS+ANS_SYMB_BITS+ 1+ 2*Z_SIZE+THETA_SIZE+1)
+#define Z_META_STREAM_SIZE (LOG2_Z_SIZE+CARD_BITS+ANS_SYMB_BITS+ 1+ 2*Z_SIZE+THETA_SIZE+1)
 void z_decompose_pre(
-  stream<ap_uint <Z_SIZE+THETA_SIZE+1> > &z_stream,
+  stream<ap_uint <REM_REDUCT_SIZE+Z_SIZE+THETA_SIZE+1> > &z_stream,
   stream<ap_uint <Z_META_STREAM_SIZE> > &z_stream_with_meta){
 
   #if Z_DECOMPOSE_PRE_TOP
@@ -292,21 +295,23 @@ void z_decompose_pre(
 
   ap_uint<Z_SIZE> z;
   ap_uint<THETA_SIZE> theta_id;
+  ap_uint<REM_REDUCT_SIZE> remainder_reduct;
   ap_uint<1> end_of_block;
-  (z,theta_id,end_of_block)  = z_stream.read();
+  (z,theta_id,remainder_reduct,end_of_block)  = z_stream.read();
 
   const ap_uint<CARD_BITS> encoder_cardinality = tANS_cardinality_table[theta_id ];
   ASSERT(encoder_cardinality>0);
   const ap_uint<Z_SIZE> max_allowed_module = max_module_per_cardinality_table[theta_id ];
   ASSERT(EE_MAX_ITERATIONS*int(encoder_cardinality) == max_allowed_module); // check no max mod overflow
   
+  ap_uint<LOG2_Z_SIZE> remainder_bits = EE_REMAINDER_SIZE - remainder_reduct; //symbol.remainder_reduct_bits;
   bool send_escape_symbol = z >= max_allowed_module;
   ap_uint<ANS_SYMB_BITS> ans_symb = send_escape_symbol ? encoder_cardinality :
                                   ap_uint<ANS_SYMB_BITS>(z & (encoder_cardinality-1)); // compute modulo op
   ap_uint<Z_SIZE> module_reminder = send_escape_symbol ? max_allowed_module: z;
   ap_uint<1> escape_symbol_flag = send_escape_symbol ? 1: 0 ;
 
-  z_stream_with_meta << (encoder_cardinality,ans_symb,module_reminder,
+  z_stream_with_meta << (remainder_bits,encoder_cardinality,ans_symb,module_reminder,
                             escape_symbol_flag,z,theta_id,end_of_block);
 }
 
@@ -321,7 +326,7 @@ void z_decompose_post(
 
   #pragma HLS PIPELINE style=flp
   
-  const ap_uint<LOG2_BIT_BLOCK_SIZE> remainder_bits = EE_REMAINDER_SIZE - 0; //symbol.remainder_reduct_bits;
+  // const ap_uint<LOG2_BIT_BLOCK_SIZE> remainder_bits = EE_REMAINDER_SIZE - 0; //symbol.remainder_reduct_bits;
   
   static ap_uint<Z_SIZE> module_reminder = 0;
   #pragma HLS reset variable=module_reminder
@@ -331,12 +336,13 @@ void z_decompose_post(
   static ap_uint<1> end_of_block;
   static ap_uint<1> escape_symbol_flag;
   ap_uint<Z_SIZE> z;
+  ap_uint<LOG2_Z_SIZE> remainder_bits;
 
   subsymb_t out_subsymb;
 
 
   if(module_reminder == 0) { // if module_reminder == 0 then prev. symbol is done
-    (encoder_cardinality,ans_symb,module_reminder,
+    (remainder_bits,encoder_cardinality,ans_symb,module_reminder,
       escape_symbol_flag,z,theta_id,end_of_block) = z_stream_with_meta.read();
   }
 
@@ -569,7 +575,7 @@ void subsymbol_gen(
   stream<ap_uint <Y_SIZE+P_SIZE> > y_stream;
   #pragma HLS bind_storage variable=y_stream type=FIFO impl=LUTRAM
   #pragma HLS STREAM variable=y_stream depth=32
-  stream<ap_uint <Z_SIZE+THETA_SIZE+1> > z_stream;
+  stream<ap_uint <REM_REDUCT_SIZE+Z_SIZE+THETA_SIZE+1> > z_stream;
   #pragma HLS STREAM variable=z_stream depth=2
   split_stream(in,y_stream,z_stream);
 
