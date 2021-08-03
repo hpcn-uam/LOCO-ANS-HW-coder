@@ -21,7 +21,12 @@ coder_interf_t bits_to_intf(symb_data_t symb,symb_ctrl_t ctrl);
 void intf_to_bits(coder_interf_t intf, symb_data_t &symb,symb_ctrl_t &ctrl);
 
 
-
+/*
+WARNING: 
+To optimize space, the current implementation doesn't allow
+remainder_reduct bits to change within a code block.
+The last element's remainder_reduct is applied to all elements
+*/
 void input_buffers(
   stream<coder_interf_t > &in, 
   stream<coder_interf_t > &out,

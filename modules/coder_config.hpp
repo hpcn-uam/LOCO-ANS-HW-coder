@@ -72,7 +72,7 @@ typedef unsigned char px_t;
 
 constexpr int MAXVAL = (1<<INPUT_BPP)-1;
 #define Z_SIZE (INPUT_BPP-1)
-#define LOG2_Z_SIZE (3)
+#define LOG2_Z_SIZE (3) // TODO: test  NBITS(Z_SIZE)
 #define Y_SIZE (1)
 #define THETA_SIZE (5) //32 tables
 #define P_SIZE (5) //32 tables
@@ -98,9 +98,10 @@ constexpr int CARD_BITS = ANS_SYMB_BITS;
 /********************** ANS coder ******************************/
 
 // Coder input interface types and conversions
-#define PRED_SYMB_SIZE (Z_SIZE + Y_SIZE + THETA_SIZE + P_SIZE)
-#define SYMB_DATA_SIZE MAX(INPUT_BPP,PRED_SYMB_SIZE)
-#define SYMB_CTRL_SIZE 1
+#define REM_REDUCT_SIZE NBITS(Z_SIZE)
+#define PRED_SYMB_SIZE ( Z_SIZE + Y_SIZE + THETA_SIZE + P_SIZE)
+#define SYMB_DATA_SIZE PRED_SYMB_SIZE
+#define SYMB_CTRL_SIZE (1+REM_REDUCT_SIZE)
 
 typedef ap_uint<SYMB_DATA_SIZE> symb_data_t;
 typedef ap_uint<SYMB_CTRL_SIZE> symb_ctrl_t;
