@@ -23,7 +23,7 @@ using namespace hls;
   };
   #define NUM_OF_BLCKS (1)
 #else
-  #define NUM_OF_BLCKS (8)
+  #define NUM_OF_BLCKS (9)
 #endif
 
 int main(int argc, char const *argv[])
@@ -47,20 +47,31 @@ int main(int argc, char const *argv[])
       }
 
     #else
-      cout<<"Processing block "<<blk_idx<<endl;
+      ap_uint<REM_REDUCT_SIZE> blk_remainder_reduct = blk_idx <=6? 0: blk_idx-6 ;
+      if(blk_remainder_reduct >7) blk_remainder_reduct =7;
+      const int blk_remainder_bits = EE_REMAINDER_SIZE - blk_remainder_reduct;
+      const int Z_mask = (1<<blk_remainder_bits)-1;
+
+      cout<<"Processing block "<<blk_idx<<" | Z_mask: "<<hex<<Z_mask<<endl;
       int block_size = TEST_BUFFER_SIZE + 20- 20*int(blk_idx/2);
+
       for (int i = 0; i < block_size; ++i){
         symb_data_t symb_data;
-        symb_ctrl_t symb_ctrl = (i == block_size-1)? 1:0 ;
+        ap_uint<1> last_symbol = (i == block_size-1)? 1:0 ;
+        ap_uint<REM_REDUCT_SIZE> in_remainder_reduct = blk_remainder_reduct;
 
         int val = i+TEST_BUFFER_SIZE*blk_idx;
         ap_uint<Z_SIZE> z = blk_idx <= 3? val&0x1:(blk_idx <= 5? val & 0xF : val & 0x7F) ;
+        z &= ap_uint<Z_SIZE>(Z_mask);
+
         ap_uint<Y_SIZE> y = val & 0x80?1:0 ; 
         ap_uint<THETA_SIZE> theta_id = i >= NUM_ANS_THETA_MODES?NUM_ANS_THETA_MODES-1: i ;
         ap_uint<P_SIZE> p_id = blk_idx/2 ;
         symb_data = (z,y,theta_id,p_id);
-        in_data.write(bits_to_intf(symb_data ,symb_ctrl));
-        input_vector.push_back(bits_to_intf(symb_data ,symb_ctrl));
+        coder_interf_t in_inf_data = (last_symbol,in_remainder_reduct,symb_data);
+        in_data <<in_inf_data;
+        // in_data.write(bits_to_intf(symb_data ,symb_ctrl));
+        input_vector.push_back(in_inf_data);
       }
     #endif
 
@@ -147,14 +158,16 @@ int main(int argc, char const *argv[])
     // Decode and check
     Binary_Decoder bin_decoder(block_binary,block_size);
     int i = 0;
-    const int near = 1;
-    const int remainder_reduct_bits = std::floor(std::log2(float(2*near+1)));
-      const int remainder_bits = EE_REMAINDER_SIZE - remainder_reduct_bits;
     for (auto elem_it : input_vector){
       // get golden values
       symb_data_t golden_data;
       symb_ctrl_t golden_ctrl;
       intf_to_bits(elem_it,golden_data,golden_ctrl);
+
+      ap_uint<1> old_last_symbol ;
+      ap_uint<REM_REDUCT_SIZE> golden_remainder_reduct;
+      (old_last_symbol,golden_remainder_reduct)=golden_ctrl;
+      const int remainder_bits = EE_REMAINDER_SIZE - golden_remainder_reduct;
 
       ap_uint<Z_SIZE> golden_z ;
       ap_uint<Y_SIZE> golden_y ;
