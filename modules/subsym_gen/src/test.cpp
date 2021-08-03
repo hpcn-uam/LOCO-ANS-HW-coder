@@ -25,7 +25,8 @@ int main(int argc, char const *argv[])
     int block_size = TEST_BUFFER_SIZE - int(blk_idx/2);
     for (int i = 0; i < block_size; ++i){
       symb_data_t symb_data;
-      symb_ctrl_t symb_ctrl = (i == block_size-1)? 1:0 ;
+      ap_uint<1> last_symbol = (i == block_size-1)? 1:0 ;
+      ap_uint<REM_REDUCT_SIZE> in_remainder_reduct = blk_idx <=7? blk_idx: 7;
 
       int val = i+TEST_BUFFER_SIZE*blk_idx;
       ap_uint<Z_SIZE> z = blk_idx <= 1? val & 0xF : val & 0x7F ;
@@ -33,8 +34,10 @@ int main(int argc, char const *argv[])
       ap_uint<THETA_SIZE> theta_id = i >= NUM_ANS_THETA_MODES?NUM_ANS_THETA_MODES-1: i ;
       ap_uint<P_SIZE> p_id = blk_idx/2 ;
       symb_data = (z,y,theta_id,p_id);
-      in_data.write(bits_to_intf(symb_data ,symb_ctrl));
-      input_vector.push_back(bits_to_intf(symb_data ,symb_ctrl));
+      coder_interf_t in_inf_data = (last_symbol,in_remainder_reduct,symb_data);
+      in_data <<in_inf_data;
+      // in_data.write(bits_to_intf(symb_data ,symb_ctrl));
+      input_vector.push_back(in_inf_data);
     }
 
     stream<coder_interf_t> inverted_data;
@@ -76,6 +79,7 @@ int main(int argc, char const *argv[])
     for (auto elem_it = input_vector.begin(); elem_it != input_vector.end(); ++elem_it){
       symb_data_t golden_data;
       symb_ctrl_t golden_ctrl;
+      
       intf_to_bits(*elem_it,golden_data,golden_ctrl);
       
       subsymb_t out_symb;
@@ -85,6 +89,10 @@ int main(int argc, char const *argv[])
       ap_uint<THETA_SIZE> golden_theta_id ;
       ap_uint<P_SIZE> golden_p_id ;
       (golden_z,golden_y,golden_theta_id,golden_p_id) = golden_data;
+
+      ap_uint<1> old_last_symbol ;
+      ap_uint<REM_REDUCT_SIZE> golden_remainder_reduct;
+      (old_last_symbol,golden_remainder_reduct)=golden_ctrl;
       
       // check z
 
@@ -110,7 +118,7 @@ int main(int argc, char const *argv[])
         out_symb = inverted_subsymb.read();
 
         if(it >= EE_MAX_ITERATIONS) {
-          const int remainder_bits = EE_REMAINDER_SIZE - 0;
+          const int remainder_bits = EE_REMAINDER_SIZE - golden_remainder_reduct;
           assert(out_symb.type == SUBSYMB_BYPASS);
           assert(out_symb.info == remainder_bits);
           assert(out_symb.end_of_block == 0);
