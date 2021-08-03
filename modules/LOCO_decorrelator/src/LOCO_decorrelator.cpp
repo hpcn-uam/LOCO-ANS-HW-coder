@@ -4,6 +4,18 @@
 #include "context.hpp"
 
 
+template<int IS>
+unsigned int hw_floor_log2(ap_uint<IS> in){
+  #pragma HLS inline
+  unsigned int out =0;
+  for(unsigned i = 1; i < IS; ++i) {
+    #pragma HLS UNROLL
+    if(in[i]==1) {
+      out = i;
+    }
+  }
+  return  out;
+}
 
 void LOCO_decorrelator(
   col_ptr_t config_cols,
@@ -47,7 +59,7 @@ void LOCO_decorrelator(
   const int DECO_RANGE = alpha * delta;     
   const int MAX_ERROR =  (alpha+1)/2 -1; //  std::ceil(alpha/2.0) -1;
   const int MIN_ERROR = -(alpha/2); // -std::floor(alpha/2.0);
-
+  const unsigned int remainder_reduct_bits = hw_floor_log2<10>(delta); //near<=255 -> 10 bits for delta
   init_context(near,alpha);
 
   ContextElement prev_ctx_stats;
@@ -155,7 +167,8 @@ void LOCO_decorrelator(
           <<" | q_error: "<<q_error<<" | error: "<<error);
 
       int last_symbol = px_idx == img_pixels-1? 1:0;
-      DecorrelatorOutput out_symbol(ctx_stats.St,ctx_stats.cnt,ctx_stats.p_idx, y,z,last_symbol);
+      DecorrelatorOutput out_symbol(remainder_reduct_bits,ctx_stats.St,ctx_stats.cnt,
+              ctx_stats.p_idx, y,z,last_symbol);
       symbols << out_symbol;
 
       //update encoder variables 
@@ -204,7 +217,7 @@ void LOCO_decorrelator_LS(
   constexpr int DECO_RANGE = alpha * delta;     
   constexpr int MAX_ERROR =  (alpha+1)/2 -1; //  std::ceil(alpha/2.0) -1;
   constexpr int MIN_ERROR = -(alpha/2); // -std::floor(alpha/2.0);
-
+  constexpr unsigned int remainder_reduct_bits = 0;
   init_context(near,alpha);
 
   ContextElement prev_ctx_stats;
@@ -280,7 +293,8 @@ void LOCO_decorrelator_LS(
           <<" | q_error: "<<q_error<<" | error: "<<error);
 
       int last_symbol = px_idx == img_pixels-1? 1:0;
-      DecorrelatorOutput out_symbol(ctx_stats.St,ctx_stats.cnt,ctx_stats.p_idx, y,z,last_symbol);
+      DecorrelatorOutput out_symbol(remainder_reduct_bits,ctx_stats.St,ctx_stats.cnt,
+          ctx_stats.p_idx, y,z,last_symbol);
       symbols << out_symbol;
 
       //update encoder variables 
@@ -311,6 +325,7 @@ void St_idx_compute(
   ap_uint<THETA_SIZE> theta_id;
   DecorrelatorOutput in_symbol = in_symbols.read();
 
+  ap_uint<REM_REDUCT_SIZE> red_bits = in_symbol.remainder_reduct_bits();
   ap_uint<Z_SIZE> z = in_symbol.z();
   ap_uint<Y_SIZE> y = in_symbol.y();
   ap_uint<P_SIZE> p_id = in_symbol.p_idx();
@@ -373,7 +388,7 @@ void St_idx_compute(
   #endif
 
   ASSERT(theta_id, <=,MAX_ST_IDX)
-  out_symbols << (last,z,y,theta_id,p_id);
+  out_symbols << (last,red_bits,z,y,theta_id,p_id);
 
   // END_SW_ONLY_LOOP
 

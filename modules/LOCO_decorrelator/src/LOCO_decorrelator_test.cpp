@@ -159,18 +159,20 @@ int main(int argc, char const *argv[])
             ASSERT(hw_1px_out,==,sw_out.z,"row,col:("<<row<<","<<col<<")")
 
           }else{
+            ap_uint<REM_REDUCT_SIZE> remainder_reduct;
             ap_uint<Z_SIZE> z;
             ap_uint<Y_SIZE> y;
             ap_uint<THETA_SIZE> theta_id;
             ap_uint<P_SIZE> p_id;
             ap_uint<1> last;
             auto hw_out = out_symbol_stream.read();
-            (last,z,y,theta_id,p_id) = hw_out;
+            (last,remainder_reduct,z,y,theta_id,p_id) = hw_out;
             ASSERT(z,==,sw_out.z,"row,col:("<<row<<","<<col<<")")
             ASSERT(y,==,sw_out.y,"row,col:("<<row<<","<<col<<")")
             ASSERT(p_id,==,sw_out.p_id,"row,col:("<<row<<","<<col<<")")
             ASSERT(theta_id,==,sw_out.theta_id,"row,col:("<<row<<","<<col<<")")
             ASSERT(last,==,golden_last,"row,col:("<<row<<","<<col<<")")
+            ASSERT(remainder_reduct,==,sw_out.remainder_reduct_bits,"row,col:("<<row<<","<<col<<")")
 
             // calc theta_id
             // auto hw_theta_id = sw_impl::get_theta_idx(cnt, hw_out.St());

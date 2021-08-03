@@ -93,16 +93,19 @@ typedef  ap_uint<CTX_ST_SIZE> ctx_St_t;
 class DecorrelatorOutput
 {
   /*|St|cnt|p_idx|y|z|last|  */
-  ap_uint<CTX_ST_SIZE
-                +CTX_CNT_SIZE
-                +P_SIZE
-                +Y_SIZE
-                +Z_SIZE
-                +1 > data;
+  ap_uint< REM_REDUCT_SIZE
+           +CTX_ST_SIZE
+           +CTX_CNT_SIZE
+           +P_SIZE
+           +Y_SIZE
+           +Z_SIZE
+           +1 > data;
 public:
   DecorrelatorOutput():data(0){};
-  DecorrelatorOutput(unsigned int _St, unsigned int _cnt, unsigned int _p_idx,
-     unsigned int _y, unsigned int _z, unsigned int _last){
+  DecorrelatorOutput(
+     unsigned int _remainder_reduct_bits ,unsigned int _St, unsigned int _cnt, 
+     unsigned int _p_idx, unsigned int _y, unsigned int _z, unsigned int _last){
+      remainder_reduct_bits(_remainder_reduct_bits);
       St(_St);
       cnt(_cnt);
       p_idx(_p_idx);
@@ -115,10 +118,20 @@ public:
   inline void set_data(long unsigned int _data){ data=_data; };
   inline long unsigned int get_data(){return data;}
 
-  inline void St(unsigned int _St){ data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE+ CTX_ST_SIZE-1,Z_SIZE+2+P_SIZE + CTX_CNT_SIZE)=_St; };
-  inline unsigned int St(){return data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE+ CTX_ST_SIZE-1,Z_SIZE+2+P_SIZE + CTX_CNT_SIZE);}
+  inline void remainder_reduct_bits(unsigned int _remainder_reduct_bits){ 
+    data(REM_REDUCT_SIZE+ Z_SIZE+2+P_SIZE + CTX_CNT_SIZE+ CTX_ST_SIZE-1,
+          Z_SIZE+2+P_SIZE + CTX_CNT_SIZE+ CTX_ST_SIZE)=_remainder_reduct_bits; };
+  inline unsigned int remainder_reduct_bits(){
+    return data(REM_REDUCT_SIZE+ Z_SIZE+2+P_SIZE + CTX_CNT_SIZE+ CTX_ST_SIZE-1, 
+                Z_SIZE+2+P_SIZE + CTX_CNT_SIZE+ CTX_ST_SIZE);}
+
+  inline void St(unsigned int _St){ 
+    data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE+ CTX_ST_SIZE-1,Z_SIZE+2+P_SIZE + CTX_CNT_SIZE)=_St; };
+  inline unsigned int St(){
+    return data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE+ CTX_ST_SIZE-1,Z_SIZE+2+P_SIZE + CTX_CNT_SIZE);}
   
-  inline void cnt(unsigned int _cnt){ data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE -1,Z_SIZE+2+P_SIZE)=_cnt; };
+  inline void cnt(unsigned int _cnt){ 
+    data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE -1,Z_SIZE+2+P_SIZE)=_cnt; };
   inline unsigned int cnt(){return data(Z_SIZE+2+P_SIZE + CTX_CNT_SIZE -1,Z_SIZE+2+P_SIZE);}
   
   inline void p_idx(unsigned int _p_idx){ data(Z_SIZE+2+P_SIZE-1,Z_SIZE+2)=_p_idx; };
