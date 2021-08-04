@@ -32,7 +32,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 
-PROJ_ORIG_DIR="$REPO_ROOT/HW_platforms/LOCO_ANS_1"
+PROJ_ORIG_DIR="$REPO_ROOT/HW_platforms/LOCO_ANS_LS_1"
 
 if [[ "$SCRIPTPATH" != "$PROJ_ORIG_DIR" ]]; then
   read -r -d '' ERROR_MSJ << EOM
