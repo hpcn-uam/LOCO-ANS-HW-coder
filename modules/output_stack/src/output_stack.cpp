@@ -16,7 +16,7 @@ void write_binary_stack(
   ap_uint<OUTPUT_STACK_ADDRESS_SIZE +1> elem_ptr = 0;
   write_binary_stack_loop: do{
     #pragma HLS LOOP_TRIPCOUNT max=OUTPUT_STACK_SIZE
-    #pragma HLS PIPELINE 
+    #pragma HLS PIPELINE II=1
     in >> in_blk;
     if (in_blk.is_last()){
       last_element = elem_ptr;
@@ -59,7 +59,7 @@ void read_binary_stack(
   read_binary_stack_loop:for (int elem_ptr = last_element; elem_ptr >=0 ; --elem_ptr){
     byte_block<NB> new_element;
     #pragma HLS LOOP_TRIPCOUNT max=OUTPUT_STACK_SIZE
-    #pragma HLS PIPELINE 
+    #pragma HLS PIPELINE II=1
     new_element.data = buff[elem_ptr];
     new_element.set_last(elem_ptr == 0); 
     new_element.set_num_of_bytes(elem_bytes);
