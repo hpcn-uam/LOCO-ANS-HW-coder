@@ -23,7 +23,12 @@ void LOCO_decorrelator(
   ap_uint<8> config_near,
   hls::stream<px_t>& src,
   hls::stream<px_t>& first_px_out,
-  hls::stream<DecorrelatorOutput> & symbols){ 
+  hls::stream<DecorrelatorOutput> & symbols,
+  //READ-ONLY (from the user perspective) AXI-LITE registers
+  ap_uint<8> &param_max_near,
+  ap_uint<8> &param_num_of_tiles){ 
+  param_max_near = 255;
+  param_num_of_tiles=1;
 
   #ifdef LOCO_DECORRELATOR_TOP
   //interface configuration
@@ -33,6 +38,14 @@ void LOCO_decorrelator(
   #pragma HLS INTERFACE s_axilite port=config_near bundle=config
   #pragma HLS INTERFACE s_axilite port=config_rows bundle=config
   #pragma HLS INTERFACE s_axilite port=config_cols bundle=config
+
+  //READ-ONLY (from the user perspective) AXI-LITE registers
+  #pragma HLS INTERFACE s_axilite port=param_max_near bundle=config
+  #pragma HLS INTERFACE ap_none port=param_max_near 
+  #pragma HLS INTERFACE s_axilite port=param_num_of_tiles bundle=config
+  #pragma HLS INTERFACE ap_none port=param_num_of_tiles 
+
+
   #pragma HLS INTERFACE s_axilite port=return bundle=config
   // #pragma HLS INTERFACE ap_ctrl_none port=return
   #endif
@@ -81,6 +94,7 @@ void LOCO_decorrelator(
     #pragma HLS LOOP_TRIPCOUNT max=9999 //just a number to quickly be able to estimate efficiency 
 
     #pragma HLS DEPENDENCE variable=quantized_img.buffer intra false
+    #pragma HLS DEPENDENCE variable=quantized_img.buffer inter false
     // #pragma HLS DEPENDENCE variable=quantized_img.b inter false
     // #pragma HLS DEPENDENCE variable=quantized_img.b_reg inter false
     // #pragma HLS DEPENDENCE variable=quantized_img.b_reg intra false
@@ -92,7 +106,7 @@ void LOCO_decorrelator(
       int fixed_prediction;
       int ctx_id;
       int ctx_sign;
-      quantized_img.get_fixed_prediction(ctx_id,fixed_prediction,ctx_sign);
+      quantized_img.get_fixed_prediction_and_context(ctx_id,fixed_prediction,ctx_sign);
 
       //correct prediction
       // ContextElement ctx_stats=  context_stats[ctx_id] ;
@@ -235,15 +249,16 @@ void LOCO_decorrelator_LS(
   int q_channel_value = first_px;
 
   px_loop: for (int px_idx = 1; px_idx < img_pixels; ++px_idx){
-    #pragma HLS PIPELINE
+    #pragma HLS PIPELINE II=2
     #pragma HLS LOOP_TRIPCOUNT max=9999 //just a number to quickly be able to estimate efficiency 
 
-    // #pragma HLS DEPENDENCE variable=quantized_img.buffer intra false
+    #pragma HLS DEPENDENCE variable=quantized_img.buffer intra false
+    #pragma HLS DEPENDENCE variable=quantized_img.buffer inter false
     // #pragma HLS DEPENDENCE variable=quantized_img.b inter false
     // #pragma HLS DEPENDENCE variable=quantized_img.b_reg inter false
     // #pragma HLS DEPENDENCE variable=quantized_img.b_reg intra false
-    #pragma HLS DEPENDENCE variable=context_stats distance=1 direction=RAW type=inter false  
-    #pragma HLS DEPENDENCE variable=context_stats distance=2 direction=RAW type=inter true  
+    // #pragma HLS DEPENDENCE variable=context_stats distance=2 direction=RAW type=inter true  
+    // #pragma HLS DEPENDENCE variable=context_stats distance=1 direction=RAW type=inter false  
 
       auto channel_value = src.read(); 
       quantized_img.update(q_channel_value);
@@ -252,7 +267,7 @@ void LOCO_decorrelator_LS(
       int fixed_prediction;
       int ctx_id;
       int ctx_sign;
-      quantized_img.get_fixed_prediction(ctx_id,fixed_prediction,ctx_sign);
+      quantized_img.get_fixed_prediction_and_context(ctx_id,fixed_prediction,ctx_sign);
 
       //correct prediction
       // ContextElement ctx_stats=  context_stats[ctx_id] ;
@@ -279,7 +294,7 @@ void LOCO_decorrelator_LS(
           error -= alpha;
         }
       #endif
-      int q_error = error*delta;
+      int q_error = error;
 
 
       int y = error <0? 1:0;

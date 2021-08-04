@@ -78,7 +78,7 @@ public:
     #endif
   }
 
-  void get_fixed_prediction(int &context,int &fixed_prediction, int &sign){
+  void get_fixed_prediction_and_context(int &context,int &fixed_prediction, int &sign){
   // px_t get_fixed_prediction(px_t a,px_t b,px_t c){
     #pragma HLS inline
     // compute fixed prediction
