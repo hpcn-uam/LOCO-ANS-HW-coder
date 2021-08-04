@@ -18,7 +18,7 @@ void write_block(
 
   write_block_loop:for (int elem_ptr = 0; elem_ptr < BUFFER_SIZE ; ++elem_ptr){
   #pragma HLS LOOP_TRIPCOUNT max=BUFFER_SIZE
-  #pragma HLS PIPELINE 
+  #pragma HLS PIPELINE II=1
     symb_data_t symb_data;
     ap_uint<1> last_symbol;
     ap_uint<REM_REDUCT_SIZE> in_remainder_reduct;
@@ -45,7 +45,7 @@ void read_block(
 
   read_block_loop:for (int elem_ptr = last_element; elem_ptr >=0 ; --elem_ptr){
     #pragma HLS LOOP_TRIPCOUNT max=BUFFER_SIZE
-    #pragma HLS PIPELINE 
+    #pragma HLS PIPELINE II=1
     coder_interf_t symbol;
     symb_data_t symb_data = buff[elem_ptr];
     ap_uint<REM_REDUCT_SIZE> in_remainder_reduct= blk_remainder_reduct;
