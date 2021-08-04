@@ -45,6 +45,32 @@ int Uniform_quantizer(int error, int delta, int near){
   return error;
 }
 
+#ifdef LOCO_DECORRELATOR_LS_TOP
+void init_context(int near, int alpha){
+  #pragma HLS inline
+  const int ctx_initial_Nt = 0;
+  const int ctx_initial_p_idx = MAX(CTX_NT_HALF_IDX>>1 ,CTX_NT_HALF_IDX -2 -near);
+  const int ctx_initial_St = MAX(2, ((alpha + 32) >> 6 ))<<CTX_ST_PRECISION;
+
+
+  init_ctx_loop: for(unsigned i = 0; i < CTX_GRAD_BINS; ++i) {
+    // #pragma HLS unroll factor=2 
+    // I can unroll x2 switching from s2p_ram to t2p_ram
+    // This comes at the cost of doubling the number of BRAMs (if these are used) 
+    // as 18K BRAMS in s2p mode can be configured as 36x512 but in t2p the
+    //  wider config is 18x1028.  
+    // CTX_GRAD_BINS = 365 for T=4 and 3 grads.
+
+    context_stats[i].cnt = 1;
+    context_stats[i].bias = 0;
+    context_stats[i].acc = 0;
+    context_stats[i].Nt = ctx_initial_Nt;
+    context_stats[i].p_idx = ctx_initial_p_idx;
+    context_stats[i].St= ctx_initial_St;
+
+  }
+}
+#else
 void init_context(int near, int alpha){
   #pragma HLS inline
   const int ctx_initial_Nt = 0;
@@ -93,7 +119,7 @@ void init_context(int near, int alpha){
 
   }
 }
-
+#endif
 
 // inline ap_uint<4> gradient_quantizer(int g){
 int gradient_quantizer(int g){

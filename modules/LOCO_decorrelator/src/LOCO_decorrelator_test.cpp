@@ -29,10 +29,10 @@ using namespace sw_impl;
 
 // #define PRINT_INPUT
 
-// #define ROWS 10
-// #define COLS 10
-#define ROWS 128
-#define COLS 128
+// #define ROWS 128
+// #define COLS 128
+#define ROWS 64
+#define COLS 64
 
 #ifdef INPUT_IMG
 const int NUM_OF_TESTS = 1;
@@ -60,7 +60,11 @@ int main(int argc, char const *argv[])
 
   hls::stream<int> sw_in_stream;
   stream<ee_symb_data> sw_out_symbol_stream;
+  #ifdef LOCO_DECORRELATOR_LS_TOP
+  for(int near = 0; near < 1; ++near) {
+  #else
   for(int near = 0; near < 3; ++near) {
+  #endif
     cout<<"###############"<<" Near "<<near<<"###############"<<endl;
     for(unsigned test_idx = 0; test_idx < NUM_OF_TESTS; ++test_idx) {
       int img_rows = ROWS+test_idx;
@@ -122,20 +126,23 @@ int main(int argc, char const *argv[])
       ASSERT(in_px_stream.size(),==,img_rows*img_cols);
       ASSERT(sw_in_stream.size(),==,img_rows*img_cols);
       // int number_of_images = 1;
+      ap_uint<8> param_max_near;
+      ap_uint<8> param_num_of_tiles;
       #if 1
-      hls::stream<DecorrelatorOutput> out_presymbol_stream;
-      #ifdef LOCO_DECORRELATOR_LS_TOP
-        LOCO_decorrelator_LS(img_rows,img_cols, in_px_stream, out_first_px,out_presymbol_stream);
-      #else
-        LOCO_decorrelator(img_rows,img_cols,near, in_px_stream, out_first_px,out_presymbol_stream);
-      #endif
+        hls::stream<DecorrelatorOutput> out_presymbol_stream;
+        #ifdef LOCO_DECORRELATOR_LS_TOP
+          LOCO_decorrelator_LS(img_rows,img_cols, in_px_stream, out_first_px,out_presymbol_stream);
+        #else
+          LOCO_decorrelator(img_rows,img_cols,near, in_px_stream, out_first_px,out_presymbol_stream,
+                            param_max_near,param_num_of_tiles);
+        #endif
 
-      while(!out_presymbol_stream.empty()) {
-      // for(unsigned i = 0; i < img_rows*img_rows-1; ++i) {
-        St_idx_compute(out_presymbol_stream,out_symbol_stream);
-      }
+        while(!out_presymbol_stream.empty()) {
+        // for(unsigned i = 0; i < img_rows*img_rows-1; ++i) {
+          St_idx_compute(out_presymbol_stream,out_symbol_stream);
+        }
       #else
-      LOCO_decorrelator(img_rows,img_cols, in_px_stream, out_first_px,out_symbol_stream);
+        LOCO_decorrelator(img_rows,img_cols, in_px_stream, out_first_px,out_symbol_stream);
       #endif
 
       sw_impl::image_scanner(near, img_rows, img_cols, sw_in_stream, sw_out_symbol_stream);

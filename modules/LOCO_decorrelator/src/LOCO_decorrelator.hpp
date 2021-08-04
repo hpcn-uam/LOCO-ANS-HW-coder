@@ -167,7 +167,10 @@ void LOCO_decorrelator(
   ap_uint<8> config_near,
   hls::stream<px_t>& src,
   hls::stream<px_t>& first_px_out,
-  hls::stream<DecorrelatorOutput> & symbols);
+  hls::stream<DecorrelatorOutput> & symbols,
+  //READ-ONLY (from the user perspective) AXI-LITE registers
+  ap_uint<8> &param_max_near,
+  ap_uint<8> &param_num_of_tiles);
 
 
 void LOCO_decorrelator_LS(
