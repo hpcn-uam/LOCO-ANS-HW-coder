@@ -39,4 +39,4 @@ clean:
 	rm -rf vivado_*
 
 distclean: clean
-	rm -rf output_products *.log *.jou
+	rm -rf *_output_products *.log *.jou
