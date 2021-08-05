@@ -53,7 +53,7 @@ void z_decompose_pre(
   const ap_uint<CARD_BITS> encoder_cardinality = tANS_cardinality_table[theta_id ];
   ASSERT(encoder_cardinality>0);
   const ap_uint<Z_SIZE> max_allowed_module = max_module_per_cardinality_table[theta_id ];
-  ASSERT(EE_MAX_ITERATIONS*int(encoder_cardinality) == max_allowed_module); // check no max mod overflow
+  ASSERT(EE_MAX_ITERATIONS*int(encoder_cardinality), ==, max_allowed_module); // check no max mod overflow
   
   ap_uint<LOG2_Z_SIZE> remainder_bits = EE_REMAINDER_SIZE - remainder_reduct; //symbol.remainder_reduct_bits;
   bool send_escape_symbol = z >= max_allowed_module;
