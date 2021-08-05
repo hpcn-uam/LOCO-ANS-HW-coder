@@ -99,6 +99,13 @@ void code_symbols(
   stream<subsymb_t> &symbol_stream,
   stream<bit_blocks_with_meta<NUM_ANS_BITS>> &out_bit_stream);
 
+
+void code_symbols_ext_ROM(
+  stream<subsymb_t> &symbol_stream,
+  stream<bit_blocks_with_meta<NUM_ANS_BITS>> &out_bit_stream,
+  const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2],
+  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]);
+
 void serialize_last_state(
     stream<bit_blocks_with_meta<NUM_ANS_BITS>> &in_bit_blocks,
     stream<bit_blocks> &out_bit_blocks);
@@ -122,6 +129,11 @@ void pack_out_bits_sw(
 #include "ANS_coder_templates.hpp"
 
 void ANS_coder_top(
+  stream<subsymb_t> &symbol_stream,
+  stream<byte_block<OUT_WORD_BYTES>> &byte_block_stream);
+
+
+void ANS_coder_ext_ROM_top(
   stream<subsymb_t> &symbol_stream,
   stream<byte_block<OUT_WORD_BYTES>> &byte_block_stream);
 

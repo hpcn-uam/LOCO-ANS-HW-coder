@@ -23,6 +23,28 @@ void ANS_coder(
 
 }
 
+template<unsigned NUM_OUT_OF_BYTES>
+void ANS_coder_ext_ROM(
+  stream<subsymb_t> &symbol_stream,
+  stream<byte_block<NUM_OUT_OF_BYTES>> &byte_block_stream,
+  const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2],
+  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]){
+  // #pragma HLS INLINE
+  
+  #pragma HLS DATAFLOW disable_start_propagation
+  #pragma HLS INTERFACE ap_ctrl_none port=return
+  
+  stream<bit_blocks_with_meta<NUM_ANS_BITS>> out_bit_stream;
+  #pragma HLS STREAM variable=out_bit_stream depth=2
+  code_symbols_ext_ROM(symbol_stream,out_bit_stream,tANS_y_encode_table,tANS_z_encode_table);
+
+  stream<bit_blocks> bit_block_stream;
+  #pragma HLS STREAM variable=bit_block_stream depth=2
+  serialize_last_state(out_bit_stream,bit_block_stream);
+
+  pack_out_bits_up<NUM_OUT_OF_BYTES>(bit_block_stream,byte_block_stream);
+
+}
 
 // This function packs bits into words of the size determined by the configuration
 // file.

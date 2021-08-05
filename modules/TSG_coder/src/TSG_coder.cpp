@@ -67,17 +67,101 @@ void output_metadata_interface(
   out_blk_metadata <<(last_byte_idx_elem,last_block_elem);
 }
 
+
 void TSG_coder(
   //input
   stream<coder_interf_t> &in,
   //output
   stream<TSG_out_intf> &byte_block_stream,
   stream<tsg_blk_metadata> &out_blk_metadata
+  #ifdef EXTERNAL_ANS_ROM
+  ,
+  const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2],
+  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]
+  #endif
   //status registers
   // ap_uint<1> stack_overflow
   ){
 
   #ifdef TSG_CODER_TOP
+  #pragma HLS INTERFACE axis register_mode=both register port=in
+  #pragma HLS INTERFACE axis register_mode=both register port=byte_block_stream
+  #pragma HLS INTERFACE axis register_mode=both register port=out_blk_metadata
+  #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    #ifdef EXTERNAL_ANS_ROM
+    #pragma HLS INTERFACE mode=bram  port=tANS_y_encode_table storage_type=rom_1p
+    #pragma HLS INTERFACE mode=bram  port=tANS_z_encode_table storage_type=rom_1p
+    #endif
+
+  #endif
+  //status registers
+  // #pragma HLS INTERFACE s_axilite port=stack_overflow bundle=control
+
+  #pragma HLS DATAFLOW disable_start_propagation
+  
+  stream<coder_interf_t> inverted_data;
+  #pragma HLS STREAM variable=inverted_data depth=2
+  stream<ap_uint<1>> last_block;
+  #pragma HLS bind_storage variable=last_block type=FIFO impl=LUTRAM
+  #pragma HLS STREAM variable=last_block depth=32
+  input_buffers(in, inverted_data,last_block);
+
+
+  stream<subsymb_t> symbol_stream;
+  #pragma HLS STREAM variable=symbol_stream depth=32
+  #pragma HLS bind_storage variable=symbol_stream type=FIFO impl=LUTRAM
+  START_SW_ONLY_LOOP(! inverted_data.empty())
+  subsymbol_gen(inverted_data,symbol_stream);
+  END_SW_ONLY_LOOP
+
+  stream<byte_block<OUT_WORD_BYTES>> coded_byte_stream;
+  #pragma HLS STREAM variable=coded_byte_stream depth=2
+  START_SW_ONLY_LOOP(!symbol_stream.empty())
+  #ifdef EXTERNAL_ANS_ROM
+    ANS_coder_ext_ROM(symbol_stream,coded_byte_stream,tANS_y_encode_table,tANS_z_encode_table);
+  #else
+    ANS_coder(symbol_stream,coded_byte_stream);
+  #endif
+  END_SW_ONLY_LOOP
+
+  ap_uint<1> stack_overflow;
+  stream<byte_block<OUT_WORD_BYTES>> inverted_byte_block;
+  #pragma HLS STREAM variable=inverted_byte_block depth=2
+  stream<ap_uint<OUTPUT_STACK_BYTES_SIZE>,2 > last_byte_idx;
+  output_stack(coded_byte_stream,inverted_byte_block,last_byte_idx, stack_overflow);
+
+  //Error handler: TODO
+    // read "end of symbol stream", stack_overflow (other warning and error signals)
+    // generate a single signal stating the war/error registars need to be checked
+ 
+  //output interface
+  START_SW_ONLY_LOOP(!inverted_byte_block.empty())
+  output_data_interface(inverted_byte_block,byte_block_stream);
+  END_SW_ONLY_LOOP
+
+  START_SW_ONLY_LOOP(!last_byte_idx.empty() || !last_block.empty())
+  ASSERT(last_byte_idx.empty(),==,last_block.empty())
+  output_metadata_interface(last_byte_idx,last_block,out_blk_metadata);
+  END_SW_ONLY_LOOP
+
+  // pack_out_bytes(inverted_byte_block,byte_block_stream);
+}
+
+
+/*void TSG_coder_ext_ROM(
+  //input
+  stream<coder_interf_t> &in,
+  //output
+  stream<TSG_out_intf> &byte_block_stream,
+  stream<tsg_blk_metadata> &out_blk_metadata,
+  const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2],
+  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]
+  //status registers
+  // ap_uint<1> stack_overflow
+  ){
+
+  #ifdef TSG_CODER_EXT_ROM_TOP
   #pragma HLS INTERFACE axis register_mode=both register port=in
   #pragma HLS INTERFACE axis register_mode=both register port=byte_block_stream
   #pragma HLS INTERFACE axis register_mode=both register port=out_blk_metadata
@@ -106,7 +190,7 @@ void TSG_coder(
   stream<byte_block<OUT_WORD_BYTES>> coded_byte_stream;
   #pragma HLS STREAM variable=coded_byte_stream depth=2
   START_SW_ONLY_LOOP(!symbol_stream.empty())
-  ANS_coder(symbol_stream,coded_byte_stream);
+  ANS_coder_ext_ROM(symbol_stream,coded_byte_stream,tANS_y_encode_table,tANS_z_encode_table);
   END_SW_ONLY_LOOP
 
   ap_uint<1> stack_overflow;
@@ -130,4 +214,145 @@ void TSG_coder(
   END_SW_ONLY_LOOP
 
   // pack_out_bytes(inverted_byte_block,byte_block_stream);
+}
+*/
+
+
+
+void TSG_coder_double_lane(
+  //Lane 0 
+    //input
+    stream<coder_interf_t> &in_0,
+    //output
+    stream<TSG_out_intf> &byte_block_stream_0,
+    stream<tsg_blk_metadata> &out_blk_metadata_0,
+  //Lane 1
+    //input
+    stream<coder_interf_t> &in_1,
+    //output
+    stream<TSG_out_intf> &byte_block_stream_1,
+    stream<tsg_blk_metadata> &out_blk_metadata_1
+  //status registers
+  // ap_uint<1> stack_overflow
+  ){
+
+  #ifdef TSG_CODER_DOUBLE_LANE_TOP
+  #pragma HLS INTERFACE axis register_mode=both register port=in_0
+  #pragma HLS INTERFACE axis register_mode=both register port=byte_block_stream_0
+  #pragma HLS INTERFACE axis register_mode=both register port=out_blk_metadata_0
+
+
+  #pragma HLS INTERFACE axis register_mode=both register port=in_1
+  #pragma HLS INTERFACE axis register_mode=both register port=byte_block_stream_1
+  #pragma HLS INTERFACE axis register_mode=both register port=out_blk_metadata_1
+
+  #pragma HLS INTERFACE ap_ctrl_none port=return
+  #endif
+  //status registers
+  // #pragma HLS INTERFACE s_axilite port=stack_overflow bundle=control
+
+  #pragma HLS DATAFLOW disable_start_propagation
+
+
+  const tANS_table_t 
+    tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
+    #include "../../ANS_tables/tANS_y_encoder_table.dat"
+  }; 
+
+  const tANS_table_t 
+    tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]{
+    #include "../../ANS_tables/tANS_z_encoder_table.dat"
+  }; 
+  
+  /***** LANE 0 *****/
+  
+
+  stream<coder_interf_t> inverted_data_0;
+  #pragma HLS STREAM variable=inverted_data_0 depth=2
+  stream<ap_uint<1>> last_block_0;
+  #pragma HLS bind_storage variable=last_block_0 type=FIFO impl=LUTRAM
+  #pragma HLS STREAM variable=last_block_0 depth=32
+  input_buffers(in_0, inverted_data_0,last_block_0);
+
+
+  stream<subsymb_t> symbol_stream_0;
+  #pragma HLS STREAM variable=symbol_stream_0 depth=32
+  #pragma HLS bind_storage variable=symbol_stream_0 type=FIFO impl=LUTRAM
+  START_SW_ONLY_LOOP(! inverted_data_0.empty())
+  subsymbol_gen(inverted_data_0,symbol_stream_0);
+  END_SW_ONLY_LOOP
+
+  stream<byte_block<OUT_WORD_BYTES>> coded_byte_stream_0;
+  #pragma HLS STREAM variable=coded_byte_stream_0 depth=2
+  START_SW_ONLY_LOOP(!symbol_stream_0.empty())
+  ANS_coder_ext_ROM(symbol_stream_0,coded_byte_stream_0,tANS_y_encode_table,tANS_z_encode_table);
+  END_SW_ONLY_LOOP
+
+  ap_uint<1> stack_overflow_0;
+  stream<byte_block<OUT_WORD_BYTES>> inverted_byte_block_0;
+  #pragma HLS STREAM variable=inverted_byte_block_0 depth=2
+  stream<ap_uint<OUTPUT_STACK_BYTES_SIZE>,2 > last_byte_idx_0;
+  output_stack(coded_byte_stream_0,inverted_byte_block_0,last_byte_idx_0, stack_overflow_0);
+
+  //Error handler: TODO
+    // read "end of symbol stream", stack_overflow (other warning and error signals)
+    // generate a single signal stating the war/error registars need to be checked
+ 
+  //output interface
+  START_SW_ONLY_LOOP(!inverted_byte_block_0.empty())
+  output_data_interface(inverted_byte_block_0,byte_block_stream_0);
+  END_SW_ONLY_LOOP
+
+  START_SW_ONLY_LOOP(!last_byte_idx_0.empty() || !last_block_0.empty())
+  ASSERT(last_byte_idx_0.empty(),==,last_block_0.empty())
+  output_metadata_interface(last_byte_idx_0,last_block_0,out_blk_metadata_0);
+  END_SW_ONLY_LOOP
+
+    // pack_out_bytes(inverted_byte_block_0,byte_block_stream);
+
+
+  /***** LANE 1 *****/
+
+
+  stream<coder_interf_t> inverted_data_1;
+  #pragma HLS STREAM variable=inverted_data_1 depth=2
+  stream<ap_uint<1>> last_block_1;
+  #pragma HLS bind_storage variable=last_block_1 type=FIFO impl=LUTRAM
+  #pragma HLS STREAM variable=last_block_1 depth=32
+  input_buffers(in_1, inverted_data_1,last_block_1);
+
+
+  stream<subsymb_t> symbol_stream_1;
+  #pragma HLS STREAM variable=symbol_stream_1 depth=32
+  #pragma HLS bind_storage variable=symbol_stream_1 type=FIFO impl=LUTRAM
+  START_SW_ONLY_LOOP(! inverted_data_1.empty())
+  subsymbol_gen(inverted_data_1,symbol_stream_1);
+  END_SW_ONLY_LOOP
+
+  stream<byte_block<OUT_WORD_BYTES>> coded_byte_stream_1;
+  #pragma HLS STREAM variable=coded_byte_stream_1 depth=2
+  START_SW_ONLY_LOOP(!symbol_stream_1.empty())
+  ANS_coder_ext_ROM(symbol_stream_1,coded_byte_stream_1,tANS_y_encode_table,tANS_z_encode_table);
+  END_SW_ONLY_LOOP
+
+  ap_uint<1> stack_overflow_1;
+  stream<byte_block<OUT_WORD_BYTES>> inverted_byte_block_1;
+  #pragma HLS STREAM variable=inverted_byte_block_1 depth=2
+  stream<ap_uint<OUTPUT_STACK_BYTES_SIZE>,2 > last_byte_idx_1;
+  output_stack(coded_byte_stream_1,inverted_byte_block_1,last_byte_idx_1, stack_overflow_1);
+
+  //Error handler: TODO
+    // read "end of symbol stream", stack_overflow (other warning and error signals)
+    // generate a single signal stating the war/error registars need to be checked
+ 
+  //output interface
+  START_SW_ONLY_LOOP(!inverted_byte_block_1.empty())
+  output_data_interface(inverted_byte_block_1,byte_block_stream_1);
+  END_SW_ONLY_LOOP
+
+  START_SW_ONLY_LOOP(!last_byte_idx_1.empty() || !last_block_1.empty())
+  ASSERT(last_byte_idx_1.empty(),==,last_block_1.empty())
+  output_metadata_interface(last_byte_idx_1,last_block_1,out_blk_metadata_1);
+  END_SW_ONLY_LOOP
+
 }

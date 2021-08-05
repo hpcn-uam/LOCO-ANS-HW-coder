@@ -26,16 +26,15 @@ using namespace hls;
   #define NUM_OF_BLCKS (9)
 #endif
 
+const tANS_table_t 
+    tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
+    #include "../../ANS_tables/tANS_y_encoder_table.dat"
+  }; 
 
-static const tANS_table_t 
-  tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
-  #include "../../ANS_tables/tANS_y_encoder_table.dat"
-}; 
-
-static const tANS_table_t 
-  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]{
-  #include "../../ANS_tables/tANS_z_encoder_table.dat"
-}; 
+  const tANS_table_t 
+    tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]{
+    #include "../../ANS_tables/tANS_z_encoder_table.dat"
+  }; 
 
 int main(int argc, char const *argv[])
 {
@@ -43,7 +42,7 @@ int main(int argc, char const *argv[])
   
   int num_of_errors = 0;
   for (int blk_idx = 0; blk_idx < NUM_OF_BLCKS; ++blk_idx){
-	  std::vector<coder_interf_t> input_vector;
+    std::vector<coder_interf_t> input_vector;
 
     // ************
     // Generate input 
@@ -93,12 +92,9 @@ int main(int argc, char const *argv[])
     stream<tsg_blk_metadata> out_blk_metadata;
     int call_cnt = 0;
     while(!in_data.empty()){
-    	TSG_coder(in_data,axis_byte_blocks,out_blk_metadata
-        #ifdef EXTERNAL_ANS_ROM
-        ,tANS_y_encode_table, tANS_z_encode_table
-        #endif
-        );
-    	call_cnt++;
+      TSG_coder_ext_ROM(in_data,axis_byte_blocks,out_blk_metadata,
+        tANS_y_encode_table, tANS_z_encode_table);
+      call_cnt++;
     }
 
 
@@ -136,9 +132,9 @@ int main(int argc, char const *argv[])
       //write to memory
       for(unsigned j = 0; j < out_byte_block.num_of_bytes(); ++j) {
         block_binary[mem_pointer] = out_byte_block.data((j+1)*8-1,j*8);
-		#ifdef DEBUG
+    #ifdef DEBUG
         printf("%d: %02X\n", mem_pointer, block_binary[mem_pointer]);
-		#endif
+    #endif
         mem_pointer++;
         blk_byte_cnt++;
       }
