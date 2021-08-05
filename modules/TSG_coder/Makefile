@@ -15,7 +15,7 @@ DEPS :=   $(wildcard src/*.hpp) $(wildcard ../ANS_tables/*.dat )
 
 .PHONY: clean all
 
-ALL_TARGETS := TSG_coder TSG_coder_double_lane TSG_input_adapter output_data_interface output_metadata_interface
+ALL_TARGETS := TSG_coder TSG_coder_ext_ROM TSG_coder_double_lane TSG_input_adapter output_data_interface output_metadata_interface
 BASIC_TARGETS := TSG_coder
 
 

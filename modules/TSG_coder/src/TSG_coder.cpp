@@ -77,7 +77,7 @@ void TSG_coder(
   #ifdef EXTERNAL_ANS_ROM
   ,
   const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2],
-  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]
+  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]
   #endif
   //status registers
   // ap_uint<1> stack_overflow
@@ -156,7 +156,7 @@ void TSG_coder(
   stream<TSG_out_intf> &byte_block_stream,
   stream<tsg_blk_metadata> &out_blk_metadata,
   const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2],
-  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]
+  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]
   //status registers
   // ap_uint<1> stack_overflow
   ){
@@ -260,7 +260,7 @@ void TSG_coder_double_lane(
   }; 
 
   const tANS_table_t 
-    tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]{
+    tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]{
     #include "../../ANS_tables/tANS_z_encoder_table.dat"
   }; 
   

@@ -25,7 +25,7 @@ add_files ../output_stack/src/output_stack.cpp
 add_files -tb src/test.cpp
 open_solution "solution1" -flow_target vivado
 set_part {xc7z020clg484-1}
-create_clock -period 10 -name default
+create_clock -period 8 -name default
 config_compile -enable_auto_rewind=false
 config_export -format ip_catalog -rtl verilog -library loco_ans -vendor HPCN -version "1.0" -ipname TSG_coder_ext_ROM
 #source "./src/directives.tcl"
