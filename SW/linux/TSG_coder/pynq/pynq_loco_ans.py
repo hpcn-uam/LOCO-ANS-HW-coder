@@ -13,7 +13,7 @@ class TSGCoderOverlay(Overlay):
     ):
 #         super().__init__(bitfile_name, download=download, device=device)
         super().__init__(bitfile_name, download=download)
-        self.idma = self.idma_0
+        self.idma = self.idma_TSG_0
         self.odma = self.odma_0
         self.HEADER_BYTES = 4
         
@@ -49,6 +49,7 @@ class TSGCoderOverlay(Overlay):
         Y_SIZE =  (1)
         THETA_SIZE =  (5) #32 tables
         P_SIZE =  (5) #32 tables
+        REM_RED_BITS_SIZE = 3
 
 
         input_vector = np.zeros(block_size, dtype=np.uint32)
@@ -77,7 +78,10 @@ class TSGCoderOverlay(Overlay):
 
             dma_data |= (z & GET_MASK(Z_SIZE))<<acc_bits;
             acc_bits +=Z_SIZE;
-
+              
+            dma_data |= (Z_SIZE & GET_MASK(REM_RED_BITS_SIZE))<<acc_bits;
+            acc_bits +=REM_RED_BITS_SIZE;
+            
             # last bit
             dma_data |= (last & GET_MASK(1))<<acc_bits;
             acc_bits +=1;
@@ -120,7 +124,14 @@ class TSGCoderOverlay(Overlay):
     def store_out_binary(self,outfile=None):
         if outfile is None:
             outfile = "/run/user/1000/out_bytes.loco_ans"
-        self.out_buf.tofile(outfile)
+        
+        # remove fixt pixel value
+        new_out_bytes=self.get_out_binary_bytes()-1
+        out_binary = np.zeros(4, dtype=np.uint8)
+        for i in range(self.HEADER_BYTES):
+            out_binary[i] =  new_out_bytes>>(8*i)
+        out_binary = np.append(out_binary,self.out_buf[5:])
+        out_binary.tofile(outfile)
     
     def get_out_binary_bytes(self):
         
@@ -144,7 +155,7 @@ class TSGCoderOverlay(Overlay):
         #use C++ checker to validate output binary
         outfile = "/run/user/1000/out_bytes.loco_ans"
         self.store_out_binary(outfile=outfile)
-        cmd =["../TSG_checker/TSG_checker"]
+        cmd =["/home/xilinx/loco_ans/tsg_coder_test/TSG_checker/TSG_checker"]
         cmd += [outfile]
         cmd += [str(block_size)]
         cmd += [str(block_idx)]
