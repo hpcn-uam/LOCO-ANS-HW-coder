@@ -23,23 +23,32 @@ constexpr int ANS_CODER_OUT_BYTES = OUT_WORD_BYTES;
 int main(int argc, char const *argv[])
 {
   stream<coder_interf_t> in_data;
-  
+    
   for (int blk_idx = 0; blk_idx < NUM_OF_BLCKS; ++blk_idx){
-	std::vector<coder_interf_t> input_vector;
+    std::vector<coder_interf_t> input_vector;
+    ap_uint<REM_REDUCT_SIZE> blk_remainder_reduct = blk_idx <=6? 0: blk_idx-6 ;
+      if(blk_remainder_reduct >7) blk_remainder_reduct =7;
+      const int blk_remainder_bits = EE_REMAINDER_SIZE - blk_remainder_reduct;
+      const int Z_mask = (1<<blk_remainder_bits)-1;
     cout<<"Processing block "<<blk_idx<<endl;
     int block_size = TEST_BUFFER_SIZE - int(blk_idx/2);
     for (int i = 0; i < block_size; ++i){
       symb_data_t symb_data;
-      symb_ctrl_t symb_ctrl = (i == block_size-1)? 1:0 ;
+      ap_uint<1> last_symbol = (i == block_size-1)? 1:0 ;
+      ap_uint<REM_REDUCT_SIZE> in_remainder_reduct = blk_remainder_reduct;
 
       int val = i+TEST_BUFFER_SIZE*blk_idx;
-      ap_uint<Z_SIZE> z = blk_idx <= 1? val & 0xF : val & 0x7F ;
+      ap_uint<Z_SIZE> z = blk_idx <= 3? val&0x1:(blk_idx <= 5? val & 0xF : val & 0x7F) ;
+      z &= ap_uint<Z_SIZE>(Z_mask);
+
       ap_uint<Y_SIZE> y = val & 0x80?1:0 ; 
       ap_uint<THETA_SIZE> theta_id = i >= NUM_ANS_THETA_MODES?NUM_ANS_THETA_MODES-1: i ;
       ap_uint<P_SIZE> p_id = blk_idx/2 ;
       symb_data = (z,y,theta_id,p_id);
-      in_data.write(bits_to_intf(symb_data ,symb_ctrl));
-      input_vector.push_back(bits_to_intf(symb_data ,symb_ctrl));
+      coder_interf_t in_inf_data = (last_symbol,in_remainder_reduct,symb_data);
+      in_data <<in_inf_data;
+      // in_data.write(bits_to_intf(symb_data ,symb_ctrl));
+      input_vector.push_back(in_inf_data);
     }
 
     stream<coder_interf_t> inverted_data;
@@ -58,7 +67,7 @@ int main(int argc, char const *argv[])
 
     stream<byte_block<ANS_CODER_OUT_BYTES>> byte_block_stream;
     while (! symbol_stream.empty()){
-  	 ANS_coder_top(symbol_stream,byte_block_stream);
+     ANS_coder_top(symbol_stream,byte_block_stream);
     }
 
 
@@ -100,6 +109,11 @@ int main(int argc, char const *argv[])
       symb_data_t golden_data;
       symb_ctrl_t golden_ctrl;
       intf_to_bits(elem_it,golden_data,golden_ctrl);
+
+      ap_uint<1> old_last_symbol ;
+      ap_uint<REM_REDUCT_SIZE> golden_remainder_reduct;
+      (old_last_symbol,golden_remainder_reduct)=golden_ctrl;
+      const int remainder_bits = EE_REMAINDER_SIZE - golden_remainder_reduct;
       
       // byte_block out_byte_block;
 
@@ -111,7 +125,7 @@ int main(int argc, char const *argv[])
       
 
       //decode 
-      const int remainder_bits = EE_REMAINDER_SIZE - 0;
+      // const int remainder_bits = EE_REMAINDER_SIZE - 0;
       int deco_z, deco_y;
       bin_decoder.retrive_TSG_symbol(golden_theta_id, 
                   golden_p_id, remainder_bits, deco_z, deco_y);

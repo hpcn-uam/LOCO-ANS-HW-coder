@@ -28,7 +28,7 @@ void ANS_coder_ext_ROM(
   stream<subsymb_t> &symbol_stream,
   stream<byte_block<NUM_OUT_OF_BYTES>> &byte_block_stream,
   const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2],
-  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]){
+  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]){
   // #pragma HLS INLINE
   
   #pragma HLS DATAFLOW disable_start_propagation

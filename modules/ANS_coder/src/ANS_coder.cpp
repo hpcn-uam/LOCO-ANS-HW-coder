@@ -44,11 +44,11 @@ void code_symbols(
   }; 
 
   static const tANS_table_t 
-    tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]{
+    tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]{
     #include "../../ANS_tables/tANS_z_encoder_table.dat"
   }; 
 
-  static ap_uint<NUM_ANS_BITS> ANS_state = 0;
+  static ap_uint<NUM_ANS_BITS> ANS_state = INITIAL_ANS_STATE;
   #pragma HLS reset variable=ANS_state
 
   bit_blocks_with_meta<NUM_ANS_BITS> out_bits;
@@ -70,23 +70,26 @@ void code_symbols(
   if(symbol.type == SUBSYMB_BYPASS) {
     out_bits.data = symbol.subsymb;
     out_bits.bits = symbol.info;
+    out_bits.metadata = ANS_state;
   }else{
     tANS_table_t ANS_table_entry;
     if(symbol.type == SUBSYMB_Y) {
-      ANS_table_entry = tANS_y_encode_table[symbol.info][ANS_state][symbol.subsymb];
+      ANS_table_entry = tANS_y_encode_table[symbol.info][ANS_state][symbol.subsymb[0]];
     }else{
-      ANS_table_entry = tANS_z_encode_table[symbol.info][ANS_state][symbol.subsymb];
+      ANS_table_entry = tANS_z_encode_table[symbol.info][ANS_state][symbol.subsymb(ANS_SUBSYMBOL_BITS-1,0)];
     }
     tANS_encode(ANS_table_entry,ANS_state ,out_bits);
+
+    out_bits.metadata = ANS_state;
+
+    if(symbol.end_of_block == 1) {
+      ANS_state = INITIAL_ANS_STATE;
+    }
   }
 
-  out_bits.metadata = ANS_state;
   out_bit_stream << out_bits;
 
   
-  if(symbol.end_of_block == 1) {
-    ANS_state = 0;
-  }
   
 }
 
@@ -95,7 +98,7 @@ void code_symbols_ext_ROM(
   stream<subsymb_t> &symbol_stream,
   stream<bit_blocks_with_meta<NUM_ANS_BITS>> &out_bit_stream,
   const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2],
-  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]
+  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]
   ){
 
   #if CODE_SYMBOLS_EXT_ROM_TOP
@@ -113,17 +116,8 @@ void code_symbols_ext_ROM(
  // #pragma HLS PIPELINE style=flp
   // #pragma HLS latency min=3 
   
-/*  static const tANS_table_t 
-    tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
-    #include "../../ANS_tables/tANS_y_encoder_table.dat"
-  }; 
 
-  static const tANS_table_t 
-    tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]{
-    #include "../../ANS_tables/tANS_z_encoder_table.dat"
-  }; */
-
-  static ap_uint<NUM_ANS_BITS> ANS_state = 0;
+  static ap_uint<NUM_ANS_BITS> ANS_state = INITIAL_ANS_STATE;
   #pragma HLS reset variable=ANS_state
 
   bit_blocks_with_meta<NUM_ANS_BITS> out_bits;
@@ -145,24 +139,104 @@ void code_symbols_ext_ROM(
   if(symbol.type == SUBSYMB_BYPASS) {
     out_bits.data = symbol.subsymb;
     out_bits.bits = symbol.info;
+    out_bits.metadata = ANS_state;
   }else{
     tANS_table_t ANS_table_entry;
     if(symbol.type == SUBSYMB_Y) {
-      ANS_table_entry = tANS_y_encode_table[symbol.info][ANS_state][symbol.subsymb];
+      ANS_table_entry = tANS_y_encode_table[symbol.info][ANS_state][symbol.subsymb[0]];
     }else{
-      ANS_table_entry = tANS_z_encode_table[symbol.info][ANS_state][symbol.subsymb];
+      ANS_table_entry = tANS_z_encode_table[symbol.info][ANS_state][symbol.subsymb(ANS_SUBSYMBOL_BITS-1,0)];
     }
     tANS_encode(ANS_table_entry,ANS_state ,out_bits);
+    
+    out_bits.metadata = ANS_state;
+
+    if(symbol.end_of_block == 1) {
+      ANS_state = INITIAL_ANS_STATE;
+    }
   }
 
-  out_bits.metadata = ANS_state;
   out_bit_stream << out_bits;
+  
+}
 
+/* Same as code_symbols but with different FSM
+ it needs on cycle to perform initialization.
+ However, it may increase clock rate (if code_symbols doesn't use set/reset pins 
+ to initialize ANS_state )
+ */
+void code_symbols_init_state(
+  stream<subsymb_t> &symbol_stream,
+  stream<bit_blocks_with_meta<NUM_ANS_BITS>> &out_bit_stream){
+
+  #if CODE_SYMBOLS_TOP
+  #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
+  #pragma HLS INTERFACE axis register_mode=both register port=out_bit_stream
+  #pragma HLS INTERFACE ap_ctrl_none port=return
+  #endif
+
+  #pragma HLS PIPELINE style=flp II=1
   
-  if(symbol.end_of_block == 1) {
+  static const tANS_table_t 
+    tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
+    #include "../../ANS_tables/tANS_y_encoder_table.dat"
+  }; 
+
+  static const tANS_table_t 
+    tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]{
+    #include "../../ANS_tables/tANS_z_encoder_table.dat"
+  }; 
+
+  static enum STATE {INIT=0,CODE } coder_state;
+  #pragma HLS reset variable=coder_state
+
+  static ap_uint<NUM_ANS_BITS> ANS_state = 0;
+  // #pragma HLS reset variable=ANS_state
+
+  if (coder_state == INIT) // init system
+  {
     ANS_state = 0;
-  }
-  
+    coder_state = CODE;
+  }else{
+
+    bit_blocks_with_meta<NUM_ANS_BITS> out_bits;
+
+    subsymb_t symbol = symbol_stream.read();
+
+    
+    out_bits.last_block = symbol.end_of_block;
+    #ifndef __SYNTHESIS__
+      #ifdef DEBUG
+        std::cout<<"Debug: code_symbols | In symb type :"<<symbol.type<<
+          " | subsymb: "<<symbol.subsymb<< 
+          "| info: "<< symbol.info<<
+          "| end_of_block: "<< symbol.end_of_block<<
+          std::endl;
+      #endif
+    #endif
+
+    if(symbol.type == SUBSYMB_BYPASS) {
+      out_bits.data = symbol.subsymb;
+      out_bits.bits = symbol.info;
+    }else{
+      tANS_table_t ANS_table_entry;
+      if(symbol.type == SUBSYMB_Y) {
+        ANS_table_entry = tANS_y_encode_table[symbol.info][ANS_state][symbol.subsymb(ANS_SUBSYMBOL_BITS-1,0)];
+      }else{
+        ANS_table_entry = tANS_z_encode_table[symbol.info][ANS_state][symbol.subsymb(ANS_SUBSYMBOL_BITS-1,0)];
+      }
+      tANS_encode(ANS_table_entry,ANS_state ,out_bits);
+
+      if(symbol.end_of_block == 1) {
+        coder_state = INIT;
+        // ANS_state = 0;
+      }
+    }
+
+    out_bits.metadata = ANS_state;
+    out_bit_stream << out_bits;
+
+  } 
 }
 
 void serialize_last_state(
@@ -219,7 +293,7 @@ void ANS_coder_top(
   stream<byte_block<OUT_WORD_BYTES>> &byte_block_stream){
   #ifdef ANS_CODER_TOP
     #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
-    #pragma HLS INTERFACE axis register_mode=both register port=bit_block_stream
+    #pragma HLS INTERFACE axis register_mode=both register port=byte_block_stream
   #endif
 
   #pragma HLS DATAFLOW disable_start_propagation
@@ -234,7 +308,7 @@ void ANS_coder_ext_ROM_top(
   stream<byte_block<OUT_WORD_BYTES>> &byte_block_stream,
 
   const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2],
-  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]
+  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]
   ){
 
   #ifdef ANS_CODER_EXT_ROM_TOP
@@ -253,7 +327,7 @@ void ANS_coder_ext_ROM_top(
   }; 
 
   static const tANS_table_t 
-    tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY]{
+    tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]{
     #include "../../ANS_tables/tANS_z_encoder_table.dat"
   }; */
 

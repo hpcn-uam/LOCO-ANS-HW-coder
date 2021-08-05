@@ -111,7 +111,10 @@ typedef ap_uint<SYMB_DATA_SIZE+SYMB_CTRL_SIZE> coder_interf_t; //
 #define SYMBOL_ENDIANNESS_LITTLE true
 constexpr int EE_REMAINDER_SIZE = Z_SIZE; 
 constexpr int ANS_MAX_SRC_CARDINALITY =9;
+constexpr int ANS_SUBSYMBOL_BITS =  ceillog2(ANS_MAX_SRC_CARDINALITY) ; 
+constexpr int Z_ANS_TABLE_CARDINALITY =(1<<ANS_SUBSYMBOL_BITS); // power of 2  equal or just above  ANS_MAX_SRC_CARDINALITY
 constexpr int EE_MAX_ITERATIONS = 7;
+constexpr int INITIAL_ANS_STATE = 0;
 
 #define NUM_ANS_THETA_MODES (15)//16 // supported theta_modes
 #define NUM_ANS_P_MODES (32) //16 //32 // supported theta_modes
