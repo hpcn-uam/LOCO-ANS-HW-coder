@@ -13,7 +13,7 @@ if { $arg_idx < $arglen } {
   set mode [lindex $argv $arg_idx]
   incr arg_idx
 }
-puts "Mode : $mode" 
+puts "Mode : $mode"
 
 set module Y_ANS_ROM
 
@@ -25,6 +25,7 @@ set_part {xc7z020-clg484-1}
 create_clock -period 10 -name default
 config_compile -enable_auto_rewind=false
 config_export -format ip_catalog -rtl verilog
+config_rtl -reset_level low
 # config_compile -pipeline_style flp
 # source "./directives.tcl"
 if { $mode == 0 } {
