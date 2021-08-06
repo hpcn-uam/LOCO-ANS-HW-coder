@@ -48,8 +48,8 @@ TSG_csim_clang_sim: src/test.cpp $(deps)
 	clang++ $(CFLAGS) $(sources)  $< -o $@
 
 
-TSG_csim_clang_sim_external_ROM:  src/test_double_lane_TSG_coder.cpp $(deps)
-	clang++ $(CFLAGS) $(sources) $< -o $@
+TSG_csim_clang_sim_external_ROM:  src/test.cpp $(deps)
+	clang++ $(CFLAGS) -DDEBUG -DEXTERNAL_ANS_ROM $(sources) $< -o $@
 
 clean:
 	rm -rf TSG_csim_clang_sim *.hls_prj

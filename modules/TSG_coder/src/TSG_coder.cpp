@@ -90,8 +90,10 @@ void TSG_coder(
   #pragma HLS INTERFACE ap_ctrl_none port=return
 
     #ifdef EXTERNAL_ANS_ROM
-    #pragma HLS INTERFACE mode=bram  port=tANS_y_encode_table storage_type=rom_1p
-    #pragma HLS INTERFACE mode=bram  port=tANS_z_encode_table storage_type=rom_1p
+    // #pragma HLS INTERFACE mode=bram  port=tANS_y_encode_table storage_type=rom_1p
+    // #pragma HLS INTERFACE mode=bram  port=tANS_z_encode_table storage_type=rom_1p
+    #pragma HLS INTERFACE mode=ap_memory  port=tANS_y_encode_table storage_type=rom_1p
+    #pragma HLS INTERFACE mode=ap_memory  port=tANS_z_encode_table storage_type=rom_1p
     #endif
 
   #endif
