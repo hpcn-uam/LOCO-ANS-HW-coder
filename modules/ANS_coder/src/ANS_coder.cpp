@@ -1,7 +1,7 @@
 
 #include "ANS_coder.hpp"
 #include "../../coder_config.hpp"
-#include "ap_utils.h"
+// #include "ap_utils.h"
 
 template<size_t M>
 void tANS_encode(
@@ -93,8 +93,80 @@ void code_symbols(
   
 }
 
-
 void code_symbols_ext_ROM(
+  stream<subsymb_t> &symbol_stream,
+  stream<bit_blocks_with_meta<NUM_ANS_BITS>> &out_bit_stream,
+  const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2],
+  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]
+  ){
+
+  #if CODE_SYMBOLS_EXT_ROM_TOP
+  #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
+  #pragma HLS INTERFACE axis register_mode=both register port=out_bit_stream
+  #pragma HLS INTERFACE mode=bram  port=tANS_y_encode_table storage_type=rom_1p
+  #pragma HLS INTERFACE mode=bram  port=tANS_z_encode_table storage_type=rom_1p
+  #pragma HLS INTERFACE ap_ctrl_none port=return
+  #endif
+
+  #pragma HLS bind_storage variable=tANS_y_encode_table type=rom_1p latency=1
+  #pragma HLS bind_storage variable=tANS_z_encode_table type=rom_1p latency=1
+
+   #pragma HLS PIPELINE style=flp II=1
+ // #pragma HLS PIPELINE style=flp
+  // #pragma HLS latency min=3
+
+  enum STATE { INIT=0,CODE  };
+  static STATE coder_state=CODE;
+  #pragma HLS reset variable=coder_state
+
+  static ap_uint<NUM_ANS_BITS> ANS_state= INITIAL_ANS_STATE;
+  #pragma HLS reset variable=ANS_state
+
+
+  do{
+
+    if(coder_state == INIT) {
+        ANS_state = INITIAL_ANS_STATE;
+        coder_state=CODE;
+    }else{
+      bit_blocks_with_meta<NUM_ANS_BITS> out_bits;
+      subsymb_t symbol = symbol_stream.read();
+
+      out_bits.last_block = symbol.end_of_block;
+      #ifndef __SYNTHESIS__
+        #ifdef DEBUG
+          std::cout<<"Debug: code_symbols | In symb type :"<<symbol.type<<
+            " | subsymb: "<<symbol.subsymb<<
+            "| info: "<< symbol.info<<
+            "| end_of_block: "<< symbol.end_of_block<<
+            std::endl;
+        #endif
+      #endif
+
+      if(symbol.type == SUBSYMB_BYPASS) {
+        out_bits.data = symbol.subsymb;
+        out_bits.bits = symbol.info;
+      }else{
+        tANS_table_t ANS_table_entry;
+        if(symbol.type == SUBSYMB_Y) {
+          ANS_table_entry = tANS_y_encode_table[symbol.info][ANS_state][symbol.subsymb[0]];
+        }else{
+          ANS_table_entry = tANS_z_encode_table[symbol.info][ANS_state][symbol.subsymb(ANS_SUBSYMBOL_BITS-1,0)];
+        }
+        tANS_encode(ANS_table_entry,ANS_state ,out_bits);
+      }
+      out_bits.metadata = ANS_state;
+      out_bit_stream << out_bits;
+
+      if(symbol.end_of_block == 1) {
+        coder_state = INIT;
+      }
+    }
+
+  }while(coder_state == INIT);
+}
+
+void code_symbols_ext_ROM0(
   stream<subsymb_t> &symbol_stream,
   stream<bit_blocks_with_meta<NUM_ANS_BITS>> &out_bit_stream,
   const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2],
@@ -139,7 +211,8 @@ void code_symbols_ext_ROM(
   if(symbol.type == SUBSYMB_BYPASS) {
     out_bits.data = symbol.subsymb;
     out_bits.bits = symbol.info;
-    out_bits.metadata = ANS_state;
+    // out_bits.metadata = 0;
+    // out_bits.metadata = ANS_state;
   }else{
     tANS_table_t ANS_table_entry;
     if(symbol.type == SUBSYMB_Y) {
@@ -306,30 +379,18 @@ void ANS_coder_top(
 void ANS_coder_ext_ROM_top(
   stream<subsymb_t> &symbol_stream,
   stream<byte_block<OUT_WORD_BYTES>> &byte_block_stream,
-
   const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2],
-  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]
-  ){
+  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]){
 
   #ifdef ANS_CODER_EXT_ROM_TOP
-    #pragma HLS INTERFACE mode=bram  port=tANS_y_encode_table storage_type=rom_1p
-    #pragma HLS INTERFACE mode=bram  port=tANS_z_encode_table storage_type=rom_1p
+    #pragma HLS INTERFACE mode=ap_memory  port=tANS_y_encode_table storage_type=rom_1p
+    #pragma HLS INTERFACE mode=ap_memory  port=tANS_z_encode_table storage_type=rom_1p
     #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
     #pragma HLS INTERFACE axis register_mode=both register port=byte_block_stream
   #endif
 
   #pragma HLS DATAFLOW disable_start_propagation
-  #pragma HLS INTERFACE ap_ctrl_none port=return
-
-/*  static const tANS_table_t 
-    tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
-    #include "../../ANS_tables/tANS_y_encoder_table.dat"
-  }; 
-
-  static const tANS_table_t 
-    tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]{
-    #include "../../ANS_tables/tANS_z_encoder_table.dat"
-  }; */
+  // #pragma HLS INTERFACE ap_ctrl_none port=return
 
   ANS_coder_ext_ROM(symbol_stream,byte_block_stream,tANS_y_encode_table,tANS_z_encode_table);
 }
