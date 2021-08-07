@@ -44,11 +44,11 @@ logs:
 	vitis_hls $*_script.tcl $(MODE) > logs/$*_compile.log
 
 
-TSG_csim_clang_sim: src/test.cpp $(deps)
+TSG_csim_clang_sim: src/test.cpp $(sources)
 	clang++ $(CFLAGS) $(sources)  $< -o $@
 
 
-TSG_csim_clang_sim_external_ROM:  src/test.cpp $(deps)
+TSG_csim_clang_sim_external_ROM:  src/test.cpp $(sources)
 	clang++ $(CFLAGS) -DDEBUG -DEXTERNAL_ANS_ROM $(sources) $< -o $@
 
 clean:
