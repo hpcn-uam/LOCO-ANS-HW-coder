@@ -34,13 +34,15 @@ void ANS_coder_ext_ROM(
   #pragma HLS DATAFLOW disable_start_propagation
   #pragma HLS INTERFACE ap_ctrl_none port=return
   
-  stream<bit_blocks_with_meta<NUM_ANS_BITS>> out_bit_stream;
-  #pragma HLS STREAM variable=out_bit_stream depth=2
-  code_symbols_ext_ROM(symbol_stream,out_bit_stream,tANS_y_encode_table,tANS_z_encode_table);
-
+  // stream<bit_blocks_with_meta<NUM_ANS_BITS>> out_bit_stream;
+  // #pragma HLS STREAM variable=out_bit_stream depth=2
+  // code_symbols_ext_ROM(symbol_stream,out_bit_stream,tANS_y_encode_table,tANS_z_encode_table);
+  
   stream<bit_blocks> bit_block_stream;
   #pragma HLS STREAM variable=bit_block_stream depth=2
-  serialize_last_state(out_bit_stream,bit_block_stream);
+  code_symbols_ext_ROM(symbol_stream,bit_block_stream,tANS_y_encode_table,tANS_z_encode_table);
+  // serialize_last_state(out_bit_stream,bit_block_stream);
+
 
   pack_out_bits_up<NUM_OUT_OF_BYTES>(bit_block_stream,byte_block_stream);
 
