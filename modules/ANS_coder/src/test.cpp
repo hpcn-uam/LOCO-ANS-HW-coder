@@ -13,12 +13,24 @@
 
 using namespace std;
 using namespace hls;
-#define NUM_OF_BLCKS (6)
+#define NUM_OF_BLCKS (9)
 
-#define TEST_BUFFER_SIZE 32
+#define TEST_BUFFER_SIZE 2048
 
 #define SPLITED_FREE_KERNELS 0
   
+#ifdef ANS_CODER_EXT_ROM_TOP
+  static const tANS_table_t 
+    tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
+      #include "../../ANS_tables/tANS_y_encoder_table.dat"
+  }; 
+
+  static const tANS_table_t 
+    tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]{
+      #include "../../ANS_tables/tANS_z_encoder_table.dat"
+  }; 
+#endif
+
 constexpr int ANS_CODER_OUT_BYTES = OUT_WORD_BYTES;
 int main(int argc, char const *argv[])
 {
@@ -67,7 +79,12 @@ int main(int argc, char const *argv[])
 
     stream<byte_block<ANS_CODER_OUT_BYTES>> byte_block_stream;
     while (! symbol_stream.empty()){
+     #ifdef ANS_CODER_EXT_ROM_TOP
+     ANS_coder_ext_ROM_top(symbol_stream,byte_block_stream,
+      tANS_y_encode_table,tANS_z_encode_table);
+     #else 
      ANS_coder_top(symbol_stream,byte_block_stream);
+     #endif
     }
 
 
