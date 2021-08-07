@@ -24,7 +24,7 @@ void TSG_coder(
   //output
   stream<TSG_out_intf> &byte_block_stream,
   stream<tsg_blk_metadata> &out_blk_metadata
-  #ifdef EXTERNAL_ANS_ROM
+  #if defined(EXTERNAL_ANS_ROM) && !defined(USE_TSG_INTERNAL_ROM)
   ,
   const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2],
   const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]

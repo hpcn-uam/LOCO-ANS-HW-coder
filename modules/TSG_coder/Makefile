@@ -51,5 +51,8 @@ TSG_csim_clang_sim: src/test.cpp $(sources)
 TSG_csim_clang_sim_external_ROM:  src/test.cpp $(sources)
 	clang++ $(CFLAGS) -DDEBUG -DEXTERNAL_ANS_ROM $(sources) $< -o $@
 
+TSG_csim_clang_sim_TSG_internal_ROM:  src/test.cpp $(sources)
+	clang++ $(CFLAGS) -DDEBUG -DUSE_TSG_INTERNAL_ROM -DEXTERNAL_ANS_ROM $(sources) $< -o $@
+
 clean:
 	rm -rf TSG_csim_clang_sim *.hls_prj

@@ -112,7 +112,7 @@ int main(int argc, char const *argv[])
     int call_cnt = 0;
     while(!in_data.empty()){
     	TSG_coder(in_data,axis_byte_blocks,out_blk_metadata
-        #ifdef EXTERNAL_ANS_ROM
+        #if defined(EXTERNAL_ANS_ROM) && !defined(USE_TSG_INTERNAL_ROM)
         ,tANS_y_encode_table, tANS_z_encode_table
         #endif
         );
