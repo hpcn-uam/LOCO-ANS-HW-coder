@@ -74,7 +74,7 @@ void TSG_coder(
   //output
   stream<TSG_out_intf> &byte_block_stream,
   stream<tsg_blk_metadata> &out_blk_metadata
-  #ifdef EXTERNAL_ANS_ROM
+  #if defined(EXTERNAL_ANS_ROM) && !defined(USE_TSG_INTERNAL_ROM)
   ,
   const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2],
   const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]
@@ -90,8 +90,6 @@ void TSG_coder(
   #pragma HLS INTERFACE ap_ctrl_none port=return
 
     #ifdef EXTERNAL_ANS_ROM
-    // #pragma HLS INTERFACE mode=bram  port=tANS_y_encode_table storage_type=rom_1p
-    // #pragma HLS INTERFACE mode=bram  port=tANS_z_encode_table storage_type=rom_1p
     #pragma HLS INTERFACE mode=ap_memory  port=tANS_y_encode_table storage_type=rom_1p
     #pragma HLS INTERFACE mode=ap_memory  port=tANS_z_encode_table storage_type=rom_1p
     #endif
@@ -116,6 +114,20 @@ void TSG_coder(
   START_SW_ONLY_LOOP(! inverted_data.empty())
   subsymbol_gen(inverted_data,symbol_stream);
   END_SW_ONLY_LOOP
+
+
+  #ifdef USE_TSG_INTERNAL_ROM
+    #pragma HLS DATAFLOW disable_start_propagation
+     const tANS_table_t
+      tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
+      #include "../../ANS_tables/tANS_y_encoder_table.dat"
+    };
+
+     const tANS_table_t
+      tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]{
+      #include "../../ANS_tables/tANS_z_encoder_table.dat"
+    };
+  #endif
 
   stream<byte_block<OUT_WORD_BYTES>> coded_byte_stream;
   #pragma HLS STREAM variable=coded_byte_stream depth=2
