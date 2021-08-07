@@ -26,6 +26,28 @@ void tANS_encode(
   ANS_encoder_state = ANS_table_entry.state;
 }
 
+void tANS_encode(
+  tANS_table_t ANS_table_entry,
+  ap_uint<NUM_ANS_BITS> &ANS_encoder_state , 
+  bit_blocks &out_bits){
+  #pragma HLS INLINE
+
+  out_bits.bits = ANS_table_entry.bits;
+  ASSERT(out_bits.bits >= 0);
+  out_bits.data = ANS_encoder_state;
+  
+  #ifndef __SYNTHESIS__
+    #ifdef DEBUG
+      std::cout<<"Debug:     tANS_encode | In state :"<<ANS_encoder_state + (1<<NUM_ANS_BITS)<<
+        " | out bits: "<<ANS_table_entry.bits<< 
+        "| New state: "<< ANS_table_entry.state+ (1<<NUM_ANS_BITS)<<
+        std::endl;
+    #endif
+  #endif
+
+  ANS_encoder_state = ANS_table_entry.state;
+}
+
 void code_symbols(
   stream<subsymb_t> &symbol_stream,
   stream<bit_blocks_with_meta<NUM_ANS_BITS>> &out_bit_stream){
@@ -91,6 +113,95 @@ void code_symbols(
 
   
   
+}
+
+void code_symbols_ext_ROM(
+  stream<subsymb_t> &symbol_stream,
+  stream<bit_blocks> &out_bit_stream,
+  const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2],
+  const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]
+  ){
+
+  #if CODE_SYMBOLS_EXT_ROM_TOP
+  #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream
+  #pragma HLS INTERFACE axis register_mode=both register port=out_bit_stream
+  #pragma HLS INTERFACE mode=bram  port=tANS_y_encode_table storage_type=rom_1p
+  #pragma HLS INTERFACE mode=bram  port=tANS_z_encode_table storage_type=rom_1p
+  #pragma HLS INTERFACE ap_ctrl_none port=return
+  #endif
+
+  #pragma HLS bind_storage variable=tANS_y_encode_table type=rom_1p latency=1
+  #pragma HLS bind_storage variable=tANS_z_encode_table type=rom_1p latency=1
+
+   #pragma HLS PIPELINE style=flp II=1
+ // #pragma HLS PIPELINE style=flp
+  // #pragma HLS latency min=3
+
+  enum STATE { CODE=0,SEND_LAST_STATE  };
+  static STATE coder_state=CODE;
+  #pragma HLS reset variable=coder_state
+
+  static ap_uint<NUM_ANS_BITS> ANS_state= INITIAL_ANS_STATE;
+  #pragma HLS reset variable=ANS_state
+
+  bit_blocks out_bits;
+// START OF SW ONLY LOOP. Not needed in HW as it's a free running pipeline
+  #ifndef __SYNTHESIS__
+  do{
+  #endif
+
+    if(coder_state == SEND_LAST_STATE ) {
+      #if SYMBOL_ENDIANNESS_LITTLE
+      out_bits.data = ( ANS_state, ap_uint<1>(1));
+      #else
+      out_bits.data = (ap_uint<1>(1), ANS_state);
+      #endif
+      out_bits.bits = NUM_ANS_BITS+1;
+      out_bits.last_block = 1;
+
+      //Reset coder state
+      ANS_state = INITIAL_ANS_STATE;
+      coder_state=CODE;
+    }else{
+
+      subsymb_t symbol = symbol_stream.read();
+
+      #ifndef __SYNTHESIS__
+        #ifdef DEBUG
+          std::cout<<"Debug: code_symbols | In symb type :"<<symbol.type<<
+            " | subsymb: "<<symbol.subsymb<<
+            "| info: "<< symbol.info<<
+            "| end_of_block: "<< symbol.end_of_block<<
+            std::endl;
+        #endif
+      #endif
+
+      out_bits.last_block = 0;// the last block always contains the final ANS state
+
+      if(symbol.type == SUBSYMB_BYPASS) {
+        out_bits.data = symbol.subsymb;
+        out_bits.bits = symbol.info;
+      }else{
+        tANS_table_t ANS_table_entry;
+        if(symbol.type == SUBSYMB_Y) {
+          ANS_table_entry = tANS_y_encode_table[symbol.info][ANS_state][symbol.subsymb[0]];
+        }else{
+          ANS_table_entry = tANS_z_encode_table[symbol.info][ANS_state][symbol.subsymb(ANS_SUBSYMBOL_BITS-1,0)];
+        }
+        tANS_encode(ANS_table_entry,ANS_state ,out_bits);
+      }
+
+      if(symbol.end_of_block == 1) {
+        coder_state = SEND_LAST_STATE;
+      }
+    }
+    
+
+  out_bit_stream << out_bits;
+    
+  #ifndef __SYNTHESIS__
+  }while(coder_state == SEND_LAST_STATE);
+  #endif
 }
 
 void code_symbols_ext_ROM(
