@@ -20,7 +20,7 @@ set module ANS_coder_ext_ROM_top
 open_project "${module}.hls_prj"
 set_top ${module}
 add_files src/ANS_coder.cpp -cflags "-DANS_CODER_EXT_ROM_TOP"
-add_files -tb src/ANS_coder_ext_mem_test.cpp -cflags "-Wno-unknown-pragmas" -csimflags "-Wno-unknown-pragmas"
+add_files -tb src/test.cpp -cflags "-Wno-unknown-pragmas -DANS_CODER_EXT_ROM_TOP" -csimflags "-Wno-unknown-pragmas"
 add_files -tb ../subsym_gen/src/subsym_gen.cpp -cflags "-Wno-unknown-pragmas" -csimflags "-Wno-unknown-pragmas"
 add_files -tb ../input_buffers/src/input_buffers.cpp -cflags "-Wno-unknown-pragmas" -csimflags "-Wno-unknown-pragmas"
 open_solution "solution1" -flow_target vivado
