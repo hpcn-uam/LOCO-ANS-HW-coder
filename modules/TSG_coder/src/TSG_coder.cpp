@@ -232,7 +232,6 @@ void TSG_coder(
 */
 
 
-
 void TSG_coder_double_lane(
   //Lane 0 
     //input
@@ -289,17 +288,21 @@ void TSG_coder_double_lane(
   input_buffers(in_0, inverted_data_0,last_block_0);
 
 
+  static SubSymbolGenerator subsymbol_gen_0;
+  #pragma HLS reset variable=subsymbol_gen_0
   stream<subsymb_t> symbol_stream_0;
   #pragma HLS STREAM variable=symbol_stream_0 depth=32
   #pragma HLS bind_storage variable=symbol_stream_0 type=FIFO impl=LUTRAM
   START_SW_ONLY_LOOP(! inverted_data_0.empty())
-  subsymbol_gen(inverted_data_0,symbol_stream_0);
+  subsymbol_gen_0.transform(inverted_data_0,symbol_stream_0);
   END_SW_ONLY_LOOP
 
+  static ANSCoder<OUT_WORD_BYTES> ANS_coder_0;
+  #pragma HLS reset variable=ANS_coder_0
   stream<byte_block<OUT_WORD_BYTES>> coded_byte_stream_0;
   #pragma HLS STREAM variable=coded_byte_stream_0 depth=2
   START_SW_ONLY_LOOP(!symbol_stream_0.empty())
-  ANS_coder_ext_ROM(symbol_stream_0,coded_byte_stream_0,tANS_y_encode_table,tANS_z_encode_table);
+  ANS_coder_0.code(symbol_stream_0,coded_byte_stream_0,tANS_y_encode_table,tANS_z_encode_table);
   END_SW_ONLY_LOOP
 
   ap_uint<1> stack_overflow_0;
@@ -336,17 +339,21 @@ void TSG_coder_double_lane(
   input_buffers(in_1, inverted_data_1,last_block_1);
 
 
+  static SubSymbolGenerator subsymbol_gen_1;
+  #pragma HLS reset variable=subsymbol_gen_1
   stream<subsymb_t> symbol_stream_1;
   #pragma HLS STREAM variable=symbol_stream_1 depth=32
   #pragma HLS bind_storage variable=symbol_stream_1 type=FIFO impl=LUTRAM
   START_SW_ONLY_LOOP(! inverted_data_1.empty())
-  subsymbol_gen(inverted_data_1,symbol_stream_1);
+  subsymbol_gen_1.transform(inverted_data_1,symbol_stream_1);
   END_SW_ONLY_LOOP
 
+  static ANSCoder<OUT_WORD_BYTES> ANS_coder_1;
+  #pragma HLS reset variable=ANS_coder_1
   stream<byte_block<OUT_WORD_BYTES>> coded_byte_stream_1;
   #pragma HLS STREAM variable=coded_byte_stream_1 depth=2
   START_SW_ONLY_LOOP(!symbol_stream_1.empty())
-  ANS_coder_ext_ROM(symbol_stream_1,coded_byte_stream_1,tANS_y_encode_table,tANS_z_encode_table);
+  ANS_coder_1.code(symbol_stream_1,coded_byte_stream_1,tANS_y_encode_table,tANS_z_encode_table);
   END_SW_ONLY_LOOP
 
   ap_uint<1> stack_overflow_1;
