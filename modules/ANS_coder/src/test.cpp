@@ -15,7 +15,7 @@ using namespace std;
 using namespace hls;
 #define NUM_OF_BLCKS (9)
 
-#define TEST_BUFFER_SIZE 2048
+#define TEST_BUFFER_SIZE 64
 
 #define SPLITED_FREE_KERNELS 0
   
@@ -78,14 +78,40 @@ int main(int argc, char const *argv[])
     }
 
     stream<byte_block<ANS_CODER_OUT_BYTES>> byte_block_stream;
-    while (! symbol_stream.empty()){
-     #ifdef ANS_CODER_EXT_ROM_TOP
-     ANS_coder_ext_ROM_top(symbol_stream,byte_block_stream,
-      tANS_y_encode_table,tANS_z_encode_table);
-     #else 
-     ANS_coder_top(symbol_stream,byte_block_stream);
-     #endif
-    }
+
+    #ifdef ANS_CODER_DOUBLE_LANE_TOP
+      //duplicate streams
+      // TODO: I should generate different streams for each lane
+      stream<subsymb_t> symbol_stream_0,symbol_stream_1;
+      while (! symbol_stream.empty()){
+        auto s = symbol_stream.read();
+        symbol_stream_0 << s;
+        symbol_stream_1 << s;
+      }
+      stream<byte_block<ANS_CODER_OUT_BYTES>> byte_block_stream_0,byte_block_stream_1;
+      while(! symbol_stream_0.empty() || ! symbol_stream_1.empty()) {
+        ANS_coder_double_lane(symbol_stream_0,byte_block_stream_0,
+          symbol_stream_1,byte_block_stream_1);
+      }
+      //de-duplicate (keep while both lanes consume the same stream)
+      while (! byte_block_stream_0.empty()){
+        auto out_0 = byte_block_stream_0.read();
+        auto out_1 = byte_block_stream_1.read();
+        // ASSERT(out_0,==,out_1);
+
+        byte_block_stream << out_0;// copy to verify
+      }
+
+    #else
+      while (! symbol_stream.empty()){
+         #ifdef ANS_CODER_EXT_ROM_TOP
+         ANS_coder_ext_ROM_top(symbol_stream,byte_block_stream,
+          tANS_y_encode_table,tANS_z_encode_table);
+         #else 
+         ANS_coder_top(symbol_stream,byte_block_stream);
+         #endif
+      }
+    #endif
 
 
     //Replicate binary stack logic
