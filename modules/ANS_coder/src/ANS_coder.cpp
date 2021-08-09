@@ -132,6 +132,8 @@ void code_symbols_ext_ROM(
 
   #pragma HLS bind_storage variable=tANS_y_encode_table type=rom_1p latency=1
   #pragma HLS bind_storage variable=tANS_z_encode_table type=rom_1p latency=1
+  #pragma HLS stable variable=tANS_y_encode_table
+  #pragma HLS stable variable=tANS_z_encode_table
 
    #pragma HLS PIPELINE style=flp II=1
  // #pragma HLS PIPELINE style=flp
@@ -507,3 +509,37 @@ void ANS_coder_ext_ROM_top(
 }
 
   
+
+
+void ANS_coder_double_lane(
+  stream<subsymb_t> &symbol_stream_0,
+  stream<byte_block<OUT_WORD_BYTES>> &byte_block_stream_0,
+  stream<subsymb_t> &symbol_stream_1,
+  stream<byte_block<OUT_WORD_BYTES>> &byte_block_stream_1){
+  #ifdef ANS_CODER_DOUBLE_LANE_TOP
+    #pragma HLS DATAFLOW disable_start_propagation
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream_0
+    #pragma HLS INTERFACE axis register_mode=both register port=byte_block_stream_0
+    #pragma HLS INTERFACE axis register_mode=both register port=symbol_stream_1
+    #pragma HLS INTERFACE axis register_mode=both register port=byte_block_stream_1
+  #endif
+  static ANSCoder<OUT_WORD_BYTES> coder_0,coder_1;
+  #pragma HLS reset variable=coder_0
+  #pragma HLS reset variable=coder_1
+
+  const tANS_table_t 
+    tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
+    #include "../../ANS_tables/tANS_y_encoder_table.dat"
+  }; 
+
+  const tANS_table_t 
+    tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]{
+    #include "../../ANS_tables/tANS_z_encoder_table.dat"
+  }; 
+
+  coder_0.code(symbol_stream_0,byte_block_stream_0,tANS_y_encode_table,tANS_z_encode_table);
+  coder_1.code(symbol_stream_1,byte_block_stream_1,tANS_y_encode_table,tANS_z_encode_table);
+
+}

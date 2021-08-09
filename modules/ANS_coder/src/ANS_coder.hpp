@@ -87,6 +87,11 @@ struct byte_block {
     return data((byte_idx+1)*8-1,byte_idx*8);
   }
 
+  friend bool operator==(const byte_block<NUM_OF_BYTES> &l,
+    const byte_block<NUM_OF_BYTES> &r){
+    return  (l.data == r.data) && (l.bytes == r.bytes) && (l.last == r.last);
+
+  }
 } ;
 
 
@@ -138,5 +143,12 @@ void ANS_coder_ext_ROM_top(
   stream<byte_block<OUT_WORD_BYTES>> &byte_block_stream,
   const tANS_table_t tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2],
   const tANS_table_t  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]);
+
+
+void ANS_coder_double_lane(
+  stream<subsymb_t> &symbol_stream_0,
+  stream<byte_block<OUT_WORD_BYTES>> &byte_block_stream_0,
+  stream<subsymb_t> &symbol_stream_1,
+  stream<byte_block<OUT_WORD_BYTES>> &byte_block_stream_1);
 
 #endif // ANS_CODER_HPP
