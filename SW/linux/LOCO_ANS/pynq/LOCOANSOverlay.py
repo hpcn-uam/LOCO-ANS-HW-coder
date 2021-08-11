@@ -11,7 +11,7 @@
 # 
 # 
 # 
-#  Last Modified : 2021-08-03 19:45:07 
+#  Last Modified : 2021-08-11 15:14:56 
 # 
 #  Revision      : 
 # 
@@ -24,7 +24,7 @@ import numpy as np
 from pynq.ps import Clocks
 import time 
 import cv2
-
+from warnings import warn
 
 class LOCOANSOverlay(Overlay):
     def __init__(
@@ -36,18 +36,47 @@ class LOCOANSOverlay(Overlay):
     ):
 #         super().__init__(bitfile_name, download=download, device=device)
         super().__init__(bitfile_name, download=download)
-        self.idma = self.idma_0
-        self.odma = self.LOCO_ANS_Encoder.odma_0
+        self.idma = list()
+        self.odma = list()
+        self.decorrelator = list()
+
+        self.in_buf = list()
+        self.out_buf = list()
+
+        #check get coder. It can support near >0 or be lossless only
         try:
-            self.decorrelator = codec.LOCO_ANS_Encoder.LOCO_decorrelator_0
+            aux_deco = self.LOCO_ANS_Encoder.LOCO_decorrelator_0
             self.near_support=True
+            self.max_near = 255
         except:
-            self.decorrelator = codec.LOCO_ANS_Encoder.LOCO_decorrelator_LS_0
+            aux_deco = self.LOCO_ANS_Encoder.LOCO_decorrelator_LS_0
             self.near_support=False
-        self.BLK_HEADER_BYTES = 4
+            self.max_near = 0
+
+        self.num_of_vertical_tiles = 0
+
+        while True:
+            tile_post="_%d" % self.num_of_vertical_tiles
+            try:
+                self.idma += [getattr(self,"idma"+tile_post) ]
+                self.odma += [getattr(self.LOCO_ANS_Encoder,"odma"+tile_post) ]
+
+                if self.near_support:
+                    self.decorrelator += [getattr(self.LOCO_ANS_Encoder,"LOCO_decorrelator"+tile_post) ]
+                    
+                else:
+                    self.decorrelator += [getattr(self.LOCO_ANS_Encoder,"LOCO_decorrelator_LS"+tile_post) ]
+
+                self.in_buf += [np.array([])]
+                self.out_buf += [np.array([])]
+                self.num_of_vertical_tiles +=1
+
+            except:
+                break
+
+        self.tiles_in_use = self.num_of_vertical_tiles
+        self.BLK_HEADER_BYTES = 4 
         
-        self.in_buf = np.array([])
-        self.out_buf = np.array([])
         np.random.seed(rand_seed)
         self.compressed_img =  "/run/user/1000/compressed_image.jls_ans"
         self.decoded_img =  ""
@@ -56,7 +85,7 @@ class LOCOANSOverlay(Overlay):
         self.input_img = None
 
         # TODO: get the next parameters from hardware
-        self.num_of_vertical_tiles = 1
+        
         self.ee_buffer_exp = 6
     
     
@@ -78,8 +107,9 @@ class LOCOANSOverlay(Overlay):
         modules = ["idma", "odma", "decorrelator"]
         for module in modules:
             obj = getattr(self,module)
-            status_msj = self.obj_status(obj)
-            print(module,": ",status_msj)
+            for i in range(self.num_of_vertical_tiles):
+                status_msj = self.obj_status(obj[i])
+                print(module," %d: " %i,status_msj)
    
     @property
     def near(self):
@@ -90,27 +120,35 @@ class LOCOANSOverlay(Overlay):
         assert self.near_support or new_near == 0, "Error: near setting (new near =%d) is not supported" % new_near
         self._near=new_near  
 
+    @property
+    def clock1(self):
+        return Clocks.fclk1_mhz
     
+    @clock1.setter
+    def clock1(self,clk_in_mhz):
+        Clocks.fclk1_mhz=clk_in_mhz
     
     
     @property
-    def clock(self):
+    def clock0(self):
         return Clocks.fclk0_mhz
     
-    @clock.setter
-    def clock(self,clk_in_mhz):
+    @clock0.setter
+    def clock0(self,clk_in_mhz):
         Clocks.fclk0_mhz=clk_in_mhz
         
     def allocate_buffers(self,in_block_size):
         in_buf_size = in_block_size
         out_buf_size = 4+in_block_size*10
-        if len(self.in_buf)<in_buf_size:
+        if len(self.in_buf[0])<in_buf_size:
             del self.in_buf
-            self.in_buf = allocate(in_block_size, dtype=np.uint8)
-        
-        if len(self.out_buf)<out_buf_size:
             del self.out_buf
-            self.out_buf = allocate(out_buf_size, dtype=np.uint8)
+        
+        self.in_buf = []
+        self.out_buf = []
+        for i in range(self.tiles_in_use):
+            self.in_buf += [allocate(in_block_size, dtype=np.uint8)]
+            self.out_buf += [allocate(out_buf_size, dtype=np.uint8)]
 
     def load_image(self,img=None):
         if img is None:
@@ -118,11 +156,23 @@ class LOCOANSOverlay(Overlay):
 
         assert not img is None, "No image to load"
 
-        img = img.flatten()
-        num_of_px = len(img)
-        self.allocate_buffers(num_of_px)
-        self.in_buf[:num_of_px] = img
-        self.in_buf.flush()
+        self.tiles_in_use = self.num_of_vertical_tiles
+        rows,cols = img.shape
+        assert self.tiles_in_use >= 1
+        while cols % self.tiles_in_use != 0:
+            self.tiles_in_use-=1
+
+        if self.tiles_in_use != self.num_of_vertical_tiles:
+            warn("Using %d of %d tiles for this images due to cols to tiles ratio" % (
+                    self.tiles_in_use,self.num_of_vertical_tiles))
+        
+        cols_per_tile = cols//self.tiles_in_use #This division result is exact
+        px_per_tile = cols_per_tile*rows
+        self.allocate_buffers(px_per_tile)
+        for i in range(self.tiles_in_use):
+            sub_img = img[:,i*cols_per_tile:(i+1)*cols_per_tile].flatten()
+            self.in_buf[i][:px_per_tile] = sub_img
+            self.in_buf[i].flush()
 
     def load_image_from_path(self,image_path):
         self.input_img = cv2.imread(image_path,cv2.IMREAD_GRAYSCALE)
@@ -139,55 +189,78 @@ class LOCOANSOverlay(Overlay):
         self.input_img = np.random.randint(0,256,size=(rows,cols),dtype=np.uint8)
         self.load_image(self.input_img)
     
-    def print_outbuf(elems=30):
-        if elem == -1:
-            print("Complete outbuf")
-            print( " ".join(["%02X" % x for x in codec.out_buf] ))
-        else:
-            print("First %d elements of outbuf" %elems)
-            print( " ".join(["%02X" % x for x in codec.out_buf[:elems]] ))
+    def print_outbuf(self,elems=30):
+        for i in range(self.tiles_in_use):
+            if elem == -1:
+                print("Complete outbuf %d" % i)
+                print( " ".join(["%02X" % x for x in codec.out_buf[i]] ))
+            else:
+                print("First %d elements of outbuf %d" %(elems,i))
+                print( " ".join(["%02X" % x for x in codec.out_buf[i][:elems]] ))
     
     def config_hw(self,cols=None,rows=None):
         if cols is None or rows is None:
             rows,cols = self.input_img.shape
         assert not (rows is None or cols is None), "Missing image size data"
 
-        in_block_size = cols*rows
-        self.idma.write(0x10,self.in_buf.device_address)
-        self.idma.write(0x1c,in_block_size)
+        assert cols%self.tiles_in_use == 0
+        cols_per_tile = cols//self.tiles_in_use #This division result is exact
 
-        self.odma.write(0x10,self.out_buf.device_address)
+        in_block_size = cols_per_tile*rows
+        for i in range(self.tiles_in_use):
+            self.idma[i].write(0x10,self.in_buf[i].device_address)
+            self.idma[i].write(0x1c,in_block_size)
 
-        # config LOCO decorrelator 
-        self.decorrelator.write(0x10,cols)
-        self.decorrelator.write(0x18,rows)
-        if self.near_support:
-            self.decorrelator.write(0x20,self._near)
+            self.odma[i].write(0x10,self.out_buf[i].device_address)
+
+            # config LOCO decorrelator 
+            self.decorrelator[i].write(0x10,cols_per_tile)
+            self.decorrelator[i].write(0x18,rows)
+            if self.near_support:
+                self.decorrelator[i].write(0x20,self._near)
 
     def print_odma_status(self):
 
-        status = self.odma.read(0x00)
-        if status &0x2:
-            print("Done")
+        for i in range(self.tiles_in_use):
+            status = self.odma[i].read(0x00)
+            print("Odma %d: "%i,end="")
+            if status &0x2:
+                print("Done")
 
-        if status &0x4:
-            print("Idle")
+            if status &0x4:
+                print("Idle")
 
-        if status &0x8:
-            print("Ready")
+            if status &0x8:
+                print("Ready")
             
-    def odma_done(self):
-        return (self.odma.read(0x00)&0x2) != 0
+    def odmas_done(self):
+        all_done = True
+        for i in range(self.tiles_in_use):
+            if self.tiles_running[i]:
+                all_done = all_done and ((self.odma[i].read(0x00)&0x2) != 0)
+        return all_done
             
+    def odmas_running(self):
+        all_running = True
+        for i in range(self.tiles_in_use):
+            if not self.tiles_running[i]:
+                self.tiles_running[i] = (self.odma[i].read(0x00)&0x2) != 0
+                all_running = all_running and self.tiles_running[i]
+        return all_running
+    
     def run_hw(self,blocking=False):
-        self.idma.write(0,1)
-        self.decorrelator.write(0,1)
-        self.odma.write(0,1)
+        self.tiles_running = []
+        for i in range(self.tiles_in_use):
+            self.idma[i].write(0,1)
+            self.tiles_running +=[False]
+            self.decorrelator[i].write(0,1)
+            self.odma[i].write(0,1)
+
         if blocking:
             # first while to avoid query before done goes down (it was happening)
-            while(not self.odma_done()): 
+            while(not self.odmas_running()): 
                 pass
-            while(self.odma_done()):
+            while(self.odmas_done()):
                 pass
 
     def generate_global_header(self):
@@ -209,8 +282,8 @@ class LOCOANSOverlay(Overlay):
         global_header[5] = (blk_height >>8)&0xFF
 
         #blk_width
-        blk_width= img_width//self.num_of_vertical_tiles
-        assert img_width//self.num_of_vertical_tiles == img_width/self.num_of_vertical_tiles,(
+        blk_width= img_width//self.tiles_in_use
+        assert img_width %self.tiles_in_use == 0,(
             "blocks of different sizes are not supported by the header")
         global_header[6] = blk_width &0xFF
         global_header[7] = (blk_width >>8)&0xFF
@@ -230,33 +303,38 @@ class LOCOANSOverlay(Overlay):
             self.compressed_img = compressed_img
 
         out_data = self.generate_global_header()
-        block_bytes = self.get_out_binary_bytes()+self.BLK_HEADER_BYTES
-        out_data = np.append(out_data,self.out_buf[:block_bytes])
+        for i in range(self.tiles_in_use):
+            block_bytes = self.get_out_binary_bytes(i)+self.BLK_HEADER_BYTES
+            out_data = np.append(out_data,self.out_buf[i][:block_bytes])
+
         out_data.tofile(self.compressed_img)
 
-    def get_out_binary_bytes(self):
+    def get_out_binary_bytes(self,tile_idx=0):
         
         output_bytes = 0
         for i in range(self.BLK_HEADER_BYTES):
-            output_bytes |= self.out_buf[i] <<(8*i)
+            output_bytes |= self.out_buf[tile_idx][i] <<(8*i)
         return output_bytes
     
     def get_bpp(self):
         # Adding header's 12 bytes 
-        return (self.get_out_binary_bytes()+12)*8/self.input_img.flatten().size
+        blks_bytes = sum( [self.get_out_binary_bytes(i)+self.BLK_HEADER_BYTES 
+                                for i in range(self.tiles_in_use)])
+        return ( blks_bytes+ 12)*8/self.input_img.size
         
     def print_out_binary(self):
         
         print("Out bytes:")
         offset = self.BLK_HEADER_BYTES
-        output_bytes = self.get_out_binary_bytes()
-        for i in range(offset,offset+output_bytes):
-            print("{:4d} ({:4d}): {:02X}".format(i,i-offset,self.out_buf[i]))
+        for i in self.tiles_in_use:
+            output_bytes = self.get_out_binary_bytes(i)
+            for b in range(offset,offset+output_bytes):
+                print("{:4d} ({:4d}): {:02X}".format(b,b-offset,self.out_buf[i][b]))
 
     def check_out_binary(self):
         # first sanity check
-        
-        assert self.get_out_binary_bytes() < (len(self.out_buf)-self.BLK_HEADER_BYTES)
+        for i in range(self.tiles_in_use):
+            assert self.get_out_binary_bytes(i) < (len(self.out_buf[i])-self.BLK_HEADER_BYTES)
         
         self.store_out_binary()
 
@@ -305,11 +383,11 @@ class LOCOANSOverlay(Overlay):
         t2= time.perf_counter()
         perf_times["run_hw"] = (t2-t1)/run_iterations
         
-        self.out_buf.invalidate()
+        for i in range(self.tiles_in_use):
+            self.out_buf[i].invalidate()
         
         # check output
         success = self.check_out_binary()
         
         
-        return success, perf_times
-    
+        return success, perf_times ñs
