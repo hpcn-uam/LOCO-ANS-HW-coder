@@ -22,7 +22,7 @@ class Context
 public:
   Context();
   ~Context();
-  
+
 };
 
 ContextElement context_stats[CTX_GRAD_BINS];
@@ -54,11 +54,11 @@ void init_context(int near, int alpha){
 
 
   init_ctx_loop: for(unsigned i = 0; i < CTX_GRAD_BINS; ++i) {
-    // #pragma HLS unroll factor=2 
+    // #pragma HLS unroll factor=2
     // I can unroll x2 switching from s2p_ram to t2p_ram
-    // This comes at the cost of doubling the number of BRAMs (if these are used) 
+    // This comes at the cost of doubling the number of BRAMs (if these are used)
     // as 18K BRAMS in s2p mode can be configured as 36x512 but in t2p the
-    //  wider config is 18x1028.  
+    //  wider config is 18x1028.
     // CTX_GRAD_BINS = 365 for T=4 and 3 grads.
 
     context_stats[i].cnt = 1;
@@ -80,18 +80,18 @@ void init_context(int near, int alpha){
   const int delta = (near <<1) +1;
   const int MIN_REDUCT_ERROR = -near;
   const int MAX_REDUCT_ERROR =  MAXVAL + near;
-  const int DECO_RANGE = alpha * delta;     
+  const int DECO_RANGE = alpha * delta;
   const int MAX_ERROR =  (alpha+1)/2 -1; //  std::ceil(alpha/2.0) -1;
   const int MIN_ERROR = -(alpha/2); // -std::floor(alpha/2.0);
 
   constexpr int LOOP_ITERS = MAX(CTX_GRAD_BINS,QUANT_RED_LUT_SIZE);
   init_ctx_loop: for(int i = 0; i < LOOP_ITERS; ++i) {
   // init_ctx_loop: for(unsigned i = 0; i < CTX_GRAD_BINS; ++i) {
-    // #pragma HLS unroll factor=2 
+    // #pragma HLS unroll factor=2
     // I can unroll x2 switching from s2p_ram to t2p_ram
-    // This comes at the cost of doubling the number of BRAMs (if these are used) 
+    // This comes at the cost of doubling the number of BRAMs (if these are used)
     // as 18K BRAMS in s2p mode can be configured as 36x512 but in t2p the
-    //  wider config is 18x1028.  
+    //  wider config is 18x1028.
     // CTX_GRAD_BINS = 365 for T=4 and 3 grads.
 
     if(i < CTX_GRAD_BINS) {
@@ -125,7 +125,7 @@ void init_context(int near, int alpha){
 int gradient_quantizer(int g){
   #pragma HLS inline
   constexpr int T0=0,T1=3,T2=7,T3=21;
-  
+
   int q;
   //OPT? using simetry
   // OPT implement like a tree
@@ -171,7 +171,7 @@ int gradient_quantizer(int g){
     }else{
       q = 4;
     }
-  
+
   return sign==0? q:-q;
   #elif 0
 
@@ -187,7 +187,7 @@ int gradient_quantizer(int g){
     }else{
       q = 4;
     }
-  
+
   return g<0? -q:q;
 
   #else
@@ -262,8 +262,12 @@ inline void update_context(
   ContextElement &updated_stats){
   #pragma HLS inline
 
-  auto & acc = current_stats.acc;
-  auto & cnt = current_stats.cnt;
+  // int acc = current_stats.acc;
+  ap_int<3+CTX_ADJUST_CNT_BITS>  acc = current_stats.acc;
+  // auto & acc = current_stats.acc;
+  // ap_uint<1+CTX_ADJUST_CNT_BITS> cnt = current_stats.cnt;
+  uint cnt = current_stats.cnt;
+  // auto & cnt = current_stats.cnt;
   auto & bias = current_stats.bias;
   auto & Nt = current_stats.Nt;
   auto & p_idx = current_stats.p_idx;
@@ -293,7 +297,7 @@ inline void update_context(
       acc -= cnt ;
       if ((acc > Ls)){ acc= Ls;}
     }
-  
+
   //update p id
     ASSERT(CTX_NT_CENTERED_QUANT,==,true);
     ASSERT(HALF_Y_CODER,==,true);
@@ -339,14 +343,16 @@ inline void update_context(
     #else
       ASSERT(p_idx,<,(1<<CTX_NT_PRECISION));
     #endif
- 
-  if(cnt >= CTX_ADJUST_CNT ) { 
-    cnt >>=1; 
+
+  if(cnt >= CTX_ADJUST_CNT ) {
+    cnt >>=1;
     acc = (acc >= 0)? ctx_acc_t(acc >> 1): ctx_acc_t(-((1 - acc) >> 1));
     Nt  >>=1;
     St  >>=1;
-  }    
+  }
 
+  current_stats.acc = acc;
+  current_stats.cnt = cnt;
   updated_stats = current_stats;
   context_stats[context]= current_stats;
 
