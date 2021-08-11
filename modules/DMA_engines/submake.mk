@@ -8,11 +8,11 @@ NC=\e[0m
 
 TARGETS =  idma  odma odma_VarSize loopback_fifo idma_TSG
 .PHONY: clean  test $(TARGETS)
-	
+
 
 $(TARGETS): %: %.hls_prj/solution1/impl/ip/
 
-%.hls_prj/solution1/impl/ip/: $(DEPS)
+%.hls_prj/solution1/impl/ip/: $(DEPS) %_script.tcl
 ifeq ($(MODE),0)
 	@echo  "$(GREEN) #########  Compiling $* (with csim and RTL cosim) #########$(NC)"
 else
