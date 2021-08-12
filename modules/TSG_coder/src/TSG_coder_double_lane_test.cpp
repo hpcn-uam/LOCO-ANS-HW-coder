@@ -26,36 +26,14 @@ using namespace hls;
   #define NUM_OF_BLCKS (9)
 #endif
 
-
-static const tANS_table_t 
-  tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
-  #include "../../ANS_tables/tANS_y_encoder_table.dat"
-}; 
-
-static const tANS_table_t 
-  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]{
-  #include "../../ANS_tables/tANS_z_encoder_table.dat"
-}; 
-
 int main(int argc, char const *argv[])
 {
-  stream<coder_interf_t> in_data;
-  bool using_user_args = false;
-  int user_blk_size=-1;
-  int user_blk_idx=-1;
-  if(argc>1) {
-    using_user_args = true;
-    user_blk_size = atoi(argv[1]);
-  }
-
-  if(argc>2) {
-    using_user_args = true;
-    user_blk_idx = atoi(argv[2]);
-  }
-
+  stream<coder_interf_t> in_data_0;
+  stream<coder_interf_t> in_data_1;
+  
   int num_of_errors = 0;
   for (int blk_idx = 0; blk_idx < NUM_OF_BLCKS; ++blk_idx){
-	  std::vector<coder_interf_t> input_vector;
+    std::vector<coder_interf_t> input_vector;
 
     // ************
     // Generate input 
@@ -75,15 +53,9 @@ int main(int argc, char const *argv[])
       const int blk_remainder_bits = EE_REMAINDER_SIZE - blk_remainder_reduct;
       const int Z_mask = (1<<blk_remainder_bits)-1;
 
-      if(using_user_args && user_blk_idx!= -1) {
-        blk_idx = user_blk_idx;
-      }
       cout<<"Processing block "<<blk_idx<<" | Z_mask: "<<hex<<Z_mask<<endl;
       int block_size = TEST_BUFFER_SIZE + 20- 20*int(blk_idx/2);
 
-      if(using_user_args && user_blk_size!= -1) {
-        block_size = user_blk_size;
-      }
       for (int i = 0; i < block_size; ++i){
         symb_data_t symb_data;
         ap_uint<1> last_symbol = (i == block_size-1)? 1:0 ;
@@ -98,7 +70,8 @@ int main(int argc, char const *argv[])
         ap_uint<P_SIZE> p_id = blk_idx/2 ;
         symb_data = (z,y,theta_id,p_id);
         coder_interf_t in_inf_data = (last_symbol,in_remainder_reduct,symb_data);
-        in_data <<in_inf_data;
+        in_data_0 <<in_inf_data;
+        in_data_1 <<in_inf_data;
         // in_data.write(bits_to_intf(symb_data ,symb_ctrl));
         input_vector.push_back(in_inf_data);
       }
@@ -107,16 +80,17 @@ int main(int argc, char const *argv[])
     // ************
     // Run DUT :
     // ************
-    stream<TSG_out_intf> axis_byte_blocks; 
-    stream<tsg_blk_metadata> out_blk_metadata;
+    stream<TSG_out_intf> axis_byte_blocks_0; 
+    stream<tsg_blk_metadata> out_blk_metadata_0;
+    stream<TSG_out_intf> axis_byte_blocks_1; 
+    stream<tsg_blk_metadata> out_blk_metadata_1;
     int call_cnt = 0;
-    while(!in_data.empty()){
-    	TSG_coder(in_data,axis_byte_blocks,out_blk_metadata
-        #if defined(EXTERNAL_ANS_ROM) && !defined(USE_TSG_INTERNAL_ROM)
-        ,tANS_y_encode_table, tANS_z_encode_table
-        #endif
+    while(!in_data_0.empty()){
+      TSG_coder_double_lane(
+        in_data_0,axis_byte_blocks_0,out_blk_metadata_0,
+        in_data_1,axis_byte_blocks_1,out_blk_metadata_1
         );
-    	call_cnt++;
+      call_cnt++;
     }
 
 
@@ -125,9 +99,34 @@ int main(int argc, char const *argv[])
     // ************
     const int golden_call_cnt = ceil(float(block_size)/BUFFER_SIZE);
     ASSERT(call_cnt, ==, golden_call_cnt);
-    ASSERT(axis_byte_blocks.empty(),==,false);
-    ASSERT(out_blk_metadata.empty(),==,false);
+    ASSERT(axis_byte_blocks_0.empty(),==,false);
+    ASSERT(out_blk_metadata_0.empty(),==,false);
+    ASSERT(axis_byte_blocks_1.empty(),==,false);
+    ASSERT(out_blk_metadata_1.empty(),==,false);
 
+
+    // check duplicated stream, and create single copy (to avoid the tb modification)
+    ASSERT(axis_byte_blocks_0.size(),==,axis_byte_blocks_1.size());
+    ASSERT(out_blk_metadata_0.size(),==,out_blk_metadata_1.size());
+
+    stream<TSG_out_intf> axis_byte_blocks;
+    while(!axis_byte_blocks_1.empty()) {
+      auto out_0 = axis_byte_blocks_0.read();
+      auto out_1 = axis_byte_blocks_1.read();
+      ASSERT(out_0.data,==,out_1.data)
+      ASSERT(out_0.keep,==,out_1.keep)
+      ASSERT(out_0.strb,==,out_1.strb)
+      ASSERT(out_0.last,==,out_1.last)
+      axis_byte_blocks << out_0;
+    }
+
+    stream<tsg_blk_metadata> out_blk_metadata;
+    while(!out_blk_metadata_1.empty()) {
+      auto out_0 = out_blk_metadata_0.read();
+      auto out_1 = out_blk_metadata_1.read();
+      ASSERT(out_0,==,out_1)
+      out_blk_metadata << out_0;
+    }
 
     stream<byte_block<OUT_WORD_BYTES>> byte_blocks;
     axis2byteblock<OUT_WORD_BYTES>(axis_byte_blocks,byte_blocks);
@@ -154,9 +153,9 @@ int main(int argc, char const *argv[])
       //write to memory
       for(unsigned j = 0; j < out_byte_block.num_of_bytes(); ++j) {
         block_binary[mem_pointer] = out_byte_block.data((j+1)*8-1,j*8);
-		#ifdef DEBUG
+    #ifdef DEBUG
         printf("%d: %02X\n", mem_pointer, block_binary[mem_pointer]);
-		#endif
+    #endif
         mem_pointer++;
         blk_byte_cnt++;
       }
@@ -224,7 +223,8 @@ int main(int argc, char const *argv[])
     // ASSERT(bin_decoder.get_current_byte_pointer(),==,last_mem_pointer);
 
     // Assert all hw streams have been consumed
-    ASSERT(in_data.size(),==,0," Check that TSG consumed all input elements")
+    ASSERT(in_data_0.size(),==,0," Check that TSG consumed all input elements")
+    ASSERT(in_data_1.size(),==,0," Check that TSG consumed all input elements")
     ASSERT(byte_blocks.size(),==,0,
       " Check that the testbench has read all outputs generated by the hw")
     ASSERT(out_blk_metadata.size(),==,0,
@@ -233,10 +233,6 @@ int main(int argc, char const *argv[])
     cout<<"  | SUCCESS"<<endl;
     //clean up 
     delete[] block_binary;
-
-    if(using_user_args) {
-      break;
-    }
   }
 
   return num_of_errors;

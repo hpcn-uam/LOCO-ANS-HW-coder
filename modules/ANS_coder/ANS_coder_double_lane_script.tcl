@@ -15,25 +15,26 @@ if { $arg_idx < $arglen } {
 }
 puts "Mode : $mode" 
 
-set module subsymbol_gen
+set module ANS_coder_double_lane
 
-open_project "subsym_gen.hls_prj"
-set_top subsymbol_gen
-add_files src/subsym_gen.cpp -cflags "-DSUBSYMBOL_GEN_TOP"
-add_files -tb src/test.cpp -cflags "-Wno-unknown-pragmas -DSUBSYMBOL_GEN_TOP" -csimflags "-Wno-unknown-pragmas"
+open_project "${module}.hls_prj"
+set_top ${module}
+add_files src/ANS_coder.cpp -cflags "-DANS_CODER_DOUBLE_LANE_TOP"
+add_files -tb src/test.cpp -cflags "-Wno-unknown-pragmas -DANS_CODER_DOUBLE_LANE_TOP" -csimflags "-Wno-unknown-pragmas"
+add_files -tb ../subsym_gen/src/subsym_gen.cpp -cflags "-Wno-unknown-pragmas" -csimflags "-Wno-unknown-pragmas"
 add_files -tb ../input_buffers/src/input_buffers.cpp -cflags "-Wno-unknown-pragmas" -csimflags "-Wno-unknown-pragmas"
 open_solution "solution1" -flow_target vivado
 set_part {xc7z020-clg484-1}
 create_clock -period 10 -name default
 config_compile -enable_auto_rewind=false
+config_export -format ip_catalog -rtl verilog
 # config_compile -pipeline_style flp
-
 # source "./directives.tcl"
 if { $mode == 0 } {
   csim_design -clean
 }
 csynth_design
 if { $mode == 0 } {
-  cosim_design -enable_dataflow_profiling -trace_level all
+  cosim_design -enable_dataflow_profiling -trace_level port
 }
 export_design -format ip_catalog

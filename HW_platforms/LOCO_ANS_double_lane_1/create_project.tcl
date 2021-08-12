@@ -212,6 +212,7 @@ set_property -name "platform.board_id" -value $board_id -objects $obj
 set_property -name "sim.central_dir" -value "$proj_dir/${_xil_proj_name_}.ip_user_files" -objects $obj
 set_property -name "sim.ip.auto_export_scripts" -value "1" -objects $obj
 set_property -name "simulator_language" -value "Mixed" -objects $obj
+# set_property -name "target_language" -value "VHDL" -objects $obj
 # VHDL synthesis fails for i/odma optimized for read-only/write-only
 set_property -name "target_language" -value "Verilog" -objects $obj 
 

@@ -15,20 +15,19 @@ if { $arg_idx < $arglen } {
 }
 puts "Mode : $mode" 
 
-set module subsymbol_gen
-
-open_project "subsym_gen.hls_prj"
-set_top subsymbol_gen
-add_files src/subsym_gen.cpp -cflags "-DSUBSYMBOL_GEN_TOP"
-add_files -tb src/test.cpp -cflags "-Wno-unknown-pragmas -DSUBSYMBOL_GEN_TOP" -csimflags "-Wno-unknown-pragmas"
-add_files -tb ../input_buffers/src/input_buffers.cpp -cflags "-Wno-unknown-pragmas" -csimflags "-Wno-unknown-pragmas"
+open_project TSG_coder_double_lane.hls_prj
+set_top TSG_coder_double_lane
+add_files src/TSG_coder.cpp -cflags "-DTSG_CODER_DOUBLE_LANE_TOP"
+add_files ../input_buffers/src/input_buffers.cpp
+add_files ../subsym_gen/src/subsym_gen.cpp
+add_files ../ANS_coder/src/ANS_coder.cpp
+add_files ../output_stack/src/output_stack.cpp
+add_files -tb src/TSG_coder_double_lane_test.cpp
 open_solution "solution1" -flow_target vivado
-set_part {xc7z020-clg484-1}
+set_part {xc7z020clg484-1}
 create_clock -period 10 -name default
 config_compile -enable_auto_rewind=false
-# config_compile -pipeline_style flp
-
-# source "./directives.tcl"
+#source "./src/directives.tcl"
 if { $mode == 0 } {
   csim_design -clean
 }
