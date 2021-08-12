@@ -50,9 +50,41 @@ int main(int argc, char const *argv[])
     }
 
     stream<subsymb_t> symbol_stream;
-    while (! inverted_data.empty()){
-        subsymbol_gen(inverted_data,symbol_stream);
-    }
+    #ifdef SUBSYMBOL_GEN_DOUBLE_LANE_TOP
+      //duplicate
+      stream<coder_interf_t> inverted_data_0,inverted_data_1;
+      while (! inverted_data.empty()){
+        auto d = inverted_data.read();
+        inverted_data_0 << d;
+        inverted_data_1 << d;
+      }
+
+      stream<subsymb_t> symbol_stream_0,symbol_stream_1;
+      //run DUT
+      while(! inverted_data_0.empty()) {
+        subsymbol_gen_double_lane(inverted_data_0,symbol_stream_0,
+            inverted_data_1,symbol_stream_1);
+      }
+      ASSERT(inverted_data_1.size(),==,0);
+      ASSERT(symbol_stream_0.size(),==,symbol_stream_1.size());
+
+      //de-duplicate
+      while (! symbol_stream_0.empty()){
+        auto out_0 = symbol_stream_0.read();
+        auto out_1 = symbol_stream_1.read();
+        ASSERT(out_0.subsymb,==,out_1.subsymb);
+        ASSERT(out_0.type,==,out_1.type);
+        ASSERT(out_0.info,==,out_1.info);
+        ASSERT(out_0.end_of_block,==,out_1.end_of_block);
+
+        symbol_stream << out_0;
+      }
+
+    #else
+      while (! inverted_data.empty()){
+          subsymbol_gen(inverted_data,symbol_stream);
+      }
+    #endif
 
     // while(!symbol_stream.empty()) {
     //     subsymb_t aux = symbol_stream.read();
@@ -64,6 +96,10 @@ int main(int argc, char const *argv[])
       std::vector<subsymb_t> aux_vector;
       while(!symbol_stream.empty()) {
         subsymb_t out_symb = symbol_stream.read();
+        cout<< " |type: "<<out_symb.type;
+	  cout<< " |info: "<<out_symb.info;
+	  cout<< " |subsymb: "<<out_symb.subsymb;
+	  cout<< " |end_of_block: "<<out_symb.end_of_block<<endl;
         aux_vector.push_back(out_symb);
       }
       while (!aux_vector.empty()){
@@ -99,9 +135,13 @@ int main(int argc, char const *argv[])
       // read first symbol using 
       out_symb = inverted_subsymb.read();
 
+      cout<< " |type: "<<out_symb.type;
+      cout<< " |info: "<<out_symb.info;
+      cout<< " |subsymb: "<<out_symb.subsymb;
+      cout<< " |end_of_block: "<<out_symb.end_of_block<<endl;
 
-      assert(out_symb.type ==SUBSYMB_Z_LAST);
-      assert(out_symb.info == golden_theta_id);
+      ASSERT(out_symb.type ,== ,SUBSYMB_Z_LAST,"i: "<<i);
+      ASSERT(out_symb.info ,== , golden_theta_id,"i: "<<i);
 
       auto ans_symb = out_symb.subsymb;
       const auto encoder_cardinality = tANS_cardinality_table[out_symb.info];
@@ -109,9 +149,9 @@ int main(int argc, char const *argv[])
       int it = 1;
 
       if(i ==0) {
-		    assert(out_symb.end_of_block == 1);
+		    ASSERT(out_symb.end_of_block ,== , 1,"i: "<<i);
   		}else{
-  			assert(out_symb.end_of_block == 0);
+  			ASSERT(out_symb.end_of_block ,== , 0,"i: "<<i);
   		}
 
       while(ans_symb == encoder_cardinality){
@@ -119,9 +159,9 @@ int main(int argc, char const *argv[])
 
         if(it >= EE_MAX_ITERATIONS) {
           const int remainder_bits = EE_REMAINDER_SIZE - golden_remainder_reduct;
-          assert(out_symb.type == SUBSYMB_BYPASS);
-          assert(out_symb.info == remainder_bits);
-          assert(out_symb.end_of_block == 0);
+          ASSERT(out_symb.type ,== , SUBSYMB_BYPASS,"i: "<<i);
+          ASSERT(out_symb.info ,== , remainder_bits,"i: "<<i);
+          ASSERT(out_symb.end_of_block ,== , 0,"i: "<<i);
           module = out_symb.subsymb;
           break;
         }
@@ -129,22 +169,22 @@ int main(int argc, char const *argv[])
 
         ans_symb = out_symb.subsymb;
         module += ans_symb;
-        assert(out_symb.info == golden_theta_id);
-        assert(out_symb.type == SUBSYMB_Z );
-        assert(out_symb.end_of_block == 0);
+        ASSERT(out_symb.info ,== , golden_theta_id,"i: "<<i);
+        ASSERT(out_symb.type ,== , SUBSYMB_Z ,"i: "<<i);
+        ASSERT(out_symb.end_of_block ,== , 0,"i: "<<i);
         
         it++;
       }
 
-      assert(module == golden_z);
+      ASSERT(module ,== , golden_z,"i: "<<i);
 
 
       // check y
       out_symb = inverted_subsymb.read();
-      assert(out_symb.subsymb == golden_y);
-      assert(out_symb.info == golden_p_id);
-      assert(out_symb.type == SUBSYMB_Y);
-      assert(out_symb.end_of_block == 0);
+      ASSERT(out_symb.subsymb ,== , golden_y,"i: "<<i);
+      ASSERT(out_symb.info ,== , golden_p_id,"i: "<<i);
+      ASSERT(out_symb.type ,== , SUBSYMB_Y,"i: "<<i);
+      ASSERT(out_symb.end_of_block ,== , 0,"i: "<<i);
 
       i++;
 

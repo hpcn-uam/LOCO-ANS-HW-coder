@@ -301,10 +301,14 @@ proc create_hier_cell_LOCO_ANS_Encoder { parentCell nameHier } {
 
 # Procedure to create entire design; Provide argument to make
 # procedure reusable. If parentCell is "", will use root.
-proc create_root_design { parentCell } {
+proc create_root_design { parentCell design_name} {
 
   variable script_folder
-  variable design_name
+  # variable design_name
+
+  if { $design_name eq "" } {
+     set design_name platform
+  }
 
   if { $parentCell eq "" } {
      set parentCell [get_bd_cells /]
@@ -1227,6 +1231,13 @@ Flash#Quad SPI Flash#GPIO#Quad SPI Flash#ENET Reset#GPIO#GPIO#GPIO#GPIO#UART\
 # MAIN FLOW
 ##################################################################
 
-create_root_design ""
+# create_root_design ""
 
 
+##################################################################
+# Set vars
+##################################################################
+
+set board "tul.com.tw:pynq-z2:part0:1.0" 
+set target_part xc7z020clg400-1
+set board_id "pynq-z2"

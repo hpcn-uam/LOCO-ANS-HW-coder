@@ -26,10 +26,33 @@ using namespace hls;
   #define NUM_OF_BLCKS (9)
 #endif
 
+
+static const tANS_table_t 
+  tANS_y_encode_table[NUM_ANS_P_MODES][NUM_ANS_STATES][2]{
+  #include "../../ANS_tables/tANS_y_encoder_table.dat"
+}; 
+
+static const tANS_table_t 
+  tANS_z_encode_table[NUM_ANS_THETA_MODES][NUM_ANS_STATES][Z_ANS_TABLE_CARDINALITY]{
+  #include "../../ANS_tables/tANS_z_encoder_table.dat"
+}; 
+
 int main(int argc, char const *argv[])
 {
   stream<coder_interf_t> in_data;
-  
+  bool using_user_args = false;
+  int user_blk_size=-1;
+  int user_blk_idx=-1;
+  if(argc>1) {
+    using_user_args = true;
+    user_blk_size = atoi(argv[1]);
+  }
+
+  if(argc>2) {
+    using_user_args = true;
+    user_blk_idx = atoi(argv[2]);
+  }
+
   int num_of_errors = 0;
   for (int blk_idx = 0; blk_idx < NUM_OF_BLCKS; ++blk_idx){
 	  std::vector<coder_interf_t> input_vector;
@@ -52,9 +75,15 @@ int main(int argc, char const *argv[])
       const int blk_remainder_bits = EE_REMAINDER_SIZE - blk_remainder_reduct;
       const int Z_mask = (1<<blk_remainder_bits)-1;
 
+      if(using_user_args && user_blk_idx!= -1) {
+        blk_idx = user_blk_idx;
+      }
       cout<<"Processing block "<<blk_idx<<" | Z_mask: "<<hex<<Z_mask<<endl;
       int block_size = TEST_BUFFER_SIZE + 20- 20*int(blk_idx/2);
 
+      if(using_user_args && user_blk_size!= -1) {
+        block_size = user_blk_size;
+      }
       for (int i = 0; i < block_size; ++i){
         symb_data_t symb_data;
         ap_uint<1> last_symbol = (i == block_size-1)? 1:0 ;
@@ -82,7 +111,11 @@ int main(int argc, char const *argv[])
     stream<tsg_blk_metadata> out_blk_metadata;
     int call_cnt = 0;
     while(!in_data.empty()){
-    	TSG_coder(in_data,axis_byte_blocks,out_blk_metadata);
+    	TSG_coder(in_data,axis_byte_blocks,out_blk_metadata
+        #if defined(EXTERNAL_ANS_ROM) && !defined(USE_TSG_INTERNAL_ROM)
+        ,tANS_y_encode_table, tANS_z_encode_table
+        #endif
+        );
     	call_cnt++;
     }
 
@@ -200,6 +233,10 @@ int main(int argc, char const *argv[])
     cout<<"  | SUCCESS"<<endl;
     //clean up 
     delete[] block_binary;
+
+    if(using_user_args) {
+      break;
+    }
   }
 
   return num_of_errors;

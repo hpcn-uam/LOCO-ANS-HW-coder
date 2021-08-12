@@ -164,7 +164,7 @@ def get_symbol_src_geo(theta,max_code_len,max_symbols,just_pow_of_2 = True,min_s
 
 
 
-def get_adaptable_ANS_tables(ANS_address_size,ec_modes, symbol_source_generator, max_src_card ):
+def get_adaptable_ANS_tables(ANS_address_size,ec_modes, symbol_source_generator, max_src_card,HW_tables = False ):
     ''' 
     Creates encoding and decoding array of ANS tables.
     out: encoding array enc[len(ec_modes)][state][max_src_card][2] 
@@ -178,7 +178,11 @@ def get_adaptable_ANS_tables(ANS_address_size,ec_modes, symbol_source_generator,
     ANS_states = 2**ANS_address_size
     ANS_state_offset = ANS_states
     # create empty structure table[NUM_ANS_MODES][NUM_ANS_STATES][ANS_MAX_SRC_CARDINALITY][2]
-    encoding_array = [ [ [[0,-1] for sy in range(max_src_card)] 
+    if HW_tables:
+        table_symbol_cardinality = int(2**(np.ceil(np.log2(max_src_card))))
+    else:
+        table_symbol_cardinality = max_src_card
+    encoding_array = [ [ [[0,-1] for sy in range(table_symbol_cardinality)] 
                                   for st in range(ANS_states)] 
                                           for m in range(ANS_modes)]
 

@@ -20,7 +20,7 @@ set module subsymbol_gen
 open_project "subsym_gen.hls_prj"
 set_top subsymbol_gen
 add_files src/subsym_gen.cpp -cflags "-DSUBSYMBOL_GEN_TOP"
-add_files -tb src/test.cpp -cflags "-Wno-unknown-pragmas" -csimflags "-Wno-unknown-pragmas"
+add_files -tb src/test.cpp -cflags "-Wno-unknown-pragmas -DSUBSYMBOL_GEN_TOP" -csimflags "-Wno-unknown-pragmas"
 add_files -tb ../input_buffers/src/input_buffers.cpp -cflags "-Wno-unknown-pragmas" -csimflags "-Wno-unknown-pragmas"
 open_solution "solution1" -flow_target vivado
 set_part {xc7z020-clg484-1}
