@@ -46,6 +46,10 @@ int Uniform_quantizer(int error, int delta, int near){
   return error;
 }
 
+
+
+
+
 #ifdef LOCO_DECORRELATOR_LS_TOP
 void init_context(int near, int alpha){
   #pragma HLS inline
@@ -79,8 +83,6 @@ void init_context(int near, int alpha){
   const int ctx_initial_St = std::max(2, ((alpha + 32) >> 6 ))<<CTX_ST_PRECISION;
 
   const int delta = (near <<1) +1;
-  const int MIN_REDUCT_ERROR = -near;
-  const int MAX_REDUCT_ERROR =  MAXVAL + near;
   const int DECO_RANGE = alpha * delta;
   const int MAX_ERROR =  (alpha+1)/2 -1; //  std::ceil(alpha/2.0) -1;
   const int MIN_ERROR = -(alpha/2); // -std::floor(alpha/2.0);
@@ -192,7 +194,7 @@ int gradient_quantizer(int g){
 
   return g<0? -q:q;
 
-  #else
+  #elif 0
     int abs_g = abs(g);
 
     if(abs_g < T2) {
@@ -214,6 +216,16 @@ int gradient_quantizer(int g){
     }
 
   return g<0? -q:q;
+  #else
+
+  static const int grad_quant_lut[64]={
+    0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -3, -2, -2, -2, -2, -1, -1
+  };
+  #pragma HLS ARRAY_PARTITION variable=grad_quant_lut complete dim=0
+  // #pragma HLS bind_storage variable=grad_quant_lut type=ROM_1P latency=0
+  q = grad_quant_lut[ap_uint<6>(g)];
+  q = g >=32? 4: (g<=-32?-4:q );
+  return q;
   #endif
 }
 
