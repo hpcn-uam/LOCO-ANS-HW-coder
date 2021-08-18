@@ -62,6 +62,7 @@ typedef int pixel_ptr_t;
 #define CTX_B_PRECISION 3 // number of fractional bits
 
 #define USING_DIV_RED_LUT 1
+#define NEAR_LUT_NO_DIV
 #define ERROR_REDUCTION 1
 #define FORWARD_QUANTIZATION_ERROR 1
 

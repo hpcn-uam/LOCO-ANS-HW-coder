@@ -64,8 +64,9 @@ void LOCO_decorrelator(
   //context init
   // constexpr int near =0,
   const int delta =(near<<1)+1;
+  // OPT: limit near and replace alpha computation with a lut
   const int alpha = near ==0?MAXVAL + 1 :
-                     (MAXVAL + 2 * near) / delta + 1;
+               (MAXVAL + 2 * near) / delta + 1;
 
   const int MIN_REDUCT_ERROR = -near;
   const int MAX_REDUCT_ERROR =  MAXVAL + near;

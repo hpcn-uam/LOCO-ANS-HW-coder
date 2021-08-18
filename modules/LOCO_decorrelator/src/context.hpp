@@ -88,6 +88,9 @@ void init_context(int near, int alpha){
   const int MIN_ERROR = -(alpha/2); // -std::floor(alpha/2.0);
 
   constexpr int LOOP_ITERS = MAX(CTX_GRAD_BINS,QUANT_RED_LUT_SIZE);
+  #ifdef NEAR_LUT_NO_DIV
+  int aux_symb=0,aux_quant_error=0,q_idx= near;
+  #endif
   init_ctx_loop: for(int i = 0; i < LOOP_ITERS; ++i) {
   // init_ctx_loop: for(unsigned i = 0; i < CTX_GRAD_BINS; ++i) {
     // #pragma HLS unroll factor=2
@@ -107,18 +110,67 @@ void init_context(int near, int alpha){
     }
 
     if (i < QUANT_RED_LUT_SIZE){
-      int orig_error = i - MAXVAL;
-      ap_uint<INPUT_BPP+1> lut_address = orig_error;
+      #ifdef NEAR_LUT_NO_DIV
+        int orig_error = i <=255 ? i : 256 - i;
+        int symb= i <=255? aux_symb :  -aux_symb;
+        int quant_error= i <=255?  aux_quant_error : -aux_quant_error;
 
-      int error = Uniform_quantizer(orig_error,delta,near);
-      quant_error_lut[lut_address] = error*delta- orig_error;
-      if((error < MIN_ERROR)){
-        error += alpha;
-      }else if((error > MAX_ERROR)){
-        error -= alpha;
-      }
-      quant_reduct_lut[lut_address].reduct_error = error;
-      quant_reduct_lut[lut_address].reconstruct_error = error*delta;
+        ap_uint<INPUT_BPP+1> lut_address = orig_error;
+
+        int red_symbol = symb;
+        if((symb < MIN_ERROR)){
+          red_symbol += alpha;
+        }else if((symb > MAX_ERROR)){
+          red_symbol -= alpha;
+        }
+
+        quant_error_lut[lut_address] = quant_error;
+        quant_reduct_lut[lut_address].reduct_error = red_symbol;
+        quant_reduct_lut[lut_address].reconstruct_error = red_symbol*delta;
+
+        #ifdef DEBUG
+          int dbg_symb = Uniform_quantizer(orig_error,delta,near);
+          int dbg_quant_error = dbg_symb*delta- orig_error;
+          if((dbg_symb < MIN_ERROR)){
+            dbg_symb += alpha;
+          }else if((dbg_symb > MAX_ERROR)){
+            dbg_symb -= alpha;
+          }
+          ASSERT(dbg_symb,==,red_symbol)
+          ASSERT(dbg_quant_error,==,quant_error)
+        #endif
+
+        if (i == 255){
+          aux_symb = 0;
+          red_symbol=0;
+          aux_quant_error =0 ;
+          q_idx = near;
+        }else{
+          if (q_idx == (near<<1)){
+            q_idx = 0;
+            aux_symb +=1;
+            aux_quant_error = near;
+          }else{
+            q_idx +=1;
+            aux_quant_error -= 1;
+          }
+        }
+
+      #else
+        int orig_error = i - MAXVAL;
+        ap_uint<INPUT_BPP+1> lut_address = orig_error;
+
+        int error = Uniform_quantizer(orig_error,delta,near);
+        quant_error_lut[lut_address] = error*delta- orig_error;
+        if((error < MIN_ERROR)){
+          error += alpha;
+        }else if((error > MAX_ERROR)){
+          error -= alpha;
+        }
+        quant_reduct_lut[lut_address].reduct_error = error;
+        quant_reduct_lut[lut_address].reconstruct_error = error*delta;
+      #endif
+
     }
 
   }
