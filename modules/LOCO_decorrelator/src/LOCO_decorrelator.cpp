@@ -84,13 +84,12 @@ void LOCO_decorrelator(
   //first pixel process
     px_t first_px = src.read();
     first_px_out << first_px;
-    // symbols << err_t(first_px);
     // quantized_img.update(first_px);
 
   int q_channel_value = first_px;
 
   px_loop: for (int px_idx = 1; px_idx < img_pixels; ++px_idx){
-    #pragma HLS PIPELINE II=3
+    #pragma HLS PIPELINE II=2
     #pragma HLS LOOP_TRIPCOUNT max=9999 //just a number to quickly be able to estimate efficiency
 
     #pragma HLS DEPENDENCE variable=quantized_img.buffer intra false
@@ -98,7 +97,7 @@ void LOCO_decorrelator(
     // #pragma HLS DEPENDENCE variable=quantized_img.b inter false
     // #pragma HLS DEPENDENCE variable=quantized_img.b_reg inter false
     // #pragma HLS DEPENDENCE variable=quantized_img.b_reg intra false
-    #pragma HLS DEPENDENCE variable=context_stats distance=1 direction=RAW type=inter false
+    // #pragma HLS DEPENDENCE variable=context_stats distance=1 direction=RAW type=inter false
 
       auto channel_value = src.read();
       quantized_img.update(q_channel_value);
@@ -109,21 +108,22 @@ void LOCO_decorrelator(
       quantized_img.get_fixed_prediction_and_context(ctx_id,fixed_prediction,ctx_sign);
 
       //correct prediction
-      // ContextElement ctx_stats=  context_stats[ctx_id] ;
-      ContextElement ctx_stats= prev_context == ctx_id?prev_ctx_stats: context_stats[ctx_id] ;
-      prev_context = ctx_id;
+      ContextElement ctx_stats=  context_stats[ctx_id] ;
+      // ContextElement ctx_stats= prev_context == ctx_id?prev_ctx_stats: context_stats[ctx_id] ;
+      // prev_context = ctx_id;
       #pragma HLS disaggregate variable=ctx_stats
 
-      #if 1
-        int prediction_correction = ctx_sign == 0? ap_int<ctx_bias_t::width+1>(ctx_stats.bias ):
-                                                  -ctx_stats.bias;
-        int prediction = clamp(prediction_correction + fixed_prediction);
-      #else
-        int prediction = fixed_prediction;
-      #endif
+      int prediction_correction = ctx_sign == 0? ap_int<ctx_bias_t::width+1>(ctx_stats.bias ):
+                                                -ctx_stats.bias;
+      int prediction = clamp(prediction_correction + fixed_prediction);
+
 
       int error = channel_value - prediction;
       int acc_inv_sign = (ctx_stats.acc > 0)? 1:0;
+
+      #if FORWARD_QUANTIZATION_ERROR
+        auto quantization_error = quant_error_lut[ap_uint<INPUT_BPP+1>(error)];
+      #endif
       error = acc_inv_sign^ctx_sign ? -error: error;
 
       #ifdef DEBUG
@@ -140,38 +140,47 @@ void LOCO_decorrelator(
       #if USING_DIV_RED_LUT
         ap_uint<INPUT_BPP+1> lut_address = error;
         error = quant_reduct_lut[lut_address].reduct_error ;
-        int q_error = quant_reduct_lut[lut_address].reconstruct_error;//error*delta;
+        ap_int<INPUT_BPP+1> q_error = quant_reduct_lut[lut_address].reconstruct_error;//error*delta;
+        #pragma HLS disaggregate variable=quant_reduct_lut
       #else
         // error = UQ(error, delta,near ); // quantize
-        #if ERROR_REDUCTION
-          if((error < MIN_ERROR)){
-            error += alpha;
-          }else if((error > MAX_ERROR)){
-            error -= alpha;
-          }
-        #endif
+
+        if((error < MIN_ERROR)){
+          error += alpha;
+        }else if((error > MAX_ERROR)){
+          error -= alpha;
+        }
+
         int q_error = error*delta;
       #endif
 
+      ASSERT(MIN_ERROR,<=,error)
+      ASSERT(error,<=,MAX_ERROR)
 
       #ifdef DEBUG
         ASSERT(dgb_error,==,error,"px_idx:"<<px_idx<<"| orig_error: "<<orig_error);
         ASSERT(dgb_error*delta,==,q_error,"px_idx:"<<px_idx<<"| orig_error: "<<orig_error);
       #endif
+
       int y = error <0? 1:0;
-      int z = abs(error)-y;
+      ap_uint<Z_SIZE> z = abs(error)-y;
 
 
-      q_error = (acc_inv_sign ? - q_error: q_error);
+      // q_error = (acc_inv_sign ? - q_error: q_error);
+      q_error = (acc_inv_sign ? ap_int<INPUT_BPP+1>(- q_error): q_error);
 
-      q_channel_value = prediction + (ctx_sign==1? -q_error:q_error);
+      #if FORWARD_QUANTIZATION_ERROR
+        q_channel_value = channel_value + quantization_error;
+      #else
+        q_channel_value = prediction + (ctx_sign==1? ap_int<INPUT_BPP+1>(-q_error):q_error);
 
-      #if ERROR_REDUCTION
-        if((q_channel_value < MIN_REDUCT_ERROR)){
-          q_channel_value += DECO_RANGE;
-        }else if((q_channel_value > MAX_REDUCT_ERROR)){
-          q_channel_value -= DECO_RANGE;
-        }
+        #if ERROR_REDUCTION
+          if((q_channel_value < MIN_REDUCT_ERROR)){
+            q_channel_value += DECO_RANGE;
+          }else if((q_channel_value > MAX_REDUCT_ERROR)){
+            q_channel_value -= DECO_RANGE;
+          }
+        #endif
       #endif
 
       q_channel_value = clamp(q_channel_value);
@@ -243,8 +252,6 @@ void LOCO_decorrelator_LS(
   //first pixel process
     px_t first_px = src.read();
     first_px_out << first_px;
-    // symbols << err_t(first_px);
-    // quantized_img.update(first_px);
 
   int q_channel_value = first_px;
 

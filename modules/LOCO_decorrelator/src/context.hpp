@@ -28,13 +28,14 @@ public:
 ContextElement context_stats[CTX_GRAD_BINS];
 
 struct quant_reduct_lut_elem{
-  ap_int<8> reduct_error;
-  ap_int<9> reconstruct_error;
+  ap_int<INPUT_BPP> reduct_error;
+  ap_int<INPUT_BPP+1> reconstruct_error;
 };
 
 constexpr int QUANT_RED_LUT_SIZE = (1<<(INPUT_BPP+1));
 quant_reduct_lut_elem quant_reduct_lut[QUANT_RED_LUT_SIZE];
 
+ap_int<INPUT_BPP+1> quant_error_lut[QUANT_RED_LUT_SIZE];
 
 int Uniform_quantizer(int error, int delta, int near){
   if(error > 0){
@@ -104,10 +105,11 @@ void init_context(int near, int alpha){
     }
 
     if (i < QUANT_RED_LUT_SIZE){
-      int error = i - MAXVAL;
-      ap_uint<INPUT_BPP+1> lut_address = error;
+      int orig_error = i - MAXVAL;
+      ap_uint<INPUT_BPP+1> lut_address = orig_error;
 
-      error = Uniform_quantizer(error,delta,near);
+      int error = Uniform_quantizer(orig_error,delta,near);
+      quant_error_lut[lut_address] = error*delta- orig_error;
       if((error < MIN_ERROR)){
         error += alpha;
       }else if((error > MAX_ERROR)){
@@ -262,8 +264,8 @@ inline void update_context(
   ContextElement &updated_stats){
   #pragma HLS inline
 
-  // int acc = current_stats.acc;
-  ap_int<3+CTX_ADJUST_CNT_BITS>  acc = current_stats.acc;
+  int acc = current_stats.acc;
+  // ap_int<3+CTX_ADJUST_CNT_BITS>  acc = current_stats.acc;
   // auto & acc = current_stats.acc;
   // ap_uint<1+CTX_ADJUST_CNT_BITS> cnt = current_stats.cnt;
   uint cnt = current_stats.cnt;

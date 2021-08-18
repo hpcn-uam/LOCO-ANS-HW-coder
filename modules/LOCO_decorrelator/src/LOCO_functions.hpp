@@ -79,18 +79,17 @@ public:
   }
 
   void get_fixed_prediction_and_context(int &context,int &fixed_prediction, int &sign){
-  // px_t get_fixed_prediction(px_t a,px_t b,px_t c){
     #pragma HLS inline
     // compute fixed prediction
-    int dx, dy, dxy, s,s_1;
+    int dx, dy, dxy, s;
     dy = c - a;
     dx = b - c; // OPT: this is the same gradient as d0 in prev iteration
     dxy = a -b;
     s = (dy ^ dx)<0?  1 : 0 ;
-    s_1 = (dy ^ dxy)<0? a :b;
+    px_t s_1 = (dy ^ dxy)<0? a :b;
     // prev line as as optimal(in RTL terms) to:
     //   auto s_1 = (dy[dy.width-1] ^ dxy[dxy.width-1])==0? a:b ;
-    fixed_prediction = s ? s_1 : b - dy ;
+    fixed_prediction = s ? s_1 : px_t(b - dy) ;
 
 
     #ifdef DEBUG
@@ -110,14 +109,14 @@ public:
     #endif
 
     map_gradients_to_int(d-b,dx,dy,context,sign);
-    
+
   }
 
 
   //update current row
   void update(px_t new_px){
-    // 1° Row: b=c=d=0 
-    // 1° Col: a=b, c=a(row-1) 
+    // 1° Row: b=c=d=0
+    // 1° Col: a=b, c=a(row-1)
     // Last Col d = b
     //
     // 1° Row:    Pred = a  | Context = (0,0,-a)
@@ -132,7 +131,7 @@ public:
 
     #if END_OF_LINE_CALL
       a = new_px;
-      c = b; 
+      c = b;
       b = d;
 
       int read_addr = col_ptr >= cols-2? cols-1: col_ptr+2 ;
@@ -146,18 +145,18 @@ public:
       }
 
 
-      col_ptr++; 
+      col_ptr++;
 
     #else
-      col_ptr_t read_addr = col_ptr == cols -1? col_ptr_t(1): 
+      col_ptr_t read_addr = col_ptr == cols -1? col_ptr_t(1):
             (col_ptr == cols-2? col_ptr_t(cols-1):col_ptr_t(col_ptr+2));
 
       if(col_ptr == cols -1) {
         //assuming image width of at least 10 px
-        #pragma HLS occurrence cycle=10 
+        #pragma HLS occurrence cycle=10
         b = b_reg;
         a = b;
-        c = prev_1st_a; 
+        c = prev_1st_a;
         prev_1st_a = a;
 
         #ifdef DEBUG
@@ -166,7 +165,7 @@ public:
         #endif
       }else{
         a = new_px;
-        c = b; 
+        c = b;
         b = d;
       }
 
@@ -182,19 +181,19 @@ public:
       buffer[col_ptr]= new_px;
 
       if(col_ptr == 0){
-        #pragma HLS occurrence cycle=10 
+        #pragma HLS occurrence cycle=10
         b_reg = new_px;
       }
 
       if(col_ptr == cols -2) {
-        #pragma HLS occurrence cycle=10 
+        #pragma HLS occurrence cycle=10
         first_col = 0;
       }
       // first_col = col_ptr == cols -2? ap_uint<1>(0):first_col;
 
       col_ptr = col_ptr == cols -1? col_ptr_t(0): col_ptr_t(col_ptr+1);
-    
-      
+
+
       // OPT pre calc next values
     #endif
 
@@ -215,15 +214,15 @@ public:
   }
 
   void end_of_line(){
-    
+
     #pragma HLS inline
 
     #if END_OF_LINE_CALL
-      
+
       b = b_reg;
       // b = buffer[0];
       a = b;
-      c = prev_1st_a; 
+      c = prev_1st_a;
       prev_1st_a = a;
       d = buffer[1];
 
