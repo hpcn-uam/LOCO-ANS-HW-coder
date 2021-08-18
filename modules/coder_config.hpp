@@ -11,7 +11,7 @@
 #include <ap_axi_sdata.h>
 
 
-/********************** Aux functions  ******************************/ 
+/********************** Aux functions  ******************************/
 #ifndef __SYNTHESIS__
   #define GET_ASSERT_MACRO(_1,_2,_3,_4,NAME,...) NAME
   #define ASSERT(...)  GET_ASSERT_MACRO(__VA_ARGS__,ASSERT4,ASSERT3,ASSERT2,ASSERT1)(__VA_ARGS__)
@@ -30,16 +30,16 @@
   << #v2 " = "<<v2 <<std::endl; \
   assert(v1 comp v2); \
   }
-  
+
   #include <iostream>
   using namespace std;
 
   #define START_SW_ONLY_LOOP(cont_condition) while (cont_condition){
   #define END_SW_ONLY_LOOP }
 #else
-  #define START_SW_ONLY_LOOP(cont_condition) 
+  #define START_SW_ONLY_LOOP(cont_condition)
   #define END_SW_ONLY_LOOP
-  #define ASSERT(...) 
+  #define ASSERT(...)
 #endif
 
 #define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)]))
@@ -50,7 +50,7 @@
 constexpr int floorlog2(int x){
   return  x == 0 ? -1 : x == 1 ? 0 : 1+floorlog2(x >> 1);
 }
- 
+
 constexpr int ceillog2(int x){
   return x == 0 ? -1 :x == 1 ? 0 : floorlog2(x - 1) + 1;
 }
@@ -67,8 +67,9 @@ constexpr int ceillog2(int x){
 /********************** General parameters ******************************/
 
 //!!!!!! px is defined as unsigned char (ap_uint<>) generates some undesired effects
-#define INPUT_BPP (8) 
-typedef unsigned char px_t;
+#define INPUT_BPP (8)
+typedef ap_uint<8> px_t;
+// typedef unsigned char px_t;
 
 constexpr int MAXVAL = (1<<INPUT_BPP)-1;
 #define Z_SIZE (INPUT_BPP-1)
@@ -78,21 +79,21 @@ constexpr int MAXVAL = (1<<INPUT_BPP)-1;
 #define P_SIZE (5) //32 tables
 
 constexpr int BUFFER_SIZE = 2048;
-constexpr int BUFFER_ADDR_SIZE =  ceillog2(BUFFER_SIZE); 
-constexpr int ANS_SYMB_BITS = 5; 
+constexpr int BUFFER_ADDR_SIZE =  ceillog2(BUFFER_SIZE);
+constexpr int ANS_SYMB_BITS = 5;
 constexpr int CARD_BITS = ANS_SYMB_BITS;
 
 
-#define CTX_ST_FINER_QUANT (false) 
+#define CTX_ST_FINER_QUANT (false)
 #define CTX_ST_PRECISION (7) // number of fractional bits
 #define MAX_ST_IDX  (14)//31//25 //(12)
 
 #define CTX_NT_CENTERED_QUANT (true)
 #define CTX_NT_PRECISION (6) // number of fractional bits
-#define HALF_Y_CODER (true) 
+#define HALF_Y_CODER (true)
 #define CTX_NT_HALF_IDX (1<<(CTX_NT_PRECISION-1))
 #define CTX_NT_QUANT_BINS (1<<(CTX_NT_PRECISION))
-  
+
 
 #define ITERATIVE_ST 1
 /********************** ANS coder ******************************/
@@ -109,9 +110,9 @@ typedef ap_uint<SYMB_DATA_SIZE+SYMB_CTRL_SIZE> coder_interf_t; //
 
 
 #define SYMBOL_ENDIANNESS_LITTLE true
-constexpr int EE_REMAINDER_SIZE = Z_SIZE; 
+constexpr int EE_REMAINDER_SIZE = Z_SIZE;
 constexpr int ANS_MAX_SRC_CARDINALITY =9;
-constexpr int ANS_SUBSYMBOL_BITS =  ceillog2(ANS_MAX_SRC_CARDINALITY) ; 
+constexpr int ANS_SUBSYMBOL_BITS =  ceillog2(ANS_MAX_SRC_CARDINALITY) ;
 constexpr int Z_ANS_TABLE_CARDINALITY =(1<<ANS_SUBSYMBOL_BITS); // power of 2  equal or just above  ANS_MAX_SRC_CARDINALITY
 constexpr int EE_MAX_ITERATIONS = 7;
 constexpr int INITIAL_ANS_STATE = 0;
@@ -144,10 +145,10 @@ constexpr int MAX_SUPPORTED_BPP = 16;
 
 // force OUTPUT_STACK_SIZE has to be 2^int
 // Why to do this:
-// * BRAMS are going to have 2^int addresses anyway. BRAM availability determines 
+// * BRAMS are going to have 2^int addresses anyway. BRAM availability determines
 //     how big we can set OUTPUT_STACK_SIZE
 constexpr int  OUTPUT_STACK_SIZE =
-    (1<< ceillog2(int(BUFFER_SIZE*MAX_SUPPORTED_BPP/OUTPUT_SIZE)) ); 
+    (1<< ceillog2(int(BUFFER_SIZE*MAX_SUPPORTED_BPP/OUTPUT_SIZE)) );
 
 constexpr int OUTPUT_STACK_ADDRESS_SIZE = ceillog2(OUTPUT_STACK_SIZE);
 constexpr int OUTPUT_STACK_BYTES_SIZE = ceillog2(OUTPUT_STACK_SIZE*OUT_WORD_BYTES);
@@ -173,7 +174,7 @@ constexpr int TB_MAX_BLOCK_SIZE = 2048;
 typedef ap_uint<IN_INTERF_WIDTH> idma_data;
 typedef ap_uint<OUT_INTERF_WIDTH> odma_data;
 
-constexpr int MAX_ODMA_TRANSACTIONS = 
+constexpr int MAX_ODMA_TRANSACTIONS =
         int((OUTPUT_STACK_SIZE*OUT_WORD_BYTES+OUT_DMA_BYTES-1)/OUT_DMA_BYTES);
 
 constexpr int NUM_OF_IN_ELEM_BITS = 32;
