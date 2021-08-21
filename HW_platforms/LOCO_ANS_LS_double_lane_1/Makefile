@@ -3,7 +3,7 @@ RED=\e[31m
 GREEN=\e[32m
 NC=\e[0m
 
-BOARDS= pynq_z2
+BOARDS= pynq_z2 zynqberry
 
 all:  pynq_z2
 

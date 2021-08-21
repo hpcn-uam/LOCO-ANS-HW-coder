@@ -1,6 +1,6 @@
 
 ################################################################
-# This is a generated script based on design: zynberry_platform
+# This is a generated script based on design: platform
 #
 # Though there are limitations about the generated script,
 # the main purpose of this utility is to make learning
@@ -35,7 +35,6 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 ################################################################
 
 # To test this script, run the following commands from Vivado Tcl console:
-# source zynberry_platform_script.tcl
 
 # If there is no project opened, this script will create a
 # project, but make sure you do not have an existing project
@@ -50,7 +49,7 @@ if { $list_projs eq "" } {
 
 # CHANGE DESIGN NAME HERE
 variable design_name
-set design_name zynberry_platform
+set design_name platform
 
 # If you do not already have an existing IP Integrator design open,
 # you can create a design using the following command:
@@ -89,7 +88,7 @@ if { ${design_name} eq "" } {
    set errMsg "Design <$design_name> already exists in your project, please set the variable <design_name> to another value."
    set nRet 1
 } elseif { [get_files -quiet ${design_name}.bd] ne "" } {
-   # USE CASES: 
+   # USE CASES:
    #    6) Current opened design, has components, but diff names, design_name exists in project.
    #    7) No opened design, design_name exists in project.
 
@@ -123,7 +122,7 @@ set bCheckIPsPassed 1
 ##################################################################
 set bCheckIPs 1
 if { $bCheckIPs == 1 } {
-   set list_check_ips "\ 
+   set list_check_ips "\
 xilinx.com:hls:idma:1.0\
 xilinx.com:ip:processing_system7:5.5\
 xilinx.com:ip:proc_sys_reset:5.0\
@@ -373,7 +372,7 @@ proc create_root_design { parentCell } {
   set axi_mem_intercon1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_mem_intercon1 ]
   set_property -dict [ list \
    CONFIG.ENABLE_ADVANCED_OPTIONS {1} \
-   CONFIG.M00_HAS_REGSLICE {1} \
+   CONFIG.M00_HAS_REGSLICE {4} \
    CONFIG.NUM_MI {1} \
    CONFIG.NUM_SI {2} \
    CONFIG.S00_HAS_REGSLICE {4} \
@@ -858,6 +857,15 @@ Flash#Quad SPI Flash#USB Reset#UART 1#UART 1#SD 1#SD 1#SD 1#SD 1#SD 1#SD\
 # MAIN FLOW
 ##################################################################
 
-create_root_design ""
 
+#create_root_design ""
 
+##################################################################
+# Set vars
+##################################################################
+
+set board "trenz.biz:te0726_m:part0:3.1"
+set target_part xc7z010clg225-1
+set board_id "te0726_m"
+
+add_files -fileset constrs_1 -norecurse ../bd_scripts/zynqberry.xdc

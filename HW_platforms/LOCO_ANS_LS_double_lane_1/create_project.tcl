@@ -337,7 +337,13 @@ set_property -name "steps.write_bitstream.args.verbose" -value "0" -objects [get
 ######## create bd
 set block_design_name platform
 
-create_root_design "" $block_design_name
+create_root_design ""
+
+if { [llength [ get_files  "${block_design_name}.bd" ]]  == 0 } {
+  puts " Error: Block design should be named: ${block_design_name}.bd "
+  puts "        No platform.bd file was found, quitting..."
+  quit
+}
 
 save_bd_design
 assign_bd_address
