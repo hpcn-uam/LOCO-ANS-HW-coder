@@ -48,7 +48,7 @@ add_files src/dma.cpp
 add_files -tb src/test_${module}.cpp -cflags "-Wno-unknown-pragmas" -csimflags "-Wno-unknown-pragmas"
 open_solution "solution1" -flow_target vivado
 set_part {xc7z020clg400-1}
-create_clock -period 6 -name default
+create_clock -period 5 -name default
 config_compile -enable_auto_rewind=false
 config_interface -m_axi_max_widen_bitwidth 64
 config_interface -m_axi_alignment_byte_size 1
