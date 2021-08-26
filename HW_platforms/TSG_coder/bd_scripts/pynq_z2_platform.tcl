@@ -164,14 +164,10 @@ if { $bCheckIPsPassed != 1 } {
 
 # Procedure to create entire design; Provide argument to make
 # procedure reusable. If parentCell is "", will use root.
-proc create_root_design { parentCell design_name } {
+proc create_root_design { parentCell } {
 
   variable script_folder
-  # variable design_name
-
-  if { $design_name eq "" } {
-     set design_name platform
-  }
+  variable design_name
 
   if { $parentCell eq "" } {
      set parentCell [get_bd_cells /]
