@@ -26,7 +26,7 @@ void LOCO_decorrelator(
   hls::stream<DecorrelatorOutput> & symbols,
   //READ-ONLY (from the user perspective) AXI-LITE registers
   ap_uint<8> &param_max_near,
-  ap_uint<8> &param_num_of_tiles){ 
+  ap_uint<8> &param_num_of_tiles){
   param_max_near = 255;
   param_num_of_tiles=1;
 
@@ -41,9 +41,9 @@ void LOCO_decorrelator(
 
   //READ-ONLY (from the user perspective) AXI-LITE registers
   #pragma HLS INTERFACE s_axilite port=param_max_near bundle=config
-  #pragma HLS INTERFACE ap_none port=param_max_near 
+  #pragma HLS INTERFACE ap_none port=param_max_near
   #pragma HLS INTERFACE s_axilite port=param_num_of_tiles bundle=config
-  #pragma HLS INTERFACE ap_none port=param_num_of_tiles 
+  #pragma HLS INTERFACE ap_none port=param_num_of_tiles
 
 
   #pragma HLS INTERFACE s_axilite port=return bundle=config
@@ -55,21 +55,22 @@ void LOCO_decorrelator(
 
   // copy args
   auto cols = config_cols;
-  auto rows = config_rows; 
-  int near  = config_near; 
+  auto rows = config_rows;
+  int near  = config_near;
   int img_pixels = cols*rows;
 
   quantized_img.init(cols);
 
   //context init
-  // constexpr int near =0, 
+  // constexpr int near =0,
   const int delta =(near<<1)+1;
+  // OPT: limit near and replace alpha computation with a lut
   const int alpha = near ==0?MAXVAL + 1 :
-                     (MAXVAL + 2 * near) / delta + 1;
+               (MAXVAL + 2 * near) / delta + 1;
 
   const int MIN_REDUCT_ERROR = -near;
   const int MAX_REDUCT_ERROR =  MAXVAL + near;
-  const int DECO_RANGE = alpha * delta;     
+  const int DECO_RANGE = alpha * delta;
   const int MAX_ERROR =  (alpha+1)/2 -1; //  std::ceil(alpha/2.0) -1;
   const int MIN_ERROR = -(alpha/2); // -std::floor(alpha/2.0);
   const unsigned int remainder_reduct_bits = hw_floor_log2<10>(delta); //near<=255 -> 10 bits for delta
@@ -81,26 +82,25 @@ void LOCO_decorrelator(
   #pragma HLS aggregate variable=context_stats
   #pragma HLS disaggregate variable=prev_ctx_stats
 
-  //first pixel process 
+  //first pixel process
     px_t first_px = src.read();
     first_px_out << first_px;
-    // symbols << err_t(first_px);
     // quantized_img.update(first_px);
 
   int q_channel_value = first_px;
 
   px_loop: for (int px_idx = 1; px_idx < img_pixels; ++px_idx){
-    #pragma HLS PIPELINE II=3
-    #pragma HLS LOOP_TRIPCOUNT max=9999 //just a number to quickly be able to estimate efficiency 
+    #pragma HLS PIPELINE II=2
+    #pragma HLS LOOP_TRIPCOUNT max=9999 //just a number to quickly be able to estimate efficiency
 
     #pragma HLS DEPENDENCE variable=quantized_img.buffer intra false
     #pragma HLS DEPENDENCE variable=quantized_img.buffer inter false
     // #pragma HLS DEPENDENCE variable=quantized_img.b inter false
     // #pragma HLS DEPENDENCE variable=quantized_img.b_reg inter false
     // #pragma HLS DEPENDENCE variable=quantized_img.b_reg intra false
-    #pragma HLS DEPENDENCE variable=context_stats distance=1 direction=RAW type=inter false  
+    // #pragma HLS DEPENDENCE variable=context_stats distance=1 direction=RAW type=inter false
 
-      auto channel_value = src.read(); 
+      auto channel_value = src.read();
       quantized_img.update(q_channel_value);
 
       int fixed_prediction;
@@ -109,23 +109,24 @@ void LOCO_decorrelator(
       quantized_img.get_fixed_prediction_and_context(ctx_id,fixed_prediction,ctx_sign);
 
       //correct prediction
-      // ContextElement ctx_stats=  context_stats[ctx_id] ;
-      ContextElement ctx_stats= prev_context == ctx_id?prev_ctx_stats: context_stats[ctx_id] ;
-      prev_context = ctx_id;
+      ContextElement ctx_stats=  context_stats[ctx_id] ;
+      // ContextElement ctx_stats= prev_context == ctx_id?prev_ctx_stats: context_stats[ctx_id] ;
+      // prev_context = ctx_id;
       #pragma HLS disaggregate variable=ctx_stats
-      
-      #if 1
-        int prediction_correction = ctx_sign == 0? ap_int<ctx_bias_t::width+1>(ctx_stats.bias ): 
-                                                  -ctx_stats.bias;
-        int prediction = clamp(prediction_correction + fixed_prediction);
-      #else
-        int prediction = fixed_prediction;
-      #endif
+
+      int prediction_correction = ctx_sign == 0? ap_int<ctx_bias_t::width+1>(ctx_stats.bias ):
+                                                -ctx_stats.bias;
+      int prediction = clamp(prediction_correction + fixed_prediction);
+
 
       int error = channel_value - prediction;
       int acc_inv_sign = (ctx_stats.acc > 0)? 1:0;
+
+      #if FORWARD_QUANTIZATION_ERROR
+        auto quantization_error = quant_error_lut[ap_uint<INPUT_BPP+1>(error)];
+      #endif
       error = acc_inv_sign^ctx_sign ? -error: error;
-      
+
       #ifdef DEBUG
         int orig_error = error;
         int dgb_error = error;
@@ -140,39 +141,48 @@ void LOCO_decorrelator(
       #if USING_DIV_RED_LUT
         ap_uint<INPUT_BPP+1> lut_address = error;
         error = quant_reduct_lut[lut_address].reduct_error ;
-        int q_error = quant_reduct_lut[lut_address].reconstruct_error;//error*delta;
+        ap_int<INPUT_BPP+1> q_error = quant_reduct_lut[lut_address].reconstruct_error;//error*delta;
+        #pragma HLS disaggregate variable=quant_reduct_lut
       #else
         // error = UQ(error, delta,near ); // quantize
-        #if ERROR_REDUCTION
-          if((error < MIN_ERROR)){
-            error += alpha;
-          }else if((error > MAX_ERROR)){
-            error -= alpha;
-          }
-        #endif
+
+        if((error < MIN_ERROR)){
+          error += alpha;
+        }else if((error > MAX_ERROR)){
+          error -= alpha;
+        }
+
         int q_error = error*delta;
       #endif
 
+      ASSERT(MIN_ERROR,<=,error)
+      ASSERT(error,<=,MAX_ERROR)
 
       #ifdef DEBUG
         ASSERT(dgb_error,==,error,"px_idx:"<<px_idx<<"| orig_error: "<<orig_error);
         ASSERT(dgb_error*delta,==,q_error,"px_idx:"<<px_idx<<"| orig_error: "<<orig_error);
       #endif
+
       int y = error <0? 1:0;
-      int z = abs(error)-y;
+      ap_uint<Z_SIZE> z = abs(error)-y;
 
 
-      q_error = (acc_inv_sign ? - q_error: q_error);
+      // q_error = (acc_inv_sign ? - q_error: q_error);
+      q_error = (acc_inv_sign ? ap_int<INPUT_BPP+1>(- q_error): q_error);
 
-      q_channel_value = prediction + (ctx_sign==1? -q_error:q_error);
+      #if FORWARD_QUANTIZATION_ERROR
+        q_channel_value = channel_value + quantization_error;
+      #else
+        q_channel_value = prediction + (ctx_sign==1? ap_int<INPUT_BPP+1>(-q_error):q_error);
 
-      #if ERROR_REDUCTION
-        if((q_channel_value < MIN_REDUCT_ERROR)){
-          q_channel_value += DECO_RANGE;
-        }else if((q_channel_value > MAX_REDUCT_ERROR)){
-          q_channel_value -= DECO_RANGE;
-        }
-      #endif 
+        #if ERROR_REDUCTION
+          if((q_channel_value < MIN_REDUCT_ERROR)){
+            q_channel_value += DECO_RANGE;
+          }else if((q_channel_value > MAX_REDUCT_ERROR)){
+            q_channel_value -= DECO_RANGE;
+          }
+        #endif
+      #endif
 
       q_channel_value = clamp(q_channel_value);
 
@@ -185,7 +195,7 @@ void LOCO_decorrelator(
               ctx_stats.p_idx, y,z,last_symbol);
       symbols << out_symbol;
 
-      //update encoder variables 
+      //update encoder variables
         update_context(ctx_id,q_error,y,z,ctx_stats,prev_ctx_stats);
 
 
@@ -198,7 +208,7 @@ void LOCO_decorrelator_LS(
   row_ptr_t config_rows,
   hls::stream<px_t>& src,
   hls::stream<px_t>& first_px_out,
-  hls::stream<DecorrelatorOutput> & symbols){ 
+  hls::stream<DecorrelatorOutput> & symbols){
 
   #ifdef LOCO_DECORRELATOR_LS_TOP
   //interface configuration
@@ -216,7 +226,7 @@ void LOCO_decorrelator_LS(
 
   // copy args
   auto cols = config_cols;
-  auto rows = config_rows; 
+  auto rows = config_rows;
   int img_pixels = cols*rows;
 
   quantized_img.init(cols);
@@ -228,7 +238,7 @@ void LOCO_decorrelator_LS(
 
   constexpr int MIN_REDUCT_ERROR = -near;
   constexpr int MAX_REDUCT_ERROR =  MAXVAL + near;
-  constexpr int DECO_RANGE = alpha * delta;     
+  constexpr int DECO_RANGE = alpha * delta;
   constexpr int MAX_ERROR =  (alpha+1)/2 -1; //  std::ceil(alpha/2.0) -1;
   constexpr int MIN_ERROR = -(alpha/2); // -std::floor(alpha/2.0);
   constexpr unsigned int remainder_reduct_bits = 0;
@@ -240,27 +250,26 @@ void LOCO_decorrelator_LS(
   #pragma HLS aggregate variable=context_stats
   #pragma HLS disaggregate variable=prev_ctx_stats
 
-  //first pixel process 
+  //first pixel process
     px_t first_px = src.read();
     first_px_out << first_px;
-    // symbols << err_t(first_px);
-    // quantized_img.update(first_px);
 
   int q_channel_value = first_px;
 
   px_loop: for (int px_idx = 1; px_idx < img_pixels; ++px_idx){
-    #pragma HLS PIPELINE II=2
-    #pragma HLS LOOP_TRIPCOUNT max=9999 //just a number to quickly be able to estimate efficiency 
+    #pragma HLS PIPELINE II=1
+    // #pragma HLS PIPELINE II=2
+    #pragma HLS LOOP_TRIPCOUNT max=9999 //just a number to quickly be able to estimate efficiency
 
     #pragma HLS DEPENDENCE variable=quantized_img.buffer intra false
     #pragma HLS DEPENDENCE variable=quantized_img.buffer inter false
     // #pragma HLS DEPENDENCE variable=quantized_img.b inter false
     // #pragma HLS DEPENDENCE variable=quantized_img.b_reg inter false
     // #pragma HLS DEPENDENCE variable=quantized_img.b_reg intra false
-    // #pragma HLS DEPENDENCE variable=context_stats distance=2 direction=RAW type=inter true  
-    // #pragma HLS DEPENDENCE variable=context_stats distance=1 direction=RAW type=inter false  
+    // #pragma HLS DEPENDENCE variable=context_stats distance=2 direction=RAW type=inter true
+    // #pragma HLS DEPENDENCE variable=context_stats distance=1 direction=RAW type=inter false
 
-      auto channel_value = src.read(); 
+      auto channel_value = src.read();
       quantized_img.update(q_channel_value);
       q_channel_value= channel_value;
 
@@ -270,35 +279,36 @@ void LOCO_decorrelator_LS(
       quantized_img.get_fixed_prediction_and_context(ctx_id,fixed_prediction,ctx_sign);
 
       //correct prediction
-      // ContextElement ctx_stats=  context_stats[ctx_id] ;
-      ContextElement ctx_stats= prev_context == ctx_id?prev_ctx_stats: context_stats[ctx_id] ;
+      ContextElement ctx_stats=  context_stats[ctx_id] ;
+      // ContextElement ctx_stats= prev_context == ctx_id?prev_ctx_stats: context_stats[ctx_id] ;
       prev_context = ctx_id;
       #pragma HLS disaggregate variable=ctx_stats
-      
-      #if 1
-        int prediction_correction = ctx_sign == 0? ap_int<ctx_bias_t::width+1>(ctx_stats.bias ): 
-                                                  -ctx_stats.bias;
-        int prediction = clamp(prediction_correction + fixed_prediction);
-      #else
-        int prediction = fixed_prediction;
-      #endif
 
+
+      int prediction_correction = ctx_sign == 0? ap_int<ctx_bias_t::width+1>(ctx_stats.bias ):
+                                                -ctx_stats.bias;
+      int prediction = clamp(prediction_correction + fixed_prediction);
       int error = channel_value - prediction;
       int acc_inv_sign = (ctx_stats.acc > 0)? 1:0;
       error = acc_inv_sign^ctx_sign ? -error: error;
-      
-      #if ERROR_REDUCTION
-        if((error < MIN_ERROR)){
-          error += alpha;
-        }else if((error > MAX_ERROR)){
-          error -= alpha;
-        }
-      #endif
-      int q_error = error;
+
+      if((error < MIN_ERROR)){
+        error += alpha;
+      }else if((error > MAX_ERROR)){
+        error -= alpha;
+      }
+
+      ASSERT(error<=127);
+      ASSERT(error>=-128);
+
+      // int red_error = error;
+      ap_int<INPUT_BPP> red_error = error;
+      int q_error = red_error;
 
 
-      int y = error <0? 1:0;
-      int z = abs(error)-y;
+      int y = red_error <0? 1:0;
+      // int z = abs(red_error)-y;
+      ap_uint<Z_SIZE> z = abs(red_error)-y;
 
 
       q_error = (acc_inv_sign ? - q_error: q_error);
@@ -312,7 +322,7 @@ void LOCO_decorrelator_LS(
           ctx_stats.p_idx, y,z,last_symbol);
       symbols << out_symbol;
 
-      //update encoder variables 
+      //update encoder variables
         update_context(ctx_id,q_error,y,z,ctx_stats,prev_ctx_stats);
 
 
@@ -332,7 +342,7 @@ void St_idx_compute(
 
   #pragma HLS INTERFACE ap_ctrl_none port=return
   // #pragma HLS PIPELINE
-  #pragma HLS PIPELINE style=flp 
+  #pragma HLS PIPELINE style=flp
   // START_SW_ONLY_LOOP(!in_symbols.empty())
 
 
@@ -379,9 +389,9 @@ void St_idx_compute(
         theta_id = i;
       }
     }
-    #else 
+    #else
     // This is a bit faster but haven't tested in different configurations
-    // OPT: HLS doesn't seem to be building a balance tree, so a tree 
+    // OPT: HLS doesn't seem to be building a balance tree, so a tree
     // implementation using binary search might be the optimum way of doing this
     constexpr int MIDDLE = (MAX_ST_IDX/2);
     if(St > (cnt<<(MIDDLE-1))) {
@@ -414,7 +424,7 @@ void St_idx_compute(
   row_ptr_t config_rows,
   hls::stream<px_t>& src,
   hls::stream<px_t>& first_px_out,
-  hls::stream<coder_interf_t> & out_symbols){ 
+  hls::stream<coder_interf_t> & out_symbols){
 
   //interface configuration
   #pragma HLS INTERFACE axis register_mode=both register port=src
@@ -425,7 +435,7 @@ void St_idx_compute(
   #pragma HLS INTERFACE s_axilite port=return bundle=config
 
   #pragma HLS DATAFLOW disable_start_propagation
-  
+
   hls::stream<DecorrelatorOutput>  pre_symbols;
   LOCO_decorrelator_1(config_cols,config_rows,src,first_px_out,pre_symbols);
   St_idx_compute(pre_symbols,out_symbols);
@@ -436,7 +446,7 @@ void St_idx_compute(
   row_ptr_t config_rows,
   ap_uint<32> num_of_images,
   hls::stream<px_t>& src,
-  hls::stream<err_t> & symbols){ 
+  hls::stream<err_t> & symbols){
   #pragma HLS INTERFACE axis register_mode=both register port=src
   #pragma HLS INTERFACE axis register_mode=both register port=symbols
   #pragma HLS INTERFACE s_axilite port=config_rows bundle=config
@@ -450,7 +460,7 @@ void St_idx_compute(
 
   for(unsigned i = 0; i < images; ++i) {
 
-    #pragma HLS LOOP_TRIPCOUNT max=100 //just a number to quickly be able to estimate efficiency 
+    #pragma HLS LOOP_TRIPCOUNT max=100 //just a number to quickly be able to estimate efficiency
     // #pragma HLS DATAFLOW
     LOCO_decorrelator_stage_1(cols,img_pixels,src,symbols)
   }
@@ -461,7 +471,7 @@ void St_idx_compute(
   col_ptr_t config_cols,
   row_ptr_t config_rows,
   hls::stream<px_t>& src,
-  hls::stream<err_t> & symbols){ 
+  hls::stream<err_t> & symbols){
     #pragma HLS INTERFACE axis register_mode=both register port=src
   #pragma HLS INTERFACE axis register_mode=both register port=symbols
   #pragma HLS INTERFACE s_axilite port=config_cols bundle=config
@@ -471,8 +481,8 @@ void St_idx_compute(
   #pragma HLS DATAFLOW
 
   ctx_bias_t context_bias[NUM_OF_CTX];
-  #pragma HLS STREAM variable=context_bias type=pipo depth=2 
-  // #pragma HLS STREAM variable=context_bias type=unsync depth=2 
+  #pragma HLS STREAM variable=context_bias type=pipo depth=2
+  // #pragma HLS STREAM variable=context_bias type=unsync depth=2
 
   init_context_parallel(context_bias);
   LOCO_decorrelator_fn(config_cols,config_rows,context_bias, src, symbols);

@@ -5,7 +5,7 @@ set arg_idx 0
 
 #set default parameters
 # mode param | 0: all steps | 1: just syn & export
-set mode 0 
+set mode 0
 
 
 #mode
@@ -14,7 +14,7 @@ if { $arg_idx < $arglen } {
   incr arg_idx
 }
 
-puts "Mode : $mode" 
+puts "Mode : $mode"
 
 set module St_idx_compute
 
@@ -26,7 +26,7 @@ add_files -tb src/LOCO_decorrelator_test.cpp -cflags "-Wno-unknown-pragmas -Wmis
 add_files -tb src/sw_implementation.cpp -cflags "-Wno-unknown-pragmas -Wmissing-field-initializers " -csimflags "-Wno-unknown-pragmas -Wmissing-field-initializers "
 open_solution "solution1" -flow_target vivado
 set_part {xc7z020-clg484-1}
-create_clock -period 17 -name default
+create_clock -period 10 -name default
 set_clock_uncertainty 2
 config_compile -enable_auto_rewind=false
 config_schedule  -verbose

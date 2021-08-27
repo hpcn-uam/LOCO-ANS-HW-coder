@@ -32,7 +32,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 
-PROJ_ORIG_DIR="$REPO_ROOT/HW_platforms/LOCO_ANS_LS_1"
+PROJ_ORIG_DIR="$REPO_ROOT/HW_platforms/LOCO_ANS_LS_double_lane_1"
 
 if [[ "$SCRIPTPATH" != "$PROJ_ORIG_DIR" ]]; then
   read -r -d '' ERROR_MSJ << EOM
@@ -52,4 +52,6 @@ Print_Msg Calling vivado
 vivado -mode batch -source ../create_project.tcl -tclargs \
         --origin_dir ./ \
         --project_name ${PROJ_NAME}  \
-        --target_board ${TARGET_BOARD}
+        --target_board ${TARGET_BOARD} > ../logs/${TARGET_BOARD}_vivado.log
+
+Print_Msg End of vivado process

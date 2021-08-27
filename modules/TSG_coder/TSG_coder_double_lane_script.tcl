@@ -5,7 +5,7 @@ set arg_idx 0
 
 #set default parameters
 # mode param | 0: all steps | 1: just syn & export
-set mode 0 
+set mode 0
 
 
 #mode
@@ -13,7 +13,7 @@ if { $arg_idx < $arglen } {
   set mode [lindex $argv $arg_idx]
   incr arg_idx
 }
-puts "Mode : $mode" 
+puts "Mode : $mode"
 
 open_project TSG_coder_double_lane.hls_prj
 set_top TSG_coder_double_lane
@@ -25,7 +25,7 @@ add_files ../output_stack/src/output_stack.cpp
 add_files -tb src/TSG_coder_double_lane_test.cpp
 open_solution "solution1" -flow_target vivado
 set_part {xc7z020clg484-1}
-create_clock -period 10 -name default
+create_clock -period 8 -name default
 config_compile -enable_auto_rewind=false
 #source "./src/directives.tcl"
 if { $mode == 0 } {

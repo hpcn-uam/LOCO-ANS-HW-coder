@@ -5,12 +5,12 @@ GREEN=\e[32m
 NC=\e[0m
 
 MODE := 1 # 1: just hls synth and export | 0: also csim and cosim
-MODE_NAME := 
+MODE_NAME :=
 DEPS := $(wildcard src/*.cpp) $(wildcard src/*.hpp) ../coder_config.hpp
 
 .PHONY: clean all
 
-all_modules: all 
+all_modules: all
 
 all: $(MODULE)
 
@@ -20,7 +20,7 @@ test: $(MODULE)
 
 $(MODULE): $(MODULE).hls_prj/solution1/impl/ip/
 
-$(MODULE).hls_prj/solution1/impl/ip/: $(DEPS)
+$(MODULE).hls_prj/solution1/impl/ip/: $(DEPS) script.tcl
 	@echo  "$(GREEN) #########  Compiling $(MODULE) $(MODE_NAME) #########$(NC)"
 	vitis_hls script.tcl $(MODE) > $(MODULE)_compile.log
 

@@ -7,14 +7,14 @@
 #  @Email         : tobi.alonso@gmail.com
 #  @Created On    : 2021-07-02 11:10:04
 #  @Description   :
-# 
-# 
-# 
-#  Last Modified : 2021-07-27 11:40:04 
-# 
-#  Revision      : 
-# 
-#  
+#
+#
+#
+#  Last Modified : 2021-07-27 11:40:04
+#
+#  Revision      :
+#
+#
 # ==================================================================================================
 
 
@@ -25,7 +25,7 @@
 
 #set default parameters
 # mode param | 0: all steps | 1: just syn & export
-set mode 1 
+set mode 1
 
 
 #mode
@@ -33,14 +33,14 @@ set mode 1
 #   set mode [lindex $argv $arg_idx]
 #   incr arg_idx
 # }
-# puts "Mode : $mode" 
+# puts "Mode : $mode"
 
 open_project idma_TSG.hls_prj
 set_top idma_TSG
 add_files src/dma.cpp
 open_solution "solution1" -flow_target vivado
 set_part {xc7z020clg400-1}
-create_clock -period 10 -name default
+create_clock -period 8 -name default
 config_compile -enable_auto_rewind=false
 config_interface -m_axi_max_widen_bitwidth 64
 config_interface -m_axi_alignment_byte_size 1
@@ -52,4 +52,4 @@ csynth_design
 if { $mode == 0 } {
   cosim_design -enable_dataflow_profiling -trace_level all
 }
-export_design -format ip_catalog
+export_design -format ip_catalog -rtl verilog
