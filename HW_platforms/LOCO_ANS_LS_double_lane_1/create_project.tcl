@@ -322,6 +322,7 @@ set_property -name "steps.opt_design.args.directive" -value "ExploreWithRemap" -
 set_property -name "steps.place_design.args.directive" -value "ExtraTimingOpt" -objects $obj
 set_property -name "steps.phys_opt_design.args.directive" -value "AggressiveExplore" -objects $obj
 set_property -name "steps.route_design.args.directive" -value "AggressiveExplore" -objects $obj
+#set_property {STEPS.ROUTE_DESIGN.ARGS.MORE OPTIONS} {} [get_runs impl_1]
 set_property -name "steps.route_design.args.more options" -value "-tns_cleanup" -objects $obj
 set_property -name "steps.post_route_phys_opt_design.is_enabled" -value "1" -objects $obj
 set_property -name "steps.post_route_phys_opt_design.args.directive" -value "AggressiveExplore" -objects $obj
@@ -357,9 +358,14 @@ make_wrapper -files [get_files "${block_design_name}.bd"] -import -fileset sourc
 launch_runs synth_1 -jobs 5
 wait_on_run [get_runs synth_1]
 
+#launch_runs  impl_1 -jobs 5
 launch_runs -to_step write_bitstream impl_1 -jobs 5
 wait_on_run [get_runs impl_1]
 
+#open_run impl_1
+#phys_opt_design -retime -placement_opt -routing_opt -critical_cell_opt -insert_negative_edge_ffs
+#launch_runs -to_step write_bitstream impl_1 -jobs 5
+#wait_on_run [get_runs impl_1]
 
 #generate xsa (includes .hwh for pynq)
 write_hw_platform -fixed -include_bit -force -file "${block_design_name}.xsa"

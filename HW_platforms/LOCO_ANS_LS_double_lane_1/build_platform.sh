@@ -52,4 +52,6 @@ Print_Msg Calling vivado
 vivado -mode batch -source ../create_project.tcl -tclargs \
         --origin_dir ./ \
         --project_name ${PROJ_NAME}  \
-        --target_board ${TARGET_BOARD}
+        --target_board ${TARGET_BOARD} > ../logs/${TARGET_BOARD}_vivado.log
+
+Print_Msg End of vivado process
