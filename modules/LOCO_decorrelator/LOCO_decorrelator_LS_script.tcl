@@ -5,8 +5,8 @@ set arg_idx 0
 
 #set default parameters
 # mode param | 0: all steps | 1: just syn & export
-set mode 0 
-
+set mode 0
+set target_id 0
 
 #mode
 if { $arg_idx < $arglen } {
@@ -14,7 +14,38 @@ if { $arg_idx < $arglen } {
   incr arg_idx
 }
 
-puts "Mode : $mode" 
+#target_id
+if { $arg_idx < $arglen } {
+  set target_id [lindex $argv $arg_idx]
+  incr arg_idx
+}
+
+switch -exact -- $target_id {
+  0 {
+    set sol_name "pynq_z2"
+    set part xc7z020clg484-1
+    set period  17
+    set clk_uncertainty  2
+  }
+  1 {
+    set sol_name "zcu104"
+    set part xczu7ev-ffvc1156-2-e
+    set period 8.5
+    set clk_uncertainty  1
+  }
+  default {
+    puts "Error: target id not supported"
+    quit
+  }
+}
+
+set ip_version $target_id
+
+puts "Target : $sol_name"
+puts "Period : $period"
+puts "Clk uncertainty : $clk_uncertainty"
+puts "Part : $part"
+puts "Mode : $mode"
 
 set module LOCO_decorrelator_LS
 
@@ -24,13 +55,13 @@ set_top "${module}"
 add_files src/LOCO_decorrelator.cpp -cflags "-DLOCO_DECORRELATOR_LS_TOP -Wmissing-field-initializers "
 add_files -tb src/LOCO_decorrelator_test.cpp -cflags "-DLOCO_DECORRELATOR_LS_TOP -Wno-unknown-pragmas -Wmissing-field-initializers " -csimflags " -DLOCO_DECORRELATOR_LS_TOP -std=c++14 -fexceptions -Wno-unknown-pragmas -Wmissing-field-initializers "
 add_files -tb src/sw_implementation.cpp -cflags "-Wno-unknown-pragmas -Wmissing-field-initializers " -csimflags "-Wno-unknown-pragmas -Wmissing-field-initializers "
-open_solution "solution1" -flow_target vivado
-set_part {xc7z020-clg484-1}
-create_clock -period 17 -name default
-set_clock_uncertainty 2
+open_solution "${sol_name}" -flow_target vivado
+set_part "$part"
+create_clock -period ${period} -name default
+set_clock_uncertainty ${clk_uncertainty}
 config_compile -enable_auto_rewind=false
 config_schedule  -verbose
-config_export -format ip_catalog -rtl verilog -library loco_ans -vendor HPCN -version "1.0" -vivado_synth_strategy "Flow_PerfOptimized_high" -vivado_optimization_level 3 -vivado_impl_strategy "Performance_ExtraTimingOpt" -vivado_phys_opt all  -vivado_report_level 2
+config_export -format ip_catalog -rtl verilog -library loco_ans -vendor HPCN -version "1.${ip_version}"
 
 # source "./directives.tcl"
 if { $mode == 0 } {

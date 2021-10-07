@@ -6,19 +6,24 @@ RED=\e[31m
 GREEN=\e[32m
 NC=\e[0m
 
+
+PART := 0
+
 TARGETS =  idma  odma odma_VarSize loopback_fifo idma_TSG
 .PHONY: clean  test $(TARGETS)
 
+logs:
+	mkdir -p $@
 
-$(TARGETS): %: %.hls_prj/solution1/impl/ip/
+$(TARGETS): %: %.hls_prj/solution_$(PART)/impl/ip/ logs
 
-%.hls_prj/solution1/impl/ip/: $(DEPS) %_script.tcl
+%.hls_prj/solution_$(PART)/impl/ip/: $(DEPS) %_script.tcl
 ifeq ($(MODE),0)
 	@echo  "$(GREEN) #########  Compiling $* (with csim and RTL cosim) #########$(NC)"
 else
 	@echo  "$(GREEN) #########  Compiling $* #########$(NC)"
 endif
-	vitis_hls $*_script.tcl $(MODE) > $*_compile.log
+	vitis_hls $*_script.tcl $(MODE) $(PART) > $*_$(PART)_compile.log
 
 
 clean:
