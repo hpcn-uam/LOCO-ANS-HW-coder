@@ -412,7 +412,7 @@ inline void update_context(
 
   if(cnt >= CTX_ADJUST_CNT ) {
     cnt >>=1;
-    acc = (acc >= 0)? ctx_acc_t(acc >> 1): ctx_acc_t(-((1 - acc) >> 1));
+    acc = (acc >= 0)? ctx_acc_t(acc >> 1): ctx_acc_t((1 + acc) >> 1);
     Nt  >>=1;
     St  >>=1;
   }

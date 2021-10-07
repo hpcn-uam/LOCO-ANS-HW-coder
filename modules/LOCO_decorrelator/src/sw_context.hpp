@@ -61,7 +61,7 @@ constexpr int  CTX_0 = 0;
 //const int CTX_GRAD_BINS = pow(CTX_BINS_PER_DIM,CTX_DIMS);
 
 
-#define CTX_BINS (CTX_GRAD_BINS ) 
+#define CTX_BINS (CTX_GRAD_BINS )
 
 // Context state variables
 std::array<int, CTX_BINS> ctx_cnt={0};
@@ -91,12 +91,12 @@ const uint CTX_NT_FACTOR = uint(pow(2,CTX_NT_PRECISION)); // number of fractiona
 #define CTX_ST_BITS (11 +CTX_ST_PRECISION ) // number of bits
 
 const uint CTX_ST_FACTOR = uint(pow(2,CTX_ST_PRECISION));
-const uint CTX_ST_MAX_VAL = uint(pow(2,CTX_ST_BITS)-1); 
+const uint CTX_ST_MAX_VAL = uint(pow(2,CTX_ST_BITS)-1);
 
 
 // initial params
 #define CTX_ADJUST_CNT 64
-const int ctx_initial_cnt = 1; 
+const int ctx_initial_cnt = 1;
 const int ctx_initial_Nt = 0;
 
 
@@ -104,7 +104,7 @@ const int ctx_initial_Nt = 0;
 
 int sw_impl::gradient_quantizer(int g){
   int T0=0,T1=3,T2=7,T3=21;
-  
+
   int sign = 1;
   if(g < 0){
     sign = -1;
@@ -151,7 +151,7 @@ Context_t map_gradients_to_int(int g1, int g2, int g3){
   int q3  = *(gradient_quant+g3);
 
   int context_id = (q1*CTX_BINS_PER_DIM + q2 )*CTX_BINS_PER_DIM + q3 ;
-  
+
   int sign = context_id >> (sizeof(context_id)*8 - 1);
   context_id = mult_by_sign(context_id, sign);
 
@@ -256,13 +256,13 @@ void context_init(int near, int alpha){
     int ctx_initial_p_idx = std::max(CTX_NT_HALF_IDX>>1 ,CTX_NT_HALF_IDX -2 -near);
   #endif
   for(auto & val: ctx_p_idx){val=ctx_initial_p_idx;}
-  for(auto & val: ctx_Nt){val=ctx_initial_Nt;} 
+  for(auto & val: ctx_Nt){val=ctx_initial_Nt;}
 
   const int ctx_initial_St = std::max(2, ((alpha + 32) >> 6 ))<<CTX_ST_PRECISION;
-  for(auto & val: ctx_St){val=ctx_initial_St;}  
+  for(auto & val: ctx_St){val=ctx_initial_St;}
   #if ! ITERATIVE_ST
     const int ctx_initial_St_idx =  get_st_idx(Context_t());
-    for(auto & val: ctx_St_idx){val=ctx_initial_St_idx;}  
+    for(auto & val: ctx_St_idx){val=ctx_initial_St_idx;}
   #endif
 
 
@@ -277,7 +277,7 @@ void context_init(int near, int alpha){
 
 }
 
-void update_context(Context_t ctx, int prediction_error,int z, int y){ 
+void update_context(Context_t ctx, int prediction_error,int z, int y){
   int context = ctx.id;
   auto & cnt = ctx_cnt[context];
   auto & acc = ctx_acc[context];
@@ -303,7 +303,7 @@ void update_context(Context_t ctx, int prediction_error,int z, int y){
   const int Li =-((cnt+1)>>1); //ceil(cnt/2) // OPT: the +1 probably has no practical effect on compression
   const int Ls = ((cnt)>>1); // floor(cnt/2)
     //mu
-    { 
+    {
       #if MU_estim_like_original
         int Li =-cnt; //ceil(cnt/2)
         int Ls = 0; // floor(cnt/2)
@@ -344,7 +344,7 @@ void update_context(Context_t ctx, int prediction_error,int z, int y){
 
       p_idx += low_mask;
       Nt += cnt&low_mask;
-      
+
       #else
 
       if ((Li > Nt)){
@@ -371,7 +371,7 @@ void update_context(Context_t ctx, int prediction_error,int z, int y){
         assert(p_idx<(1<<CTX_NT_PRECISION));
       #endif
     }
-    
+
   #if ! ITERATIVE_ST
     {
 
@@ -395,18 +395,18 @@ void update_context(Context_t ctx, int prediction_error,int z, int y){
           }
         }
 
-        // Next code implements: 
+        // Next code implements:
         //  if((St> Ls-((Ls+2)>>2))){
         //    if(St_idx <MAX_ST_IDX  ) {St_idx |=1;}
         //  }else{
         //    St_idx &= 0xFFFFE;
         //  }
-        //  
+        //
         // Note: (needs the "St_idx &= 0xFFFFE;" line used earlier)
-         
+
         int hf_lim = (Ls-((Ls+2)>>2));
         int hf_idx = (hf_lim- St)>>(sizeof(hf_idx)*8-1);// -1 if (St> Ls-((Ls+2)>>2)) else 0
-        
+
         #if MAX_ST_IDX %2 != 0
           St_idx |= -hf_idx;
         #else
@@ -436,7 +436,7 @@ void update_context(Context_t ctx, int prediction_error,int z, int y){
 
           if((St_idx <MAX_ST_IDX ) ) {
             St_idx++;
-           /* if ((St >= (Ls<<1))){ 
+           /* if ((St >= (Ls<<1))){
               if(St_idx <MAX_ST_IDX  ) {
                 St_idx++;
               }
@@ -450,12 +450,12 @@ void update_context(Context_t ctx, int prediction_error,int z, int y){
   #endif
 
   // adjust
-    if((cnt >= CTX_ADJUST_CNT )) { 
+    if((cnt >= CTX_ADJUST_CNT )) {
       cnt >>=1;
-      acc = (acc >= 0)? (acc >> 1): -((1 - acc) >> 1);
+      acc = (acc >= 0)? (acc >> 1): ((1 + acc) >> 1);
       Nt  >>=1;
       St  >>=1;
-    }    
+    }
 
 }
 
