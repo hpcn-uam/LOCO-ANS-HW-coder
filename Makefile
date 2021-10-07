@@ -4,22 +4,25 @@ GREEN=\e[32m
 NC=\e[0m
 TARGET_BOARD = pynq_z2
 
-TARGETS = TSG_coder 
+TARGETS = TSG_coder LOCO_ANS_double_lane_1
 .PHONY:	all  $(TARGETS) TSG_coder_hw_platform basic_modules
 
-all: TSG_coder
+all: LOCO_ANS_double_lane_1 
+
+BOARD=pynq_z2
+PART=0
 
 
-$(TARGETS): %: basic_modules %_hw_platform/$(TARGET_BOARD)_output_products/platform.xsa
+$(TARGETS): %: basic_modules HW_platforms/%/$(BOARD)_output_products/platform.xsa
 
 
-%_hw_platform/$(TARGET_BOARD)_output_products/platform.xsa: basic_modules
+HW_platforms/%/$(BOARD)_output_products/platform.xsa: basic_modules
 	@echo  "$(GREEN) #########  Building $@ #########$(NC)"
-	make -C HW_platforms/$* $(TARGET_BOARD)
+	make -C HW_platforms/$* $(BOARD)
 
 basic_modules:
 	@echo  "$(GREEN) #########  Building $@ #########$(NC)"
-	make -C modules -j4
+	make -C modules -j4 PART=$(PART)
 
 
 clean:

@@ -3,7 +3,7 @@ RED=\e[31m
 GREEN=\e[32m
 NC=\e[0m
 
-BOARDS= pynq_z2 zynqberry
+BOARDS= pynq_z2 zynqberry zcu104
 
 all:  pynq_z2
 
@@ -40,7 +40,7 @@ vivado_%/platform.xsa: logs bd_scripts/%_platform.tcl create_project.tcl
 
 %_print_results: vivado_%/platform.xsa
 	@echo  "$(GREEN) $* Platform timing summary:  $(NC)"
-	@cat vivado_$*/timing_summary.txt|grep "| Clock Summary" -A19 -B1
+	@cat vivado_$*/timing_summary.txt|grep "| Clock Summary" -A20 -B1
 	@echo  "$(GREEN) $* Platform Utilization summary:  $(NC)"
 	@cat vivado_$*/util_report.txt|grep "|               Instance               |" -A5 -B1
 
