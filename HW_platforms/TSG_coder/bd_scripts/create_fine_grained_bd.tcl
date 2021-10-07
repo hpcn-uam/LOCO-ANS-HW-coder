@@ -124,24 +124,24 @@ set bCheckIPsPassed 1
 set bCheckIPs 1
 if { $bCheckIPs == 1 } {
    set list_check_ips "\ 
-xilinx.com:hls:ANS_coder_top:1.0\
-xilinx.com:hls:File_writer:1.0\
+HPCN:loco_ans:ANS_coder_top:1.0\
+HPCN:loco_ans:File_writer:1.0\
 xilinx.com:ip:axis_register_slice:1.1\
 xilinx.com:ip:c_counter_binary:12.0\
-xilinx.com:hls:idma:1.0\
-xilinx.com:hls:input_buffers:1.0\
-xilinx.com:hls:odma:1.0\
-xilinx.com:hls:output_data_interface:1.0\
-xilinx.com:hls:output_metadata_interface:1.0\
-xilinx.com:hls:output_stack:1.0\
+HPCN:loco_ans:idma:1.0\
+HPCN:loco_ans:input_buffers:1.0\
+HPCN:loco_ans:odma:1.0\
+HPCN:loco_ans:output_data_interface:1.0\
+HPCN:loco_ans:output_metadata_interface:1.0\
+HPCN:loco_ans:output_stack:1.0\
 xilinx.com:ip:processing_system7:5.5\
 xilinx.com:ip:proc_sys_reset:5.0\
-xilinx.com:hls:serialize_symbols:1.0\
-xilinx.com:hls:split_stream:1.0\
+HPCN:loco_ans:serialize_symbols:1.0\
+HPCN:loco_ans:split_stream:1.0\
 xilinx.com:ip:system_ila:1.1\
 xilinx.com:ip:xlconcat:2.1\
-xilinx.com:hls:z_decompose_post:1.0\
-xilinx.com:hls:z_decompose_pre:1.0\
+HPCN:loco_ans:z_decompose_post:1.0\
+HPCN:loco_ans:z_decompose_pre:1.0\
 "
 
    set list_ips_missing ""
@@ -213,10 +213,10 @@ proc create_root_design { parentCell } {
   # Create ports
 
   # Create instance: ANS_coder_top_0, and set properties
-  set ANS_coder_top_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:ANS_coder_top:1.0 ANS_coder_top_0 ]
+  set ANS_coder_top_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:ANS_coder_top:1.0 ANS_coder_top_0 ]
 
   # Create instance: File_writer_0, and set properties
-  set File_writer_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:File_writer:1.0 File_writer_0 ]
+  set File_writer_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:File_writer:1.0 File_writer_0 ]
 
   # Create instance: axi_mem_intercon, and set properties
   set axi_mem_intercon [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_mem_intercon ]
@@ -245,22 +245,22 @@ proc create_root_design { parentCell } {
   set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
 
   # Create instance: idma_0, and set properties
-  set idma_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:idma:1.0 idma_0 ]
+  set idma_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:idma:1.0 idma_0 ]
 
   # Create instance: input_buffers_0, and set properties
-  set input_buffers_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:input_buffers:1.0 input_buffers_0 ]
+  set input_buffers_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:input_buffers:1.0 input_buffers_0 ]
 
   # Create instance: odma_0, and set properties
-  set odma_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:odma:1.0 odma_0 ]
+  set odma_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:odma:1.0 odma_0 ]
 
   # Create instance: output_data_interface_0, and set properties
-  set output_data_interface_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:output_data_interface:1.0 output_data_interface_0 ]
+  set output_data_interface_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:output_data_interface:1.0 output_data_interface_0 ]
 
   # Create instance: output_metadata_inte_0, and set properties
-  set output_metadata_inte_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:output_metadata_interface:1.0 output_metadata_inte_0 ]
+  set output_metadata_inte_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:output_metadata_interface:1.0 output_metadata_inte_0 ]
 
   # Create instance: output_stack_0, and set properties
-  set output_stack_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:output_stack:1.0 output_stack_0 ]
+  set output_stack_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:output_stack:1.0 output_stack_0 ]
 
   # Create instance: processing_system7_0, and set properties
   set processing_system7_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0 ]
@@ -1072,10 +1072,10 @@ proc create_root_design { parentCell } {
   set rst_ps7_0_50M [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_ps7_0_50M ]
 
   # Create instance: serialize_symbols_0, and set properties
-  set serialize_symbols_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:serialize_symbols:1.0 serialize_symbols_0 ]
+  set serialize_symbols_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:serialize_symbols:1.0 serialize_symbols_0 ]
 
   # Create instance: split_stream_0, and set properties
-  set split_stream_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:split_stream:1.0 split_stream_0 ]
+  set split_stream_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:split_stream:1.0 split_stream_0 ]
 
   # Create instance: system_ila_0, and set properties
   set system_ila_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:system_ila:1.1 system_ila_0 ]
@@ -1103,10 +1103,10 @@ proc create_root_design { parentCell } {
   set xlconcat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_0 ]
 
   # Create instance: z_decompose_post_0, and set properties
-  set z_decompose_post_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:z_decompose_post:1.0 z_decompose_post_0 ]
+  set z_decompose_post_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:z_decompose_post:1.0 z_decompose_post_0 ]
 
   # Create instance: z_decompose_pre_0, and set properties
-  set z_decompose_pre_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:z_decompose_pre:1.0 z_decompose_pre_0 ]
+  set z_decompose_pre_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:z_decompose_pre:1.0 z_decompose_pre_0 ]
 
   # Create interface connections
   connect_bd_intf_net -intf_net ANS_coder_top_0_byte_block_stream_V [get_bd_intf_pins ANS_coder_top_0/byte_block_stream_V] [get_bd_intf_pins output_stack_0/in_V]

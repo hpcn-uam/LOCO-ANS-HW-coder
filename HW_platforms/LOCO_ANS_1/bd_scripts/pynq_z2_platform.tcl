@@ -123,15 +123,15 @@ set bCheckIPsPassed 1
 set bCheckIPs 1
 if { $bCheckIPs == 1 } {
    set list_check_ips "\ 
-xilinx.com:hls:idma:1.0\
+HPCN:loco_ans:idma:1.0\
 xilinx.com:ip:processing_system7:5.5\
 xilinx.com:ip:proc_sys_reset:5.0\
-xilinx.com:hls:File_writer:1.0\
+HPCN:loco_ans:File_writer:1.0\
 HPCN:loco_ans:LOCO_decorrelator:1.0\
-xilinx.com:hls:St_idx_compute:1.0\
-xilinx.com:hls:TSG_coder:1.0\
+HPCN:loco_ans:St_idx_compute:1.0\
+HPCN:loco_ans:TSG_coder:1.0\
 xilinx.com:ip:c_counter_binary:12.0\
-xilinx.com:hls:odma:1.0\
+HPCN:loco_ans:odma:1.0\
 xilinx.com:ip:system_ila:1.1\
 "
 
@@ -211,22 +211,22 @@ proc create_hier_cell_LOCO_ANS_Encoder { parentCell nameHier } {
   create_bd_pin -dir I -type rst ap_rst_n
 
   # Create instance: File_writer_0, and set properties
-  set File_writer_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:File_writer:1.0 File_writer_0 ]
+  set File_writer_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:File_writer:1.0 File_writer_0 ]
 
   # Create instance: LOCO_decorrelator_0, and set properties
   set LOCO_decorrelator_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:LOCO_decorrelator:1.0 LOCO_decorrelator_0 ]
 
   # Create instance: St_idx_compute_0, and set properties
-  set St_idx_compute_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:St_idx_compute:1.0 St_idx_compute_0 ]
+  set St_idx_compute_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:St_idx_compute:1.0 St_idx_compute_0 ]
 
   # Create instance: TSG_coder_0, and set properties
-  set TSG_coder_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:TSG_coder:1.0 TSG_coder_0 ]
+  set TSG_coder_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:TSG_coder:1.0 TSG_coder_0 ]
 
   # Create instance: c_counter_binary_0, and set properties
   set c_counter_binary_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:c_counter_binary:12.0 c_counter_binary_0 ]
 
   # Create instance: odma_0, and set properties
-  set odma_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:odma:1.0 odma_0 ]
+  set odma_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:odma:1.0 odma_0 ]
 
   # Create instance: system_ila_0, and set properties
   set system_ila_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:system_ila:1.1 system_ila_0 ]
@@ -339,7 +339,7 @@ proc create_root_design { parentCell design_name } {
  ] $axi_mem_intercon
 
   # Create instance: idma_0, and set properties
-  set idma_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:idma:1.0 idma_0 ]
+  set idma_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:idma:1.0 idma_0 ]
 
   # Create instance: processing_system7_0, and set properties
   set processing_system7_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0 ]

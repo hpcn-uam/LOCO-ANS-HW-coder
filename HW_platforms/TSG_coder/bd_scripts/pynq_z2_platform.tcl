@@ -124,11 +124,11 @@ set bCheckIPsPassed 1
 set bCheckIPs 1
 if { $bCheckIPs == 1 } {
    set list_check_ips "\
-xilinx.com:hls:File_writer:1.0\
-xilinx.com:hls:TSG_coder:1.0\
+HPCN:loco_ans:File_writer:1.0\
+HPCN:loco_ans:TSG_coder:1.0\
 xilinx.com:ip:axis_data_fifo:2.0\
-xilinx.com:hls:idma_TSG:1.0\
-xilinx.com:hls:odma:1.0\
+HPCN:loco_ans:idma_TSG:1.0\
+HPCN:loco_ans:odma:1.0\
 xilinx.com:ip:processing_system7:5.5\
 xilinx.com:ip:proc_sys_reset:5.0\
 xilinx.com:ip:xlconstant:1.1\
@@ -203,10 +203,10 @@ proc create_root_design { parentCell } {
   # Create ports
 
   # Create instance: File_writer_0, and set properties
-  set File_writer_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:File_writer:1.0 File_writer_0 ]
+  set File_writer_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:File_writer:1.0 File_writer_0 ]
 
   # Create instance: TSG_coder_0, and set properties
-  set TSG_coder_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:TSG_coder:1.0 TSG_coder_0 ]
+  set TSG_coder_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:TSG_coder:1.0 TSG_coder_0 ]
 
   # Create instance: axi_mem_intercon, and set properties
   set axi_mem_intercon [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_mem_intercon ]
@@ -241,10 +241,10 @@ proc create_root_design { parentCell } {
  ] $axis_data_fifo_2
 
   # Create instance: idma_TSG_0, and set properties
-  set idma_TSG_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:idma_TSG:1.0 idma_TSG_0 ]
+  set idma_TSG_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:idma_TSG:1.0 idma_TSG_0 ]
 
   # Create instance: odma_0, and set properties
-  set odma_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:odma:1.0 odma_0 ]
+  set odma_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:odma:1.0 odma_0 ]
 
   # Create instance: processing_system7_0, and set properties
   set processing_system7_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0 ]

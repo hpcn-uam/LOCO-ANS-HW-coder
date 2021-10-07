@@ -124,15 +124,15 @@ set bCheckIPsPassed 1
 set bCheckIPs 1
 if { $bCheckIPs == 1 } {
    set list_check_ips "\
-xilinx.com:hls:idma:1.0\
+HPCN:loco_ans:idma:1.0\
 xilinx.com:ip:processing_system7:5.5\
 xilinx.com:ip:proc_sys_reset:5.0\
-xilinx.com:hls:File_writer:1.0\
+HPCN:loco_ans:File_writer:1.0\
 HPCN:loco_ans:LOCO_decorrelator:1.0\
-xilinx.com:hls:St_idx_compute:1.0\
-xilinx.com:hls:TSG_coder_double_lane:1.0\
+HPCN:loco_ans:St_idx_compute:1.0\
+HPCN:loco_ans:TSG_coder_double_lane:1.0\
 xilinx.com:ip:axis_data_fifo:2.0\
-xilinx.com:hls:odma:1.0\
+HPCN:loco_ans:odma:1.0\
 "
 
    set list_ips_missing ""
@@ -221,10 +221,10 @@ proc create_hier_cell_LOCO_ANS_Encoder { parentCell nameHier } {
   create_bd_pin -dir I -type rst rst_1_n
 
   # Create instance: File_writer_0, and set properties
-  set File_writer_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:File_writer:1.0 File_writer_0 ]
+  set File_writer_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:File_writer:1.0 File_writer_0 ]
 
   # Create instance: File_writer_1, and set properties
-  set File_writer_1 [ create_bd_cell -type ip -vlnv xilinx.com:hls:File_writer:1.0 File_writer_1 ]
+  set File_writer_1 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:File_writer:1.0 File_writer_1 ]
 
   # Create instance: LOCO_decorrelator_0, and set properties
   set LOCO_decorrelator_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:LOCO_decorrelator:1.0 LOCO_decorrelator_0 ]
@@ -233,13 +233,13 @@ proc create_hier_cell_LOCO_ANS_Encoder { parentCell nameHier } {
   set LOCO_decorrelator_1 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:LOCO_decorrelator:1.0 LOCO_decorrelator_1 ]
 
   # Create instance: St_idx_compute_0, and set properties
-  set St_idx_compute_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:St_idx_compute:1.0 St_idx_compute_0 ]
+  set St_idx_compute_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:St_idx_compute:1.0 St_idx_compute_0 ]
 
   # Create instance: St_idx_compute_1, and set properties
-  set St_idx_compute_1 [ create_bd_cell -type ip -vlnv xilinx.com:hls:St_idx_compute:1.0 St_idx_compute_1 ]
+  set St_idx_compute_1 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:St_idx_compute:1.0 St_idx_compute_1 ]
 
   # Create instance: TSG_coder_double_lane_0, and set properties
-  set TSG_coder_double_lane_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:TSG_coder_double_lane:1.0 TSG_coder_double_lane_0 ]
+  set TSG_coder_double_lane_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:TSG_coder_double_lane:1.0 TSG_coder_double_lane_0 ]
 
   # Create instance: first_px_fifo, and set properties
   set first_px_fifo [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_data_fifo:2.0 first_px_fifo ]
@@ -256,10 +256,10 @@ proc create_hier_cell_LOCO_ANS_Encoder { parentCell nameHier } {
  ] $first_px_fifo1
 
   # Create instance: odma_0, and set properties
-  set odma_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:odma:1.0 odma_0 ]
+  set odma_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:odma:1.0 odma_0 ]
 
   # Create instance: odma_1, and set properties
-  set odma_1 [ create_bd_cell -type ip -vlnv xilinx.com:hls:odma:1.0 odma_1 ]
+  set odma_1 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:odma:1.0 odma_1 ]
 
   # Create instance: symbol_fifo, and set properties
   set symbol_fifo [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_data_fifo:2.0 symbol_fifo ]
@@ -380,10 +380,10 @@ proc create_root_design { parentCell } {
  ] $axi_mem_intercon1
 
   # Create instance: idma_0, and set properties
-  set idma_0 [ create_bd_cell -type ip -vlnv xilinx.com:hls:idma:1.0 idma_0 ]
+  set idma_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:idma:1.0 idma_0 ]
 
   # Create instance: idma_1, and set properties
-  set idma_1 [ create_bd_cell -type ip -vlnv xilinx.com:hls:idma:1.0 idma_1 ]
+  set idma_1 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:idma:1.0 idma_1 ]
 
   # Create instance: processing_system7_0, and set properties
   set processing_system7_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0 ]
