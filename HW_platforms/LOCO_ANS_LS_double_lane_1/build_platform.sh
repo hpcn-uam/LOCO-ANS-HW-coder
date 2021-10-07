@@ -48,7 +48,7 @@ fi
 mkdir -p ${PROJ_NAME}
 cd ${PROJ_NAME}
 
-Print_Msg Calling vivado
+Print_Msg "Calling vivado (Log: logs/${TARGET_BOARD}_vivado.log )"
 vivado -mode batch -source ../create_project.tcl -tclargs \
         --origin_dir ./ \
         --project_name ${PROJ_NAME}  \
