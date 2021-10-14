@@ -10,9 +10,9 @@
 *
 *
 *
-* Last Modified : 2021-07-22 11:01:48 
+* Last Modified : 2021-07-22 11:01:48
 *
-* Revision      : 
+* Revision      :
 *
 * Disclaimer
 * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
@@ -28,8 +28,8 @@
 using namespace sw_impl;
 using namespace std;
 
-#define SW_ERROR_REDUCTION 1 
-#define SW_USING_DIV_RED_LUT 1
+#define SW_ERROR_REDUCTION 1
+#define SW_USING_DIV_RED_LUT 0
 // int prediction_errors[512]={0};
 
 // constexpr int MAXVAL = (1<<INPUT_BPP)-1;
@@ -131,20 +131,20 @@ void sw_impl::image_scanner(int near,int cols, int rows,
   #if SW_ERROR_REDUCTION
   const int MIN_REDUCT_ERROR = -near;
   const int MAX_REDUCT_ERROR =  MAXVAL + near;
-  const int DECO_RANGE = alpha * delta;     
+  const int DECO_RANGE = alpha * delta;
   const int MAX_ERROR =  std::ceil(alpha/2.0) -1;
   const int MIN_ERROR = -std::floor(alpha/2.0);
   #endif
   const int remainder_reduct_bits = std::floor(std::log2(float(delta)));
 
-  
+
   context_init( near, alpha);
 
   RowBuffer row_buffer(cols);
 
-  // store first px 
+  // store first px
   {
-    int channel_value = src.read(); 
+    int channel_value = src.read();
     row_buffer.update(channel_value,0);
     ee_symb_data symbol;
     symbol.z = channel_value;
@@ -177,13 +177,13 @@ void sw_impl::image_scanner(int near,int cols, int rows,
       int prediction;
       Context_t context;
       get_prediction_and_context(row_buffer,col, MAXVAL,context,prediction);
-      
+
       int error = channel_value - prediction;
 
       int acc_inv_sign = (ctx_acc[context.id] > 0)? -1:0;
       error = mult_by_sign(error,context.sign^acc_inv_sign);
-      
-      // symbols<< error; 
+
+      // symbols<< error;
 
       #if 1
         #if SW_USING_DIV_RED_LUT
@@ -206,12 +206,12 @@ void sw_impl::image_scanner(int near,int cols, int rows,
         symbol.theta_id = get_context_theta_idx(context);
         symbol.p_id = ctx_p_idx[context.id];
         symbol.remainder_reduct_bits = remainder_reduct_bits;
-      
-      symbols<< symbol; 
+
+      symbols<< symbol;
 
 
       // get decoded value
-      int q_error = mult_by_sign(delta*error,acc_inv_sign); 
+      int q_error = mult_by_sign(delta*error,acc_inv_sign);
       int q_channel_value = (prediction + mult_by_sign(q_error,context.sign));
 
       #if SW_ERROR_REDUCTION
@@ -220,7 +220,7 @@ void sw_impl::image_scanner(int near,int cols, int rows,
         }else if((q_channel_value > MAX_REDUCT_ERROR)){
           q_channel_value -= DECO_RANGE;
         }
-      #endif 
+      #endif
 
       //update context
       q_channel_value = clamp(q_channel_value,MAXVAL);
@@ -230,10 +230,10 @@ void sw_impl::image_scanner(int near,int cols, int rows,
       update_context(context, q_error,symbol.z,symbol.y);
 
 
- 
+
     }
     init_col = 0;
     row_buffer.end_row();
   }
-  
+
 }

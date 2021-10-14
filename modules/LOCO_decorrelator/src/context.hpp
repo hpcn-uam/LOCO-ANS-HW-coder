@@ -36,6 +36,7 @@ constexpr int QUANT_RED_LUT_SIZE = (1<<(INPUT_BPP+1));
 quant_reduct_lut_elem quant_reduct_lut[QUANT_RED_LUT_SIZE];
 
 ap_int<INPUT_BPP+1> quant_error_lut[QUANT_RED_LUT_SIZE];
+// ap_int<NEAR_BITS+1> quant_error_lut[QUANT_RED_LUT_SIZE];
 
 int Uniform_quantizer(int error, int delta, int near){
   if(error > 0){
@@ -111,9 +112,9 @@ void init_context(int near, int alpha){
 
     if (i < QUANT_RED_LUT_SIZE){
       #ifdef NEAR_LUT_NO_DIV
-        int orig_error = i <=255 ? i : 256 - i;
-        int symb= i <=255? aux_symb :  -aux_symb;
-        int quant_error= i <=255?  aux_quant_error : -aux_quant_error;
+        int orig_error = i <=MAXVAL ? i : MAXVAL+1 - i;
+        int symb= i <=MAXVAL? aux_symb :  -aux_symb;
+        int quant_error= i <=MAXVAL?  aux_quant_error : -aux_quant_error;
 
         ap_uint<INPUT_BPP+1> lut_address = orig_error;
 
@@ -140,7 +141,7 @@ void init_context(int near, int alpha){
           ASSERT(dbg_quant_error,==,quant_error)
         #endif
 
-        if (i == 255){
+        if (i == MAXVAL){
           aux_symb = 0;
           red_symbol=0;
           aux_quant_error =0 ;

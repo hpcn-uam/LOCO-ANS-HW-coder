@@ -22,6 +22,8 @@
 #include "sw_implementation.hpp"
 #endif
 
+constexpr int NEAR_BITS= 4;
+constexpr int MAX_NEAR = (1<<NEAR_BITS)-1;
 //#include <ap_fixed.h>
 //#include <hls_opencv.h>
 
@@ -52,7 +54,7 @@ typedef int pixel_ptr_t;
 
 #define OPTIMIZED_PIXEL_TIPE 1
 #if OPTIMIZED_PIXEL_TIPE
-  typedef ap_int<10> err_t; // OPT can be reduced to 9
+  typedef ap_int<INPUT_BPP+2> err_t; // OPT can be reduced to 9
 #else
   typedef int err_t; // OPT can be reduced to 9
 #endif
