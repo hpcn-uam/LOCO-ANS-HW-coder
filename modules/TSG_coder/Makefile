@@ -12,7 +12,7 @@ sources :=  src/TSG_coder.cpp  ../input_buffers/src/input_buffers.cpp ../subsym_
 #parts:
 # 0 - pynq z2
 # 1 - zcu104
-PART=0
+PART= pynq_z2
 
 MODE := 1 # 1: just hls synth and export | 0: also csim and cosim
 MODE_NAME :=
@@ -32,19 +32,13 @@ test: MODE := 0
 test: MODE_NAME := (with csim and RTL cosim)
 test: TSG_coder
 
-$(ALL_TARGETS): %:  %.hls_prj/$(PART)/impl/ip/
-# TSG_input_adapter: TSG_input_adapter.hls_prj/$(PART)/impl/ip/
+$(ALL_TARGETS): %: logs %.hls_prj/$(PART)/impl/ip/
 
-# output_data_interface: output_data_interface.hls_prj/$(PART)/impl/ip/
-
-# output_metadata_interface: output_metadata_interface.hls_prj/$(PART)/impl/ip/
-
-# TSG_coder: TSG_coder.hls_prj/$(PART)/impl/ip/
 
 logs:
 	mkdir -p logs
 
-%.hls_prj/$(PART)/impl/ip/: logs $(DEPS) %_script.tcl
+%.hls_prj/$(PART)/impl/ip/: $(DEPS) %_script.tcl
 	@echo  "$(GREEN) #########  Compiling $* $(MODE_NAME) #########$(NC)"
 	vitis_hls $*_script.tcl $(MODE) $(PART) > logs/$*_$(PART)_compile.log
 
@@ -60,4 +54,4 @@ TSG_csim_clang_sim_TSG_internal_ROM:  src/test.cpp $(sources)
 	clang++ $(CFLAGS) -DDEBUG -DUSE_TSG_INTERNAL_ROM -DEXTERNAL_ANS_ROM $(sources) $< -o $@
 
 clean:
-	rm -rf TSG_csim_clang_sim *.hls_prj
+	rm -rf TSG_csim_clang_sim *.hls_prj vitis_hls.log logs

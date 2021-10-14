@@ -10,7 +10,7 @@ TARGETS = TSG_coder LOCO_ANS_double_lane_1
 all: LOCO_ANS_double_lane_1 
 
 BOARD=pynq_z2
-PART=0
+PART=$(BOARD)
 
 
 $(TARGETS): %: basic_modules HW_platforms/%/$(BOARD)_output_products/platform.xsa
