@@ -30,10 +30,10 @@ vivado_%/platform.xsa: logs bd_scripts/%_platform.tcl create_project.tcl
 	cp vivado_$*/platform.xsa $@
 
 %_output_products/platform.bit: %_output_products/platform.xsa
-	unzip -f $*_output_products/platform.xsa platform.bit -d $*_output_products
+	unzip -oq $*_output_products/platform.xsa platform.bit -d $*_output_products
 
 %_output_products/platform.hwh: %_output_products/platform.xsa
-	unzip -f $*_output_products/platform.xsa platform.hwh -d $*_output_products
+	unzip -oq $*_output_products/platform.xsa platform.hwh -d $*_output_products
 
 %_output_products/platform.tcl: bd_scripts/%_platform.tcl
 	cp $< $@
