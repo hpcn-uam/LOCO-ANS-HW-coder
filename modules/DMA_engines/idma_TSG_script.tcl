@@ -28,7 +28,7 @@ set arg_idx 0
 
 
 set mode 1
-set target_id 0
+set target "pynq_z2"
 
 
 #mode
@@ -43,31 +43,32 @@ if { $mode != 1 } {
 puts "Mode : $mode"
 
 
-#target_id
+#target
 if { $arg_idx < $arglen } {
-  set target_id [lindex $argv $arg_idx]
+  set target [lindex $argv $arg_idx]
   incr arg_idx
 }
 
-switch -exact -- $target_id {
-  0 {
-    set target_name "pynq_z2"
+set sol_name $target
+switch -exact -- $target {
+  "pynq_z2" {
+    set target_id 0
     set part xc7z020clg400-1
     set period  8
   }
-  1 {
-    set target_name "zcu104"
+  "zcu104" {
+    set target_id 1
     set part xczu7ev-ffvc1156-2-e
     set period  3
   }
   default {
     puts "Error: target id not supported"
-    quit
+    quit 1
   }
 }
 
-set sol_name "solution_$target_id"
-puts "Target : $target_name"
+
+puts "Target : $sol_name"
 puts "Solution name : $sol_name"
 puts "Period : $period"
 puts "Part : $part"

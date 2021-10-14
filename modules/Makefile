@@ -7,7 +7,7 @@ ALL_TARGETS := $(BASIC_TARGETS) ANS_coder input_buffers output_stack subsym_gen
 #parts:
 # 0 - pynq z2
 # 1 - zcu104
-PART=0
+PART=pynq_z2
 
 .PHONY:	all all_modules $(ALL_TARGETS)
 
@@ -20,4 +20,4 @@ clean: SUBTARGET := clean
 clean: $(ALL_TARGETS)
 
 $(ALL_TARGETS):
-	make -C $@ $(SUBTARGET) $(PART)
+	make -C $@ $(SUBTARGET) PART=$(PART)

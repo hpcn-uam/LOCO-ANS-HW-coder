@@ -6,29 +6,34 @@ set arg_idx 0
 #set default parameters
 # mode param | 0: all steps | 1: just syn & export
 set mode 0
-set target_id 0
+set target "pynq_z2"
+
 
 #mode
 if { $arg_idx < $arglen } {
   set mode [lindex $argv $arg_idx]
   incr arg_idx
 }
+puts "Mode : $mode"
 
-#target_id
+
+#target
 if { $arg_idx < $arglen } {
-  set target_id [lindex $argv $arg_idx]
+  set target [lindex $argv $arg_idx]
   incr arg_idx
 }
 
-switch -exact -- $target_id {
-  0 {
-    set sol_name "pynq_z2"
+set sol_name $target
+
+switch -exact -- $target {
+  "pynq_z2" {
+    set target_id 0
     set part xc7z020clg484-1
     set period  17
     set clk_uncertainty  2
   }
-  1 {
-    set sol_name "zcu104"
+  "zcu104" {
+    set target_id 1
     set part xczu7ev-ffvc1156-2-e
     set period 8.5
     set clk_uncertainty  1

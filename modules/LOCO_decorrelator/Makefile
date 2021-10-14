@@ -6,7 +6,7 @@ NC=\e[0m
 #parts:
 # 0 - pynq z2
 # 1 - zcu104
-PART=0
+PART=pynq_z2
 
 MODE := 1 # 1: just hls synth and export | 0: also csim and cosim
 MODE_NAME :=
@@ -31,7 +31,7 @@ complete: $(TEST_TARGETS) $(TARGETS)
 
 .PHONY: clean all $(TARGETS)
 
-$(TARGETS): %: %.hls_prj/$(PART)/syn  %.hls_prj/$(PART)/impl/ip/
+$(TARGETS): %: logs %.hls_prj/$(PART)/syn  %.hls_prj/$(PART)/impl/ip/
 # $(MODULE):  hls_synth export_ip
 
 $(TEST_TARGETS): %_test: %_script.tcl %.hls_prj/$(PART)/csim %.hls_prj/$(PART)/sim
@@ -43,22 +43,22 @@ logs:
 	mkdir -p $@
 
 #csim
-%.hls_prj/$(PART)/csim: %_script.tcl logs $(DEPS) $(test_sources)
+%.hls_prj/$(PART)/csim: %_script.tcl  $(DEPS) $(test_sources)
 	@echo  "$(GREEN) #########  C simulation: $* #########$(NC)"
 	vitis_hls $*_script.tcl 0 $(PART) > logs/$*_$(PART)_csim.log
 
 #synthesis
-%.hls_prj/$(PART)/syn: %_script.tcl logs $(DEPS)
+%.hls_prj/$(PART)/syn: %_script.tcl  $(DEPS)
 	@echo  "$(GREEN) #########  HLS synthesis: $* #########$(NC)"
 	vitis_hls $*_script.tcl 1 $(PART) > logs/$*_$(PART)_syn.log
 
 #cosim
-%.hls_prj/$(PART)/sim: %_script.tcl logs %.hls_prj/$(PART)/syn $(DEPS) $(test_sources)
+%.hls_prj/$(PART)/sim: %_script.tcl  %.hls_prj/$(PART)/syn $(DEPS) $(test_sources)
 	@echo  "$(GREEN) #########  RTL co-simulation: $* #########$(NC)"
 	vitis_hls $*_script.tcl 2 $(PART) > logs/$*_$(PART)_cosim.log
 
 #export
-%.hls_prj/$(PART)/impl/ip/: %_script.tcl logs %.hls_prj/$(PART)/syn
+%.hls_prj/$(PART)/impl/ip/: %_script.tcl  %.hls_prj/$(PART)/syn
 	@echo  "$(GREEN) #########  Export IP : $* #########$(NC)"
 	vitis_hls $*_script.tcl 3 $(PART) > logs/$*_$(PART)_export.log
 
