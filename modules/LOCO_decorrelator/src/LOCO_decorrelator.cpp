@@ -391,7 +391,7 @@ void St_idx_compute(
     }
     #else
     // This is a bit faster but haven't tested in different configurations
-    // OPT: HLS doesn't seem to be building a balance tree, so a tree
+    // OPT: HLS doesn't seem to be building a balanced tree, so a tree
     // implementation using binary search might be the optimum way of doing this
     constexpr int MIDDLE = (MAX_ST_IDX/2);
     if(St > (cnt<<(MIDDLE-1))) {
