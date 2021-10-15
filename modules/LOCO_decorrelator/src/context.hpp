@@ -35,8 +35,8 @@ struct quant_reduct_lut_elem{
 constexpr int QUANT_RED_LUT_SIZE = (1<<(INPUT_BPP+1));
 quant_reduct_lut_elem quant_reduct_lut[QUANT_RED_LUT_SIZE];
 
-ap_int<INPUT_BPP+1> quant_error_lut[QUANT_RED_LUT_SIZE];
-// ap_int<NEAR_BITS+1> quant_error_lut[QUANT_RED_LUT_SIZE];
+// ap_int<INPUT_BPP+1> quant_error_lut[QUANT_RED_LUT_SIZE];
+ap_int<NEAR_BITS+1> quant_error_lut[QUANT_RED_LUT_SIZE];
 
 int Uniform_quantizer(int error, int delta, int near){
   if(error > 0){
