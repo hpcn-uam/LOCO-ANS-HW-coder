@@ -29,7 +29,7 @@ switch -exact -- $target {
   "pynq_z2" {
     set target_id 0
     set part xc7z020clg484-1
-    set period  20
+    set period  15
     set clk_uncertainty  2
   }
   "zcu104" {
