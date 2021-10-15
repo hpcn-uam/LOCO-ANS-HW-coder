@@ -68,12 +68,12 @@ constexpr int ceillog2(int x){
 
 //!!!!!! px is defined as unsigned char (ap_uint<>) generates some undesired effects
 #define INPUT_BPP (8)
-typedef ap_uint<8> px_t;
+typedef ap_uint<INPUT_BPP> px_t;
 // typedef unsigned char px_t;
 
 constexpr int MAXVAL = (1<<INPUT_BPP)-1;
 #define Z_SIZE (INPUT_BPP-1)
-#define LOG2_Z_SIZE (3) // TODO: test  NBITS(Z_SIZE)
+#define LOG2_Z_SIZE NBITS(Z_SIZE)// (3) // TODO: test  NBITS(Z_SIZE)
 #define Y_SIZE (1)
 #define THETA_SIZE (5) //32 tables
 #define P_SIZE (5) //32 tables

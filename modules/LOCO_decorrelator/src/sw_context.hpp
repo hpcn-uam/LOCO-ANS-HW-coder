@@ -142,13 +142,15 @@ inline int mult_by_sign( int val, int sign) {
  int8_t _gradient_quant[256*2],*gradient_quant;
 
 Context_t map_gradients_to_int(int g1, int g2, int g3){
-  // int q1 = gradient_quantizer(g1);
-  // int q2 = gradient_quantizer(g2);
-  // int q3 = gradient_quantizer(g3);
-
+  #if 1
+  int q1 = gradient_quantizer(g1);
+  int q2 = gradient_quantizer(g2);
+  int q3 = gradient_quantizer(g3);
+  #else
   int q1  = *(gradient_quant+g1);
   int q2  = *(gradient_quant+g2);
   int q3  = *(gradient_quant+g3);
+  #endif
 
   int context_id = (q1*CTX_BINS_PER_DIM + q2 )*CTX_BINS_PER_DIM + q3 ;
 

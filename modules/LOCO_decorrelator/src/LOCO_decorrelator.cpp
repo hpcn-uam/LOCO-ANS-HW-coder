@@ -27,7 +27,7 @@ void LOCO_decorrelator(
   //READ-ONLY (from the user perspective) AXI-LITE registers
   ap_uint<8> &param_max_near,
   ap_uint<8> &param_num_of_tiles){
-  param_max_near = 255;
+  param_max_near = MAX_NEAR;
   param_num_of_tiles=1;
 
   #ifdef LOCO_DECORRELATOR_TOP
@@ -298,8 +298,8 @@ void LOCO_decorrelator_LS(
         error -= alpha;
       }
 
-      ASSERT(error<=127);
-      ASSERT(error>=-128);
+      ASSERT(error<= MAX_ERROR );
+      ASSERT(error>= MIN_ERROR  );
 
       // int red_error = error;
       ap_int<INPUT_BPP> red_error = error;

@@ -4,7 +4,7 @@
 MODE := 1 # 1: just hls synth and export | 0: also csim and cosim
 MODE_NAME :=
 
-PART := 0
+PART := pynq_z2
 .PHONY: clean all test
 
 ALL_TARGETS = idma odma odma_VarSize loopback_fifo idma_TSG

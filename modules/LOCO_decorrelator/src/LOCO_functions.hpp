@@ -9,7 +9,7 @@
 
 inline px_t clamp(int v){  //cv::saturate_cast<uchar>
   #pragma HLS inline
-  return (px_t)((unsigned)v <= 255 ? v : v > 0 ? 255 : 0);
+  return (px_t)((unsigned)v <= MAXVAL ? v : v > 0 ? MAXVAL : 0);
 }
 
 
