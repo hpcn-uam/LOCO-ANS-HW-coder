@@ -340,6 +340,15 @@ inline void update_context(
   auto & p_idx = current_stats.p_idx;
   auto & St = current_stats.St;
 
+  #ifndef CTX_ADJUST_CNT_AT_THE_END
+  if(cnt == 0 ) {
+    cnt = CTX_ADJUST_CNT>>1;
+    acc = (acc >= 0)? ctx_acc_t(acc >> 1): ctx_acc_t((1 + acc) >> 1);
+    Nt  >>=1;
+    St  >>=1;
+  }
+  #endif
+
   if((context != CTX_0)) {
     acc += error;
   }
@@ -411,12 +420,14 @@ inline void update_context(
       ASSERT(p_idx,<,(1<<CTX_NT_PRECISION));
     #endif
 
-  if(cnt >= CTX_ADJUST_CNT ) {
-    cnt >>=1;
-    acc = (acc >= 0)? ctx_acc_t(acc >> 1): ctx_acc_t((1 + acc) >> 1);
-    Nt  >>=1;
-    St  >>=1;
-  }
+    #ifdef CTX_ADJUST_CNT_AT_THE_END
+    if(cnt >= CTX_ADJUST_CNT ) {
+      cnt >>=1;
+      acc = (acc >= 0)? ctx_acc_t(acc >> 1): ctx_acc_t((1 + acc) >> 1);
+      Nt  >>=1;
+      St  >>=1;
+    }
+    #endif
 
   current_stats.acc = acc;
   current_stats.cnt = cnt;
