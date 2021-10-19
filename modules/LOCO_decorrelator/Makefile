@@ -12,7 +12,7 @@ MODE := 1 # 1: just hls synth and export | 0: also csim and cosim
 MODE_NAME :=
 sources :=  src/LOCO_decorrelator.cpp
 test_sources :=  src/LOCO_decorrelator_test.cpp src/sw_implementation.cpp src/sw_implementation.hpp
-DEPS := $(sources) ../coder_config.hpp $(wildcard src/*.hpp)
+DEPS := $(sources) ../coder_config.hpp ../user_config.hpp $(wildcard src/*.hpp)
 
 # TARGETS := LOCO_decorrelator
 TARGETS := LOCO_decorrelator LOCO_decorrelator_LS St_idx_compute

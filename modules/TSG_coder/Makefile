@@ -16,7 +16,7 @@ PART= pynq_z2
 
 MODE := 1 # 1: just hls synth and export | 0: also csim and cosim
 MODE_NAME :=
-DEPS :=   $(wildcard src/*.hpp) $(wildcard ../ANS_tables/*.dat )
+DEPS :=   $(wildcard src/*.hpp) $(wildcard ../ANS_tables/*.dat ) ../user_config.hpp ../coder_config.hpp
 
 .PHONY: clean all
 

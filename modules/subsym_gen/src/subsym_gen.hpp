@@ -19,7 +19,7 @@
 #define SUBSYMB_BYPASS 2
 #define SUBSYMB_Z_LAST 3
 
-#define Z_META_STREAM_SIZE (LOG2_Z_SIZE+CARD_BITS+ANS_SYMB_BITS+ 1+ 2*Z_SIZE+THETA_SIZE+1)
+#define Z_META_STREAM_SIZE (LOG2_Z_SIZE+CARD_BITS+ANS_SUBSYMBOL_BITS+ 1+ 2*Z_SIZE+THETA_SIZE+1)
 
 struct subsymb_t{
     ap_uint<SUBSYMB_SIZE> subsymb;
@@ -46,7 +46,7 @@ public:
   ap_uint<Z_SIZE> module_reminder;
   ap_uint<1> input_select;
 private:
-  ap_uint<ANS_SYMB_BITS> ans_symb;
+  ap_uint<ANS_SUBSYMBOL_BITS> ans_symb;
   ap_uint<CARD_BITS> encoder_cardinality;
   ap_uint<THETA_SIZE> theta_id;
   ap_uint<1> end_of_block;

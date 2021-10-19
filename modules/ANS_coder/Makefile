@@ -7,7 +7,7 @@ NC=\e[0m
 MODE := 1 # 1: just hls synth and export | 0: also csim and cosim
 MODE_NAME := 
 sources :=  ../input_buffers/src/input_buffers.cpp ../subsym_gen/src/subsym_gen.cpp $(wildcard src/*.cpp)
-DEPS := $(sources) $(wildcard src/*.hpp) $(wildcard ../input_buffers/src/*.hpp) $(wildcard ../subsym_gen/src/*.hpp)  $(wildcard ../ANS_tables/*.dat )
+DEPS := ../user_config.hpp ../coder_config.hpp $(sources) $(wildcard src/*.hpp) $(wildcard ../input_buffers/src/*.hpp) $(wildcard ../subsym_gen/src/*.hpp)  $(wildcard ../ANS_tables/*.dat )
 
 CFLAGS := -I/tools/Xilinx/Vitis_HLS/2021.1/include/
 
