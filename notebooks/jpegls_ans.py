@@ -5,7 +5,7 @@ import Quantization_functions as qfunc # my quantization functions
 import numpy as np
 
 
-template_config = """/*
+sw_template_config = """/*
  *
  *      Author: Tobías Alonso
  */
@@ -13,7 +13,6 @@ template_config = """/*
 #ifndef CODER_CONFIG_H
 #define CODER_CONFIG_H
 
-#include "codec_core.h"
 
 //quantizers
 #define CTX_ST_FINER_QUANT ($CTX_ST_FINER_QUANT$) 
@@ -32,6 +31,45 @@ template_config = """/*
 #define NUM_ANS_THETA_MODES ($NUM_ANS_THETA_MODES$) // supported theta_modes
 #define NUM_ANS_P_MODES ($NUM_ANS_P_MODES$) // supported p_modes
 #define NUM_ANS_STATES ($NUM_ANS_STATES$)// NUM_ANS_STATES only considers I range
+
+$CARDINALITY_ARRAYS$
+
+#define ARCH ($ARCH$)
+#endif
+"""
+
+hw_template_config = """/*
+ *
+ *      Author: Tobías Alonso
+ */
+
+#ifndef USER_CONFIG_HPP
+#define USER_CONFIG_HPP
+
+#define INPUT_BPP ($INPUT_BPP$)
+
+//quantizers
+#define CTX_ST_FINER_QUANT ($CTX_ST_FINER_QUANT$) 
+#define CTX_ST_PRECISION ($CTX_ST_PRECISION$) // number of fractional bits
+#define MAX_ST_IDX  ($MAX_ST_IDX$)//31//25 //(12)
+
+#define CTX_NT_CENTERED_QUANT ($CTX_NT_CENTERED_QUANT$)
+#define CTX_NT_PRECISION ($CTX_NT_PRECISION$) // number of fractional bits
+#define HALF_Y_CODER ($HALF_Y_CODER$) 
+
+// ANS coder 
+constexpr int  ANS_MAX_SRC_CARDINALITY = $ANS_MAX_SRC_CARDINALITY$;
+constexpr int EE_MAX_ITERATIONS = $EE_MAX_ITERATIONS$;
+constexpr int BUFFER_SIZE = $EE_BUFFER_SIZE$;
+
+#define NUM_ANS_THETA_MODES ($NUM_ANS_THETA_MODES$) // supported theta_modes
+#define NUM_ANS_P_MODES ($NUM_ANS_P_MODES$) // supported p_modes
+#define NUM_ANS_STATES ($NUM_ANS_STATES$)// NUM_ANS_STATES only considers I range
+
+#define P_SIZE ($P_SIZE$)
+#define THETA_SIZE ($THETA_SIZE$)
+#define NUM_ANS_BITS ($NUM_ANS_BITS$)
+#define LOG2_ANS_BITS ($LOG2_ANS_BITS$) // lg_2(NUM_ANS_BITS+1)
 
 $CARDINALITY_ARRAYS$
 
@@ -322,11 +360,11 @@ def get_cardinality_array(ec_modes,max_code_len,max_symbols):
     assert table_data_type_bits in [8,16,32,64]
 
     
-    out_string ="static const uint{}_t tANS_cardinality_table[{}] = {{".format(table_data_type_bits,table_size)
+    out_string ="static const unsigned int tANS_cardinality_table[{}] = {{".format(table_size)
     out_string +="\t"+",".join(str(c) for c in  cardinality_table)+"};\n"
 
     out_string +=""
-    out_string +="static const int32_t max_module_per_cardinality_table[{}] = {{".format(table_size)
+    out_string +="static const int max_module_per_cardinality_table[{}] = {{".format(table_size)
     out_string +="\t"+",".join(str(c)+'*EE_MAX_ITERATIONS' for c in  cardinality_table)+"};\n"
     return out_string
 
