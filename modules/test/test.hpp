@@ -40,7 +40,7 @@ unsigned int get_bit( std::list<bit_blocks> &binary_list){
     binary_list.pop_front();
     block = binary_list.front();
   }
-  
+
   unsigned int bit = block.data & (1 << (block.bits-1));
   bit = bit != 0? 1 : 0;
   block.bits--;
@@ -51,13 +51,13 @@ unsigned int get_bit( std::list<bit_blocks> &binary_list){
 
 auto get_escape_symbol( std::list<bit_blocks> &binary_list){
   auto block = binary_list.front();
-  
+
   while(block.bits == 0) {
     binary_list.pop_front();
     block = binary_list.front();
   }
   binary_list.pop_front();
-  
+
 
   return block;
 }
@@ -92,7 +92,7 @@ uint tANS_decoder(tANS_dtable_t ANS_table_entry, uint &ANS_decoder_state,
 
 template< unsigned STACK_SIZE,unsigned NUM_OUT_OF_BYTES>
 void output_stack_sw(
-  stream<byte_block<NUM_OUT_OF_BYTES> > &in, 
+  stream<byte_block<NUM_OUT_OF_BYTES> > &in,
   stream<byte_block<NUM_OUT_OF_BYTES> > &out,
   ap_uint<1> &golden_stack_overflow){
   std::vector<byte_block<NUM_OUT_OF_BYTES>> aux_vector;
@@ -147,7 +147,7 @@ void pack_out_bytes_sw_little_endian(
         // out_block.data = (out_block.data(23,0),new_byte );
         out_block.set_last(byte_buffer.empty() );
         if(out_block.num_of_bytes()==OB || out_block.is_last() ) {
-          out_bitstream << out_block; 
+          out_bitstream << out_block;
           //reset block
           out_block.data = 0 ;
           out_block.set_num_of_bytes(0);
@@ -162,7 +162,7 @@ void pack_out_bytes_sw_little_endian(
 
 
 /***********************
- *Decoder side functions  
+ *Decoder side functions
 ***********************/
 
 /*
@@ -170,8 +170,8 @@ When calling any of :
 - retrive_pixel
 - retrive_TSG_symbol
 
-it's assumed that a symbol was retrieved (except in retrive_TSG_symbol 
-when the escape symbol is encountered ). So the falling clean up code is used 
+it's assumed that a symbol was retrieved (except in retrive_TSG_symbol
+when the escape symbol is encountered ). So the falling clean up code is used
 before returning:
 
 ```
@@ -186,7 +186,7 @@ class Binary_Decoder
 {
   static constexpr int ANS_SYMBOL = 0;
   static constexpr int ANS_PREV_STATE = 1;
-  static constexpr int tANS_STATE_SIZE = NUM_ANS_BITS ; 
+  static constexpr int tANS_STATE_SIZE = NUM_ANS_BITS ;
 
   uint remaining_symbols; // remaining symbols excluding those in the current block
   uint blk_rem_symbols;  // remaining symbols in current decoding block
@@ -212,14 +212,16 @@ class Binary_Decoder
 
 
 public:
+  int number_of_z_subsymbols;
   Binary_Decoder(void* _block_binary,uint total_symbs):
       block_binary(decltype(block_binary)( _block_binary)),
       #if BIT_ENDIANNESS_LITTLE ||SYMBOL_ENDIANNESS_LITTLE
       binary_file_ptr(2), // 2 cause binary_buffer is initialized with the first 2 elements
       #else
       binary_file_ptr(0),
-      #endif 
-      bit_ptr(bit_ptr_init),is_ANS_ready(false),ANS_decoder_state(0){
+      #endif
+      bit_ptr(bit_ptr_init),is_ANS_ready(false),ANS_decoder_state(0),
+      number_of_z_subsymbols(0){
     // TODO should be using the buffer size stated in the global header, not BUFFER_SIZE
     blk_rem_symbols = total_symbs < BUFFER_SIZE? total_symbs : BUFFER_SIZE;
     remaining_symbols = total_symbs - blk_rem_symbols;
@@ -227,7 +229,7 @@ public:
   }
 
   ~Binary_Decoder(){};
-  
+
   auto get_current_byte_pointer(){
     // if bit_ptr ==0, consider that the next byte has not been read
     return (binary_file_ptr-2)*BINARY_BLOCK_BYTES + int((bit_ptr-1)/8);
@@ -273,11 +275,11 @@ public:
     }
 
     return bit_buffer;
-    
+
   }
   #endif
 
-  int retrive_TSG_symbol(int theta_id, int p_id, uint escape_bits, int &z, int &y){  
+  int retrive_TSG_symbol(int theta_id, int p_id, uint escape_bits, int &z, int &y){
     // z first and y second
     z = Geometric_decoder(theta_id,escape_bits);
     y = Bernoulli_decoder(p_id);
@@ -309,7 +311,7 @@ private:
             binary_file_ptr++;
           }
         #else
-          binary_file_ptr ++; 
+          binary_file_ptr ++;
         #endif
       }
       unsigned int symbol;
@@ -338,7 +340,7 @@ private:
       //
       // unsigned int bit = block_binary[binary_file_ptr] & (1 << bit_ptr);
       // bit >>= bit_ptr;
-      // 
+      //
       // bit = bit != 0? 1 : 0;
 
       #if BIT_ENDIANNESS_LITTLE || SYMBOL_ENDIANNESS_LITTLE
@@ -403,7 +405,7 @@ private:
     int new_bits = 0;
     // This can be done cause ANS_I_RANGE_START = 2^int
     while(ANS_decoder_state < ANS_I_RANGE_START) {
-      ANS_decoder_state <<=1; 
+      ANS_decoder_state <<=1;
       new_bits++;
     }
     if(new_bits) {
@@ -434,7 +436,7 @@ private:
     int new_bits = 0;
     // This can be done cause ANS_I_RANGE_START = 2^int
     while(ANS_decoder_state < ANS_I_RANGE_START) {
-      ANS_decoder_state <<=1; 
+      ANS_decoder_state <<=1;
       new_bits++;
     }
     if(new_bits) {
@@ -463,13 +465,13 @@ private:
       ANS_decoder_state |= get_bit();
     }
     #endif
-    
+
     is_ANS_ready = true;
   }
 
   void tANS_finish_block(){
     if(unlikely((ANS_decoder_state != ANS_I_RANGE_START))){
-      std::cerr<<"Error: ANS decoder state("<<ANS_decoder_state 
+      std::cerr<<"Error: ANS decoder state("<<ANS_decoder_state
             <<") should be zero at the end of the block"<<std::endl;
       throw 1;
     }
@@ -505,10 +507,10 @@ private:
   }
   int Geometric_decoder(uint theta_id, uint escape_bits){
     if(unlikely(!is_ANS_ready)) {init_ANS(); }
-    
+
     const auto encoder_cardinality = tANS_cardinality_table[theta_id ];
 
-    // read first symbol using 
+    // read first symbol using
     auto ans_symb = tANS_z_decoder(theta_id);
     int module = ans_symb;
 
@@ -516,6 +518,7 @@ private:
     while(ans_symb >= encoder_cardinality){
       if(it >= EE_MAX_ITERATIONS) {
         module = retrive_bits(escape_bits);
+        number_of_z_subsymbols+= it+1; // profiling
         break;
       }
 
@@ -523,7 +526,7 @@ private:
       module += ans_symb;
       it++;
     }
-    
+    number_of_z_subsymbols+= it; // profiling
 
     return module;
   }
@@ -534,7 +537,7 @@ private:
 #else
 
 /***********************
- *Decoder side functions  
+ *Decoder side functions
 ***********************/
 
 /*
@@ -542,8 +545,8 @@ When calling any of :
 - retrive_pixel
 - retrive_TSG_symbol
 
-it's assumed that a symbol was retrieved (except in retrive_TSG_symbol 
-when the escape symbol is encountered ). So the falling clean up code is used 
+it's assumed that a symbol was retrieved (except in retrive_TSG_symbol
+when the escape symbol is encountered ). So the falling clean up code is used
 before returning:
 
 ```
@@ -558,7 +561,7 @@ class Binary_Decoder
 
   static constexpr int ANS_SYMBOL = 0;
   static constexpr int ANS_PREV_STATE = 1;
-  static constexpr int tANS_STATE_SIZE = NUM_ANS_BITS ; 
+  static constexpr int tANS_STATE_SIZE = NUM_ANS_BITS ;
 
   uint remaining_symbols; // remaining symbols excluding those in the current block
   uint blk_rem_symbols;  // remaining symbols in current decoding block
@@ -583,7 +586,7 @@ public:
       std::cerr<<" Quiting with symbols in the binary"<<std::endl;
     }
   };
-  
+
   /*unsigned int retrive_pixel(int bits){
     unsigned int symbol;
     assert(bits<=16);
@@ -610,10 +613,10 @@ public:
     // blk_rem_symbols--;
     // check_update_block();
     return bit_buffer;
-    
+
   }
 
-  int retrive_TSG_symbol(int theta_id, int p_id, uint escape_bits, int &z, int &y){  
+  int retrive_TSG_symbol(int theta_id, int p_id, uint escape_bits, int &z, int &y){
     // z first and y second
     z = Geometric_decoder(theta_id,escape_bits);
     y = Bernoulli_decoder(p_id);
@@ -720,7 +723,7 @@ private:
 
   void tANS_finish_block(){
     if(unlikely((ANS_decoder_state != ANS_I_RANGE_START))){
-      std::cerr<<"Error: ANS decoder state("<<ANS_decoder_state 
+      std::cerr<<"Error: ANS decoder state("<<ANS_decoder_state
             <<") should be zero at the end of the block"<<std::endl;
       throw 1;
     }
@@ -756,10 +759,10 @@ private:
   }
   int Geometric_decoder(uint theta_id, uint escape_bits){
     if(unlikely(!is_ANS_ready)) {init_ANS(); }
-    
+
     const auto encoder_cardinality = tANS_cardinality_table[theta_id ];
 
-    // read first symbol using 
+    // read first symbol using
     auto ans_symb = tANS_z_decoder(theta_id);
     int module = ans_symb;
 
@@ -774,7 +777,7 @@ private:
       module += ans_symb;
       it++;
     }
-    
+
 
     return module;
   }
@@ -787,4 +790,3 @@ private:
 
 
 #endif // TSG_TEST_HPP
-

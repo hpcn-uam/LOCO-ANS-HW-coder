@@ -308,8 +308,7 @@ current_run -implementation [get_runs impl_1]
 #set build strategy
 set obj [get_runs synth_1]
 set_property -name "strategy" -value "Flow_PerfOptimized_high" -objects $obj
-set_property -name "steps.synth_design.args.directive" -value "AlternateRoutability" -objects $obj
-set_property -name "steps.synth_design.args.retiming" -value "1" -objects $obj
+set_property -name "steps.synth_design.args.directive" -value "PerformanceOptimized" -objects $obj
 set_property -name "steps.synth_design.args.fsm_extraction" -value "one_hot" -objects $obj
 set_property -name "steps.synth_design.args.keep_equivalent_registers" -value "1" -objects $obj
 set_property -name "steps.synth_design.args.resource_sharing" -value "off" -objects $obj
@@ -319,10 +318,9 @@ set_property -name "steps.synth_design.args.shreg_min_size" -value "5" -objects 
 set obj [get_runs impl_1]
 set_property -name "strategy" -value "Performance_ExploreWithRemap" -objects $obj
 set_property -name "steps.opt_design.args.directive" -value "ExploreWithRemap" -objects $obj
-set_property -name "steps.place_design.args.directive" -value "ExtraTimingOpt" -objects $obj
+set_property -name "steps.place_design.args.directive" -value "Explore" -objects $obj
 set_property -name "steps.phys_opt_design.args.directive" -value "AggressiveExplore" -objects $obj
-set_property -name "steps.route_design.args.directive" -value "AggressiveExplore" -objects $obj
-#set_property {STEPS.ROUTE_DESIGN.ARGS.MORE OPTIONS} {} [get_runs impl_1]
+set_property -name "steps.route_design.args.directive" -value "NoTimingRelaxation" -objects $obj
 set_property -name "steps.route_design.args.more options" -value "-tns_cleanup" -objects $obj
 set_property -name "steps.post_route_phys_opt_design.is_enabled" -value "1" -objects $obj
 set_property -name "steps.post_route_phys_opt_design.args.directive" -value "AggressiveExplore" -objects $obj

@@ -59,7 +59,7 @@ typedef int pixel_ptr_t;
   typedef int err_t; // OPT can be reduced to 9
 #endif
 
-
+#define CTX_ADJUST_CNT_IN_NEXT_ITER 1
 
 #define CTX_B_PRECISION 3 // number of fractional bits
 

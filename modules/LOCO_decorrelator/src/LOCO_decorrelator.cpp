@@ -95,10 +95,6 @@ void LOCO_decorrelator(
 
     #pragma HLS DEPENDENCE variable=quantized_img.buffer intra false
     #pragma HLS DEPENDENCE variable=quantized_img.buffer inter false
-    // #pragma HLS DEPENDENCE variable=quantized_img.b inter false
-    // #pragma HLS DEPENDENCE variable=quantized_img.b_reg inter false
-    // #pragma HLS DEPENDENCE variable=quantized_img.b_reg intra false
-    // #pragma HLS DEPENDENCE variable=context_stats distance=1 direction=RAW type=inter false
 
       auto channel_value = src.read();
       quantized_img.update(q_channel_value);
@@ -118,6 +114,14 @@ void LOCO_decorrelator(
                                                 -ctx_stats.bias;
       int prediction = clamp(prediction_correction + fixed_prediction);
 
+      #if CTX_ADJUST_CNT_IN_NEXT_ITER
+        if(ctx_stats.cnt == 0 ) {
+          ctx_stats.cnt = CTX_ADJUST_CNT>>1;
+          ctx_stats.Nt  >>=1;
+          ctx_stats.acc = (ctx_stats.acc >= 0)? ctx_acc_t(ctx_stats.acc >> 1): ctx_acc_t((1 + ctx_stats.acc) >> 1);
+          ctx_stats.St  >>=1;
+        }
+      #endif
 
       int error = channel_value - prediction;
       int acc_inv_sign = (ctx_stats.acc > 0)? 1:0;
@@ -191,6 +195,7 @@ void LOCO_decorrelator(
           <<" | q_error: "<<q_error<<" | error: "<<error);
 
       int last_symbol = px_idx == img_pixels-1? 1:0;
+
       DecorrelatorOutput out_symbol(remainder_reduct_bits,ctx_stats.St,ctx_stats.cnt,
               ctx_stats.p_idx, y,z,last_symbol);
       symbols << out_symbol;
@@ -280,6 +285,16 @@ void LOCO_decorrelator_LS(
 
       //correct prediction
       ContextElement ctx_stats=  context_stats[ctx_id] ;
+      #if CTX_ADJUST_CNT_IN_NEXT_ITER
+        if(ctx_stats.cnt == 0 ) {
+        // if(ctx_stats.cnt == CTX_ADJUST_CNT ) {
+          // ctx_stats.cnt >>=1;
+          ctx_stats.cnt = CTX_ADJUST_CNT>>1;
+          ctx_stats.Nt  >>=1;
+          ctx_stats.acc = (ctx_stats.acc >= 0)? ctx_acc_t(ctx_stats.acc >> 1): ctx_acc_t((1 + ctx_stats.acc) >> 1);
+          ctx_stats.St  >>=1;
+        }
+      #endif
       // ContextElement ctx_stats= prev_context == ctx_id?prev_ctx_stats: context_stats[ctx_id] ;
       prev_context = ctx_id;
       #pragma HLS disaggregate variable=ctx_stats

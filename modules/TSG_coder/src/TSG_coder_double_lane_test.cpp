@@ -16,7 +16,7 @@ using namespace hls;
 // #define DEBUG
 // #define USE_EXTERNAL_INPUT_VECTOR
 
-#ifdef USE_EXTERNAL_INPUT_VECTOR 
+#ifdef USE_EXTERNAL_INPUT_VECTOR
   #define EXT_VECTOR_SIZE (99)
   const long unsigned ext_input_vector[EXT_VECTOR_SIZE]={
     #include "../../LOCO_decorrelator/hw_out_file.dat"
@@ -30,15 +30,15 @@ int main(int argc, char const *argv[])
 {
   stream<coder_interf_t> in_data_0;
   stream<coder_interf_t> in_data_1;
-  
+
   int num_of_errors = 0;
   for (int blk_idx = 0; blk_idx < NUM_OF_BLCKS; ++blk_idx){
     std::vector<coder_interf_t> input_vector;
 
     // ************
-    // Generate input 
+    // Generate input
     // ************
-    #ifdef USE_EXTERNAL_INPUT_VECTOR 
+    #ifdef USE_EXTERNAL_INPUT_VECTOR
       cout<<"Processing external vector "<<endl;
       int block_size = EXT_VECTOR_SIZE;
       for (int i = 0; i < block_size; ++i){
@@ -53,7 +53,7 @@ int main(int argc, char const *argv[])
       const int blk_remainder_bits = EE_REMAINDER_SIZE - blk_remainder_reduct;
       const int Z_mask = (1<<blk_remainder_bits)-1;
 
-      cout<<"Processing block "<<blk_idx<<" | Z_mask: "<<hex<<Z_mask<<endl;
+      cout<<"Processing block "<<blk_idx<<" | Z_mask: "<<hex<<Z_mask<<dec<<endl;
       int block_size = TEST_BUFFER_SIZE + 20- 20*int(blk_idx/2);
 
       for (int i = 0; i < block_size; ++i){
@@ -65,7 +65,8 @@ int main(int argc, char const *argv[])
         ap_uint<Z_SIZE> z = blk_idx <= 3? val&0x1:(blk_idx <= 5? val & 0xF : val & 0x7F) ;
         z &= ap_uint<Z_SIZE>(Z_mask);
 
-        ap_uint<Y_SIZE> y = val & 0x80?1:0 ; 
+        ap_uint<Y_SIZE> y = 0 ;
+        // ap_uint<Y_SIZE> y = val & 0x80?1:0 ;
         ap_uint<THETA_SIZE> theta_id = i >= NUM_ANS_THETA_MODES?NUM_ANS_THETA_MODES-1: i ;
         ap_uint<P_SIZE> p_id = blk_idx/2 ;
         symb_data = (z,y,theta_id,p_id);
@@ -80,9 +81,9 @@ int main(int argc, char const *argv[])
     // ************
     // Run DUT :
     // ************
-    stream<TSG_out_intf> axis_byte_blocks_0; 
+    stream<TSG_out_intf> axis_byte_blocks_0;
     stream<tsg_blk_metadata> out_blk_metadata_0;
-    stream<TSG_out_intf> axis_byte_blocks_1; 
+    stream<TSG_out_intf> axis_byte_blocks_1;
     stream<tsg_blk_metadata> out_blk_metadata_1;
     int call_cnt = 0;
     while(!in_data_0.empty()){
@@ -140,12 +141,12 @@ int main(int argc, char const *argv[])
     ap_uint<OUTPUT_STACK_BYTES_SIZE> hw_last_byte_idx_element;
     ap_uint<1> hw_last_block;
     (hw_last_byte_idx_element,hw_last_block)=out_blk_metadata.read();
-    
-    // Replicate AXIS to DRAM:  convert stream in array 
+
+    // Replicate AXIS to DRAM:  convert stream in array
     unsigned mem_pointer = 0,blk_byte_cnt=0;
 
     int byte_counter = 0; // counter to check last_byte_idx signal
-    uint8_t* block_binary = new uint8_t[packed_byte_block.size()*OUT_DMA_BYTES+4]; 
+    uint8_t* block_binary = new uint8_t[packed_byte_block.size()*OUT_DMA_BYTES+4];
     while(! packed_byte_block.empty()) {
       byte_block<OUT_DMA_BYTES> out_byte_block = packed_byte_block.read();
       byte_counter += out_byte_block.num_of_bytes();
@@ -176,20 +177,20 @@ int main(int argc, char const *argv[])
       #endif
       }else{
         ASSERT(out_byte_block.is_last(),==,false," | mem_pointer: "
-                                <<mem_pointer<< " | blk_byte_cnt: blk_byte_cnt"); 
+                                <<mem_pointer<< " | blk_byte_cnt: blk_byte_cnt");
         ASSERT(out_byte_block.num_of_bytes(),==,OUT_DMA_BYTES," | mem_pointer: "
                                 <<mem_pointer<< " | blk_byte_cnt: blk_byte_cnt");
       }
 
     }
     // used to check words read at the end of decoding process
-    const int last_mem_pointer = mem_pointer-1; 
+    const int last_mem_pointer = mem_pointer-1;
 
-  
+
 
     // Decode and check
     Binary_Decoder bin_decoder(block_binary,block_size);
-    int i = 0;
+    int i = 0,code_blk_idx=0,block_bytes=0;
     for (auto elem_it : input_vector){
       // get golden values
       symb_data_t golden_data;
@@ -206,10 +207,10 @@ int main(int argc, char const *argv[])
       ap_uint<THETA_SIZE> golden_theta_id ;
       ap_uint<P_SIZE> golden_p_id ;
       (golden_z,golden_y,golden_theta_id,golden_p_id) = golden_data;
-      
-      //decode 
+
+      //decode
       int deco_z, deco_y;
-      bin_decoder.retrive_TSG_symbol(golden_theta_id, 
+      bin_decoder.retrive_TSG_symbol(golden_theta_id,
                   golden_p_id, remainder_bits, deco_z, deco_y);
 
       //check
@@ -217,9 +218,21 @@ int main(int argc, char const *argv[])
       ASSERT(deco_y,== ,golden_y,"Blk: "<<blk_idx<<" | i:"<<i);
       i++;
 
+      code_blk_idx++;
+      if (code_blk_idx == TEST_BUFFER_SIZE|| i == input_vector.size()) {
+        cout<<"\ti: "<<i;
+        cout<<"| Number of z subsymb: "<< bin_decoder.number_of_z_subsymbols;
+        cout<<"| Mean: "<< bin_decoder.number_of_z_subsymbols/float(code_blk_idx);
+        cout<<"| Bps: "<< (bin_decoder.get_current_byte_pointer() - block_bytes)*8/float(code_blk_idx);
+        block_bytes= bin_decoder.get_current_byte_pointer();
+        bin_decoder.number_of_z_subsymbols=0;
+        cout<<endl;
+        code_blk_idx=0;
+      }
+
     }
 
-    // check all memory words have been used 
+    // check all memory words have been used
     // ASSERT(bin_decoder.get_current_byte_pointer(),==,last_mem_pointer);
 
     // Assert all hw streams have been consumed
@@ -231,7 +244,7 @@ int main(int argc, char const *argv[])
       " Check that the testbench has read all outputs generated by the hw")
 
     cout<<"  | SUCCESS"<<endl;
-    //clean up 
+    //clean up
     delete[] block_binary;
   }
 

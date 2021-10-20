@@ -411,12 +411,14 @@ inline void update_context(
       ASSERT(p_idx,<,(1<<CTX_NT_PRECISION));
     #endif
 
-  if(cnt >= CTX_ADJUST_CNT ) {
-    cnt >>=1;
-    acc = (acc >= 0)? ctx_acc_t(acc >> 1): ctx_acc_t((1 + acc) >> 1);
-    Nt  >>=1;
-    St  >>=1;
-  }
+    #if !CTX_ADJUST_CNT_IN_NEXT_ITER
+    if(cnt == CTX_ADJUST_CNT ) {
+      cnt >>=1;
+      acc = (acc >= 0)? ctx_acc_t(acc >> 1): ctx_acc_t((1 + acc) >> 1);
+      Nt  >>=1;
+      St  >>=1;
+    }
+    #endif
 
   current_stats.acc = acc;
   current_stats.cnt = cnt;
