@@ -43,6 +43,10 @@ vivado_%/platform.xsa: logs bd_scripts/%_platform.tcl create_project.tcl
 	@cat vivado_$*/timing_summary.txt|grep "| Clock Summary" -A20 -B1
 	@echo  "$(GREEN) $* Platform Utilization summary:  $(NC)"
 	@cat vivado_$*/util_report.txt|grep "|               Instance               |" -A5 -B1
+	@echo  "-------------------------------------------"
+	@echo  "$(GREEN) $* Final summary:  $(NC)"
+	@bash ./results2latex.sh $*
+
 
 clean:
 	rm -rf vivado_*
