@@ -34,7 +34,7 @@ complete: $(TEST_TARGETS) $(TARGETS)
 $(TARGETS): %: logs %.hls_prj/$(PART)/syn  %.hls_prj/$(PART)/impl/ip/
 # $(MODULE):  hls_synth export_ip
 
-$(TEST_TARGETS): %_test: %_script.tcl %.hls_prj/$(PART)/csim %.hls_prj/$(PART)/sim
+$(TEST_TARGETS): %_test: logs %_script.tcl %.hls_prj/$(PART)/csim %.hls_prj/$(PART)/sim
 
 
 #generic rules
