@@ -56,8 +56,8 @@ void z_decompose_pre(
   
   ap_uint<LOG2_Z_SIZE> remainder_bits = EE_REMAINDER_SIZE - remainder_reduct; //symbol.remainder_reduct_bits;
   bool send_escape_symbol = z >= max_allowed_module;
-  ap_uint<ANS_SYMB_BITS> ans_symb = send_escape_symbol ? encoder_cardinality :
-                                  ap_uint<ANS_SYMB_BITS>(z & (encoder_cardinality-1)); // compute modulo op
+  ap_uint<ANS_SUBSYMBOL_BITS> ans_symb = send_escape_symbol ? encoder_cardinality :
+                                  ap_uint<ANS_SUBSYMBOL_BITS>(z & (encoder_cardinality-1)); // compute modulo op
   ap_uint<Z_SIZE> module_reminder = send_escape_symbol ? max_allowed_module: z;
   ap_uint<1> escape_symbol_flag = send_escape_symbol ? 1: 0 ;
 
@@ -79,7 +79,7 @@ void z_decompose_post(
   
   static ap_uint<Z_SIZE> module_reminder = 0;
   #pragma HLS reset variable=module_reminder
-  static ap_uint<ANS_SYMB_BITS> ans_symb;
+  static ap_uint<ANS_SUBSYMBOL_BITS> ans_symb;
   static ap_uint<CARD_BITS> encoder_cardinality;
   static ap_uint<THETA_SIZE> theta_id;
   static ap_uint<1> end_of_block;
@@ -225,7 +225,7 @@ void SubSymbolGenerator::z_decompose_post(
   
   // static ap_uint<Z_SIZE> module_reminder = 0;
   //#pragma HLS reset variable=module_reminder
-  // static ap_uint<ANS_SYMB_BITS> ans_symb;
+  // static ap_uint<ANS_SUBSYMBOL_BITS> ans_symb;
   // static ap_uint<CARD_BITS> encoder_cardinality;
   // static ap_uint<THETA_SIZE> theta_id;
   // static ap_uint<1> end_of_block;

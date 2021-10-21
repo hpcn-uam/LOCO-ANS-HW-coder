@@ -66,8 +66,10 @@ constexpr int ceillog2(int x){
 
 /********************** General parameters ******************************/
 
-//!!!!!! px is defined as unsigned char (ap_uint<>) generates some undesired effects
-#define INPUT_BPP (8)
+#include "user_config.hpp"
+
+
+// #define INPUT_BPP (8)
 typedef ap_uint<INPUT_BPP> px_t;
 // typedef unsigned char px_t;
 
@@ -75,22 +77,21 @@ constexpr int MAXVAL = (1<<INPUT_BPP)-1;
 #define Z_SIZE (INPUT_BPP-1)
 #define LOG2_Z_SIZE NBITS(Z_SIZE)// (3) // TODO: test  NBITS(Z_SIZE)
 #define Y_SIZE (1)
-#define THETA_SIZE (5) //32 tables
-#define P_SIZE (5) //32 tables
+// #define THETA_SIZE (ceillog2(NUM_ANS_THETA_MODES)) 
+// #define P_SIZE (ceillog2(NUM_ANS_P_MODES)) 
 
-constexpr int BUFFER_SIZE = 2048;
+// constexpr int BUFFER_SIZE = 2048;
 constexpr int BUFFER_ADDR_SIZE =  ceillog2(BUFFER_SIZE);
-constexpr int ANS_SYMB_BITS = 5;
-constexpr int CARD_BITS = ANS_SYMB_BITS;
 
 
-#define CTX_ST_FINER_QUANT (false)
-#define CTX_ST_PRECISION (7) // number of fractional bits
-#define MAX_ST_IDX  (14)//31//25 //(12)
 
-#define CTX_NT_CENTERED_QUANT (true)
-#define CTX_NT_PRECISION (6) // number of fractional bits
-#define HALF_Y_CODER (true)
+// #define CTX_ST_FINER_QUANT (false)
+// #define CTX_ST_PRECISION (7) // number of fractional bits
+// #define MAX_ST_IDX  (14)//31//25 //(12)
+
+// #define CTX_NT_CENTERED_QUANT (true)
+// #define CTX_NT_PRECISION (6) // number of fractional bits
+// #define HALF_Y_CODER (true)
 #define CTX_NT_HALF_IDX (1<<(CTX_NT_PRECISION-1))
 #define CTX_NT_QUANT_BINS (1<<(CTX_NT_PRECISION))
 
@@ -111,24 +112,25 @@ typedef ap_uint<SYMB_DATA_SIZE+SYMB_CTRL_SIZE> coder_interf_t; //
 
 #define SYMBOL_ENDIANNESS_LITTLE true
 constexpr int EE_REMAINDER_SIZE = Z_SIZE;
-constexpr int ANS_MAX_SRC_CARDINALITY =9;
+// constexpr int ANS_MAX_SRC_CARDINALITY =9;
 constexpr int ANS_SUBSYMBOL_BITS =  ceillog2(ANS_MAX_SRC_CARDINALITY) ;
+constexpr int CARD_BITS = ANS_SUBSYMBOL_BITS;
 constexpr int Z_ANS_TABLE_CARDINALITY =(1<<ANS_SUBSYMBOL_BITS); // power of 2  equal or just above  ANS_MAX_SRC_CARDINALITY
-constexpr int EE_MAX_ITERATIONS = 7;
+// constexpr int EE_MAX_ITERATIONS = 7;
 constexpr int INITIAL_ANS_STATE = 0;
 
-#define NUM_ANS_THETA_MODES (15)//16 // supported theta_modes
-#define NUM_ANS_P_MODES (32) //16 //32 // supported theta_modes
-#define NUM_ANS_STATES (64)//32//64 // NUM_ANS_STATES only considers I range
+// #define NUM_ANS_THETA_MODES (15)//16 // supported theta_modes
+// #define NUM_ANS_P_MODES (32) //16 //32 // supported theta_modes
+// #define NUM_ANS_STATES (64)//32//64 // NUM_ANS_STATES only considers I range
 #define ANS_I_RANGE_START NUM_ANS_STATES
-#define NUM_ANS_BITS (6)
-#define LOG2_ANS_BITS (3) // lg_2(NUM_ANS_BITS+1)
+// #define NUM_ANS_BITS (ceillog2(NUM_ANS_STATES))
+// #define LOG2_ANS_BITS (ceillog2(NUM_ANS_STATES+1)) // lg_2(NUM_ANS_BITS+1)/ +1 (last state has a bit marker) 
 
 #define BIT_BLOCK_SIZE MAX(Z_SIZE,NUM_ANS_BITS+1)
 #define LOG2_BIT_BLOCK_SIZE MAX(LOG2_Z_SIZE,LOG2_ANS_BITS)
-static const ap_uint<CARD_BITS> tANS_cardinality_table[16] = { 1,1,1,1,1,2,2,4,4,8,8,8,8,8,8,0};
+// static const ap_uint<CARD_BITS> tANS_cardinality_table[16] = { 1,1,1,1,1,2,2,4,4,8,8,8,8,8,8,0};
 //todo ensure to clamp values
-static const ap_uint<Z_SIZE> max_module_per_cardinality_table[16] = { 1*EE_MAX_ITERATIONS,1*EE_MAX_ITERATIONS,1*EE_MAX_ITERATIONS,1*EE_MAX_ITERATIONS,1*EE_MAX_ITERATIONS,2*EE_MAX_ITERATIONS,2*EE_MAX_ITERATIONS,4*EE_MAX_ITERATIONS,4*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,0*EE_MAX_ITERATIONS};
+// static const ap_uint<Z_SIZE> max_module_per_cardinality_table[16] = { 1*EE_MAX_ITERATIONS,1*EE_MAX_ITERATIONS,1*EE_MAX_ITERATIONS,1*EE_MAX_ITERATIONS,1*EE_MAX_ITERATIONS,2*EE_MAX_ITERATIONS,2*EE_MAX_ITERATIONS,4*EE_MAX_ITERATIONS,4*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,8*EE_MAX_ITERATIONS,0*EE_MAX_ITERATIONS};
 
 
 #if SYMBOL_ENDIANNESS_LITTLE

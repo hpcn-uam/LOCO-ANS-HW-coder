@@ -45,7 +45,7 @@ vivado_%/platform.xsa: logs bd_scripts/%_platform.tcl create_project.tcl
 		@cat vivado_$*/util_report.txt|grep "|               Instance               |" -A5 -B1
 
 clean:
-	rm -rf vivado_*
+	rm -rf vivado_* 
 
 distclean: clean
-	rm -rf *_output_products *.log *.jou
+	rm -rf *_output_products *.log *.jou logs

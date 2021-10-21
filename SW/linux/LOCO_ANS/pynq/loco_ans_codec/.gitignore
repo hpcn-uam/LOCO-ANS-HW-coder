@@ -1,0 +1,6 @@
+*.xlsx
+loco_ans_codec
+.ipynb_checkpoints 
+*.jls_ans
+*.pgm
+callgrind.*
