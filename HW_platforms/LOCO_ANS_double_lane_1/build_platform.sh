@@ -55,3 +55,5 @@ vivado -mode batch -source ../create_project.tcl \
         --origin_dir ./ \
         --project_name ${PROJ_NAME}  \
         --target_board ${TARGET_BOARD} > ../logs/${TARGET_BOARD}_vivado.log
+
+Print_Msg End of vivado process
