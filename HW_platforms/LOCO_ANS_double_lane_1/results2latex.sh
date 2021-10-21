@@ -28,7 +28,8 @@ fi
 
 vivado_folder="vivado_$target"
 
-config="LOCO-ANS6"
+ANS_state_bits=`cat ../../modules/user_config.hpp| awk -F " " '/define NUM_ANS_BITS/{print $3}'|cut -c2-2`
+config="LOCO-ANS$ANS_state_bits"
 
 lanes="2"
 
