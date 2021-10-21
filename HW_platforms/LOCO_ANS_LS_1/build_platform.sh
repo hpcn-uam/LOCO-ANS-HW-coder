@@ -53,3 +53,5 @@ vivado -mode batch -source ../create_project.tcl -tclargs \
         --origin_dir ./ \
         --project_name ${PROJ_NAME}  \
         --target_board ${TARGET_BOARD}
+
+Print_Msg End of vivado process

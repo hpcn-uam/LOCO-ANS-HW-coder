@@ -6,7 +6,7 @@ NC=\e[0m
 
 MODE := 1 # 1: just hls synth and export | 0: also csim and cosim
 MODE_NAME := 
-DEPS := $(wildcard src/*.cpp) $(wildcard src/*.hpp) ../coder_config.hpp
+DEPS := $(wildcard src/*.cpp) $(wildcard src/*.hpp) ../coder_config.hpp ../user_config.hpp
 
 .PHONY: clean all
 
