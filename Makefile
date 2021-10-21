@@ -10,7 +10,7 @@ TARGETS = TSG_coder LOCO_ANS_double_lane_1
 all: LOCO_ANS_double_lane_1 
 
 BOARD=pynq_z2
-PART=$(BOARD)
+
 
 
 $(TARGETS): %: basic_modules HW_platforms/%/$(BOARD)_output_products/platform.xsa
@@ -22,7 +22,7 @@ HW_platforms/%/$(BOARD)_output_products/platform.xsa: basic_modules
 
 basic_modules:
 	@echo  "$(GREEN) #########  Building $@ #########$(NC)"
-	make -C modules -j4 PART=$(PART)
+	make -C modules -j4 PART=$(BOARD)
 
 
 clean:
