@@ -240,8 +240,8 @@ proc create_hier_cell_LOCO_ANS_Encoder { parentCell nameHier } {
   # Create instance: St_idx_compute_1, and set properties
   set St_idx_compute_1 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:St_idx_compute:1.1 St_idx_compute_1 ]
 
-  # Create instance: TSG_coder_double_lane_1, and set properties
-  set TSG_coder_double_lane_1 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:TSG_coder_double_lane:1.1 TSG_coder_double_lane_1 ]
+  # Create instance: TSG_coder_double_lane_0, and set properties
+  set TSG_coder_double_lane_0 [ create_bd_cell -type ip -vlnv HPCN:loco_ans:TSG_coder_double_lane:1.1 TSG_coder_double_lane_0 ]
 
   # Create instance: first_px_fifo, and set properties
   set first_px_fifo [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_data_fifo:2.0 first_px_fifo ]
@@ -312,10 +312,10 @@ proc create_hier_cell_LOCO_ANS_Encoder { parentCell nameHier } {
   connect_bd_intf_net -intf_net ODMA_control_1 [get_bd_intf_pins ODMA_control] [get_bd_intf_pins odma_0/s_axi_control]
   connect_bd_intf_net -intf_net St_idx_compute_2_out_symbols_V [get_bd_intf_pins St_idx_compute_0/out_symbols_V] [get_bd_intf_pins symbol_fifo/S_AXIS]
   connect_bd_intf_net -intf_net St_idx_compute_2_out_symbols_V1 [get_bd_intf_pins St_idx_compute_1/out_symbols_V] [get_bd_intf_pins symbol_fifo1/S_AXIS]
-  connect_bd_intf_net -intf_net TSG_coder_double_lane_1_byte_block_stream_0 [get_bd_intf_pins TSG_coder_double_lane_1/byte_block_stream_0] [get_bd_intf_pins symbol_fifo2/S_AXIS]
-  connect_bd_intf_net -intf_net TSG_coder_double_lane_1_byte_block_stream_1 [get_bd_intf_pins TSG_coder_double_lane_1/byte_block_stream_1] [get_bd_intf_pins symbol_fifo5/S_AXIS]
-  connect_bd_intf_net -intf_net TSG_coder_double_lane_1_out_blk_metadata_0_V [get_bd_intf_pins TSG_coder_double_lane_1/out_blk_metadata_0_V] [get_bd_intf_pins symbol_fifo3/S_AXIS]
-  connect_bd_intf_net -intf_net TSG_coder_double_lane_1_out_blk_metadata_1_V [get_bd_intf_pins TSG_coder_double_lane_1/out_blk_metadata_1_V] [get_bd_intf_pins symbol_fifo4/S_AXIS]
+  connect_bd_intf_net -intf_net TSG_coder_double_lane_0_byte_block_stream_0 [get_bd_intf_pins TSG_coder_double_lane_0/byte_block_stream_0] [get_bd_intf_pins symbol_fifo2/S_AXIS]
+  connect_bd_intf_net -intf_net TSG_coder_double_lane_0_byte_block_stream_1 [get_bd_intf_pins TSG_coder_double_lane_0/byte_block_stream_1] [get_bd_intf_pins symbol_fifo5/S_AXIS]
+  connect_bd_intf_net -intf_net TSG_coder_double_lane_0_out_blk_metadata_0_V [get_bd_intf_pins TSG_coder_double_lane_0/out_blk_metadata_0_V] [get_bd_intf_pins symbol_fifo3/S_AXIS]
+  connect_bd_intf_net -intf_net TSG_coder_double_lane_0_out_blk_metadata_1_V [get_bd_intf_pins TSG_coder_double_lane_0/out_blk_metadata_1_V] [get_bd_intf_pins symbol_fifo4/S_AXIS]
   connect_bd_intf_net -intf_net first_px_fifo1_M_AXIS [get_bd_intf_pins File_writer_1/first_px_stream_V] [get_bd_intf_pins first_px_fifo1/M_AXIS]
   connect_bd_intf_net -intf_net first_px_fifo_M_AXIS [get_bd_intf_pins File_writer_0/first_px_stream_V] [get_bd_intf_pins first_px_fifo/M_AXIS]
   connect_bd_intf_net -intf_net odma_2_m_axi_mem [get_bd_intf_pins m_axi_mem] [get_bd_intf_pins odma_0/m_axi_mem]
@@ -324,17 +324,17 @@ proc create_hier_cell_LOCO_ANS_Encoder { parentCell nameHier } {
   connect_bd_intf_net -intf_net s_axi_control_1 [get_bd_intf_pins s_axi_control] [get_bd_intf_pins odma_1/s_axi_control]
   connect_bd_intf_net -intf_net src_V1_1 [get_bd_intf_pins src_V1] [get_bd_intf_pins LOCO_decorrelator_LS_1/src_V]
   connect_bd_intf_net -intf_net src_V_1 [get_bd_intf_pins src_V] [get_bd_intf_pins LOCO_decorrelator_LS_0/src_V]
-  connect_bd_intf_net -intf_net symbol_fifo1_M_AXIS [get_bd_intf_pins TSG_coder_double_lane_1/in_1_V] [get_bd_intf_pins symbol_fifo1/M_AXIS]
+  connect_bd_intf_net -intf_net symbol_fifo1_M_AXIS [get_bd_intf_pins TSG_coder_double_lane_0/in_1_V] [get_bd_intf_pins symbol_fifo1/M_AXIS]
   connect_bd_intf_net -intf_net symbol_fifo2_M_AXIS [get_bd_intf_pins File_writer_0/in_byte_block_stream] [get_bd_intf_pins symbol_fifo2/M_AXIS]
   connect_bd_intf_net -intf_net symbol_fifo3_M_AXIS [get_bd_intf_pins File_writer_0/in_blk_metadata_V] [get_bd_intf_pins symbol_fifo3/M_AXIS]
   connect_bd_intf_net -intf_net symbol_fifo4_M_AXIS [get_bd_intf_pins File_writer_1/in_blk_metadata_V] [get_bd_intf_pins symbol_fifo4/M_AXIS]
   connect_bd_intf_net -intf_net symbol_fifo5_M_AXIS [get_bd_intf_pins File_writer_1/in_byte_block_stream] [get_bd_intf_pins symbol_fifo5/M_AXIS]
-  connect_bd_intf_net -intf_net symbol_fifo_M_AXIS [get_bd_intf_pins TSG_coder_double_lane_1/in_0_V] [get_bd_intf_pins symbol_fifo/M_AXIS]
+  connect_bd_intf_net -intf_net symbol_fifo_M_AXIS [get_bd_intf_pins TSG_coder_double_lane_0/in_0_V] [get_bd_intf_pins symbol_fifo/M_AXIS]
 
   # Create port connections
   connect_bd_net -net ap_clk1_1 [get_bd_pins ap_clk1] [get_bd_pins File_writer_0/ap_clk] [get_bd_pins File_writer_1/ap_clk] [get_bd_pins first_px_fifo/m_axis_aclk] [get_bd_pins first_px_fifo1/m_axis_aclk] [get_bd_pins odma_0/ap_clk] [get_bd_pins odma_1/ap_clk] [get_bd_pins symbol_fifo2/m_axis_aclk] [get_bd_pins symbol_fifo3/m_axis_aclk] [get_bd_pins symbol_fifo4/m_axis_aclk] [get_bd_pins symbol_fifo5/m_axis_aclk]
-  connect_bd_net -net ap_clk_1 [get_bd_pins ap_clk] [get_bd_pins TSG_coder_double_lane_1/ap_clk] [get_bd_pins symbol_fifo/m_axis_aclk] [get_bd_pins symbol_fifo1/m_axis_aclk] [get_bd_pins symbol_fifo2/s_axis_aclk] [get_bd_pins symbol_fifo3/s_axis_aclk] [get_bd_pins symbol_fifo4/s_axis_aclk] [get_bd_pins symbol_fifo5/s_axis_aclk]
-  connect_bd_net -net ap_rst_n_1 [get_bd_pins ap_rst_n] [get_bd_pins TSG_coder_double_lane_1/ap_rst_n] [get_bd_pins symbol_fifo2/s_axis_aresetn] [get_bd_pins symbol_fifo3/s_axis_aresetn] [get_bd_pins symbol_fifo4/s_axis_aresetn] [get_bd_pins symbol_fifo5/s_axis_aresetn]
+  connect_bd_net -net ap_clk_1 [get_bd_pins ap_clk] [get_bd_pins TSG_coder_double_lane_0/ap_clk] [get_bd_pins symbol_fifo/m_axis_aclk] [get_bd_pins symbol_fifo1/m_axis_aclk] [get_bd_pins symbol_fifo2/s_axis_aclk] [get_bd_pins symbol_fifo3/s_axis_aclk] [get_bd_pins symbol_fifo4/s_axis_aclk] [get_bd_pins symbol_fifo5/s_axis_aclk]
+  connect_bd_net -net ap_rst_n_1 [get_bd_pins ap_rst_n] [get_bd_pins TSG_coder_double_lane_0/ap_rst_n] [get_bd_pins symbol_fifo2/s_axis_aresetn] [get_bd_pins symbol_fifo3/s_axis_aresetn] [get_bd_pins symbol_fifo4/s_axis_aresetn] [get_bd_pins symbol_fifo5/s_axis_aresetn]
   connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins ap_clk0] [get_bd_pins LOCO_decorrelator_LS_0/ap_clk] [get_bd_pins LOCO_decorrelator_LS_1/ap_clk] [get_bd_pins St_idx_compute_0/ap_clk] [get_bd_pins St_idx_compute_1/ap_clk] [get_bd_pins first_px_fifo/s_axis_aclk] [get_bd_pins first_px_fifo1/s_axis_aclk] [get_bd_pins symbol_fifo/s_axis_aclk] [get_bd_pins symbol_fifo1/s_axis_aclk]
   connect_bd_net -net resetn_1 [get_bd_pins rst_1_n] [get_bd_pins File_writer_0/ap_rst_n] [get_bd_pins File_writer_1/ap_rst_n] [get_bd_pins odma_0/ap_rst_n] [get_bd_pins odma_1/ap_rst_n]
   connect_bd_net -net rst_ps7_0_50M_peripheral_aresetn [get_bd_pins rst_0_n] [get_bd_pins LOCO_decorrelator_LS_0/ap_rst_n] [get_bd_pins LOCO_decorrelator_LS_1/ap_rst_n] [get_bd_pins St_idx_compute_0/ap_rst_n] [get_bd_pins St_idx_compute_1/ap_rst_n] [get_bd_pins first_px_fifo/s_axis_aresetn] [get_bd_pins first_px_fifo1/s_axis_aresetn] [get_bd_pins symbol_fifo/s_axis_aresetn] [get_bd_pins symbol_fifo1/s_axis_aresetn]
