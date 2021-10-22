@@ -34,7 +34,7 @@ switch -exact -- $target {
   "zcu104" {
     set target_id 1
     set part xczu7ev-ffvc1156-2-e
-    set period 4
+    set period 3
   }
   default {
     puts "Error: target id not supported"
