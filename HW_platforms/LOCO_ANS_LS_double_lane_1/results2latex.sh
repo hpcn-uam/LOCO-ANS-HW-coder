@@ -18,7 +18,7 @@ Print_Err(){
   echo -e " ${time}: ${ERR_COLOR} $@ ${DEF_COLOR}"
 }
 
-MODULES=( LOCO_decorrelator_LS_0 LOCO_decorrelator_LS_1 St_idx_compute_0 St_idx_compute_1 TSG_coder_double_lane_0 first_px_fifo first_px_fifo1 symbol_fifo symbol_fifo1 )
+
 
 target="pynq_z2"
 
@@ -50,6 +50,12 @@ fi
 
 clk_0=$(echo "scale=1; 1000 /(${clk_0_target_period} - ${clk_0_wns})" |bc )
 clk_1=$(echo "scale=1; 1000 /(${clk_1_target_period} - ${clk_1_wns})" |bc )
+
+if [[ $target == "zcu104" ]]; then
+  MODULES=( LOCO_decorrelator_LS_0 LOCO_decorrelator_LS_1 St_idx_compute_0 symbol_fifo1 symbol_fifo2 symbol_fifo3 symbol_fifo4 symbol_fifo5 St_idx_compute_1 TSG_coder_double_lane_0 first_px_fifo first_px_fifo1 symbol_fifo symbol_fifo1 )
+else
+  MODULES=( LOCO_decorrelator_LS_0 LOCO_decorrelator_LS_1 St_idx_compute_0 St_idx_compute_1 TSG_coder_double_lane_0 first_px_fifo first_px_fifo1 symbol_fifo symbol_fifo1 )
+fi
 
 
 get_sum_of_util(){ # position of util in text table
