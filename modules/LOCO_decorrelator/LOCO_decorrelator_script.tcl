@@ -35,7 +35,7 @@ switch -exact -- $target {
   "zcu104" {
     set target_id 1
     set part xczu7ev-ffvc1156-2-e
-    set period 10
+    set period 5
     set clk_uncertainty  1
   }
   default {
