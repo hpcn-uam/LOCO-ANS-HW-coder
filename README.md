@@ -83,7 +83,7 @@ The XCZU7EV LOCO-ANS7-LS performance is determined by the high frequency clock, 
 
 Submitted to Electronics journal (MDPI), currently under revision
 
-Title: "An FPGA-based LOCO-ANS Implementation for Lossless andNear-Lossless Image Compression Using High-Level Synthesis"
+Title: "An FPGA-based LOCO-ANS Implementation for Lossless and Near-Lossless Image Compression Using High-Level Synthesis"
 
 Authors: Tobías Alonso, Gustavo Sutter, and Jorge E. López de Vergara
 
@@ -92,7 +92,7 @@ Authors: Tobías Alonso, Gustavo Sutter, and Jorge E. López de Vergara
 
 ### Codec design and evaluation
 
-Title: "LOCO-ANS: An optimization of JPEG-LS using anefficient and low complexity coder based on ANS"
+Title: "LOCO-ANS: An optimization of JPEG-LS using an efficient and low complexity coder based on ANS"
 
 Authors: Tobías Alonso, Gustavo Sutter, and Jorge E. López de Vergara
 
