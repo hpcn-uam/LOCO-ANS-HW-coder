@@ -60,7 +60,7 @@ Performance is almost always determined by the low frequency clock, achieving cl
 **Lossless optimized double-lane encoders:**
 
 |    Part | Coder config |    Clk0/1 (MHz) (1) |   LUT  |   FF   |  BRAM | DSP  | 
-|:------ :|    --------  |    --------         |  ----- |   ---- |  ---- |  --- | 
+| ------  |    --------  |    --------         |  ----- |   ---- |  ---- |  --- | 
 |  Z-7020 | LOCO-ANS4-LS |    65.0 / 183.1     |   3979 |   4160 |  16.5 |   2  |
 |  Z-7020 | LOCO-ANS6-LS |    64.3 / 186.0     |   4248 |   4298 |  21.0 |   2  |
 |  Z-7020 | LOCO-ANS7-LS |    62.8 / 166.6     |   4572 |   4373 |  29.0 |   2  |
