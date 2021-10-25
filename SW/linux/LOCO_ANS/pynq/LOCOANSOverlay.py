@@ -119,16 +119,7 @@ class LOCOANSOverlay(Overlay):
     def near(self,new_near):
         assert self.near_support or new_near == 0, "Error: near setting (new near =%d) is not supported" % new_near
         self._near=new_near  
-
-    @property
-    def clock1(self):
-        return Clocks.fclk1_mhz
-    
-    @clock1.setter
-    def clock1(self,clk_in_mhz):
-        Clocks.fclk1_mhz=clk_in_mhz
-    
-    
+            
     @property
     def clock0(self):
         return Clocks.fclk0_mhz
@@ -136,6 +127,24 @@ class LOCOANSOverlay(Overlay):
     @clock0.setter
     def clock0(self,clk_in_mhz):
         Clocks.fclk0_mhz=clk_in_mhz
+        
+    @property
+    def clock1(self):
+        return Clocks.fclk1_mhz
+    
+    @clock1.setter
+    def clock1(self,clk_in_mhz):
+        Clocks.fclk1_mhz=clk_in_mhz   
+        
+    @property
+    def clock2(self):
+        return Clocks.fclk1_mhz
+    
+    @clock1.setter
+    def clock2(self,clk_in_mhz):
+        Clocks.fclk1_mhz=clk_in_mhz
+    
+
         
     def allocate_buffers(self,in_block_size):
         in_buf_size = in_block_size
@@ -147,8 +156,8 @@ class LOCOANSOverlay(Overlay):
         self.in_buf = []
         self.out_buf = []
         for i in range(self.tiles_in_use):
-            self.in_buf += [allocate(in_block_size, dtype=np.uint8)]
-            self.out_buf += [allocate(out_buf_size, dtype=np.uint8)]
+            self.in_buf += [allocate(in_block_size, dtype=np.uint8,cacheable=1 )]
+            self.out_buf += [allocate(out_buf_size, dtype=np.uint8,cacheable=1 )]
 
     def load_image(self,img=None):
         if img is None:
