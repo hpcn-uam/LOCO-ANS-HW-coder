@@ -390,4 +390,4 @@ class LOCOANSOverlay(Overlay):
         success = self.check_out_binary()
         
         
-        return success, perf_times ñs
+        return success, perf_times
