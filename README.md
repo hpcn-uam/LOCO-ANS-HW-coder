@@ -153,6 +153,6 @@ To test the platforms:
   - On the embedded Linux: run `make release` inside of the `pynq/loco_ans_codec` folder you copied
   -  If you change the codec configuration, you'll need to copy the sw codec source and build it again
 
-- Copy the ".bit" and ".hwh" files of the chosen hardware platform. Choose a path that would me accessible to the Jupyter server
+- Copy the ".bit" and ".hwh" files of the chosen hardware platform. These are located under `HW_platforms/{platform_name}/{board_name}_output_products` .Choose a path that would me accessible to the Jupyter server
 - Run test: 
   - Open and run the `pynq/LOCO_encoder_test.ipynb` notebook
