@@ -148,6 +148,7 @@ Currently supported boards:
 ### Test 
 To test the platforms:
 - Linux with pynq: Simplest way is to get a prebuilt image from: [http://www.pynq.io/board.html ]
+  - Make sure that the libopencv is installed (needed by the sw codec). In ubuntu, for ex., run `sudo apt install libopencv-dev` (after updating the apt database).
 - Copy the linux/LOCO_ANS/pynq folder to the RFS. Choose a path that would me accessible to the Jupyter server. For example, for the prebuilt pynq images: `/home/xilinx/jupyter_notebooks` 
 - Build the software codec for verification:
   - On the embedded Linux: run `make release` inside of the `pynq/loco_ans_codec` folder you copied
