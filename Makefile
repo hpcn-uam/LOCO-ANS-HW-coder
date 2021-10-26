@@ -27,4 +27,5 @@ basic_modules:
 
 clean:
 	make -C modules clean
-# 	make -C HW_platforms clean
+	make -C HW_platforms/LOCO_ANS_double_lane_1 clean
+	make -C HW_platforms/LOCO_ANS_LS_double_lane_1 clean
